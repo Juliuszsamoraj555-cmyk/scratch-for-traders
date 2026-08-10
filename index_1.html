@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scratch for Traders</title>
+<!-- Self-hosted, version-pinned (Tailwind 3.4.17 / Blockly 13.2.1) instead
+     of loading from unpkg/cdn.tailwindcss.com at runtime - avoids the app
+     going down (or silently breaking on an unannounced upstream update)
+     whenever a third-party CDN we don't control has a bad day. See
+     assets/vendor/. -->
+<script src="assets/vendor/tailwind/tailwind-3.4.17.js"></script>
+<script src="assets/vendor/blockly/blockly_compressed.js"></script>
+<script src="assets/vendor/blockly/blocks_compressed.js"></script>
+<script src="assets/vendor/blockly/msg/en.js"></script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  #blocklyDiv { height: 100%; width: 100%; }
+  .blocklyToolboxDiv { background-color: #111827 !important; }
+</style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <header class="flex items-center justify-between px-6 py-3 bg-gray-950 border-b border-gray-800 shadow-sm z-10">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center font-bold text-gray-900">S</div>
+      <h1 class="text-lg font-semibold tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></h1>
+      <span class="ml-2 text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">MVP</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 pr-3 mr-1 border-r border-gray-800">
+        <button id="newStrategyBtn" title="Start a new, blank strategy"
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          New
+        </button>
+        <button id="openStrategiesBtn" title="My Strategies"
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          My Strategies
+        </button>
+        <button id="saveStrategyBtn" title="Save this strategy"
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 4h11l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 4v5h8V4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 20v-6h8v6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Save
+        </button>
+      </div>
+      <span id="statusMsg" class="text-sm text-gray-400"></span>
+      <button id="exportMt5Btn"
+        class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+        <img src="assets/mt5_icon.png"
+          alt="MT5" class="w-5 h-5 object-contain" />
+        Export to MT5
+      </button>
+      <button id="exportMt4Btn"
+        class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+        <img src="assets/mt4_icon.png"
+          alt="MT4" class="w-5 h-5 object-contain" />
+        Export to MT4
+      </button>
+      <button id="exportCtraderBtn"
+        class="bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+        <img src="assets/ctrader_icon.png"
+          alt="cTrader" class="w-5 h-5 object-contain" />
+        Export to cTrader
+      </button>
+    </div>
+  </header>
+
+  <!-- Blockly workspace -->
+  <main class="flex-1 relative">
+    <div id="blocklyDiv" class="absolute inset-0"></div>
+  </main>
+
+  <!-- Toolbox -->
+  <xml id="toolbox" style="display: none">
+    <category name="Setup" colour="#2563eb">
+      <block type="asset_block"></block>
+      <block type="timeframe_block"></block>
+    </category>
+    <category name="Conditions" colour="#d97706">
+      <block type="comparison_block"></block>
+      <block type="logical_operator"></block>
+    </category>
+    <category name="Price &amp; Volume" colour="#0891b2">
+      <block type="candle_block"></block>
+      <block type="volume_block"></block>
+    </category>
+    <category name="Indicators" colour="#7c3aed">
+      <block type="indicator_ma"></block>
+      <block type="indicator_rsi"></block>
+      <block type="indicator_macd"></block>
+      <block type="indicator_bands"></block>
+      <block type="indicator_atr"></block>
+      <block type="indicator_stoch"></block>
+    </category>
+    <category name="Strategy" colour="#059669">
+      <block type="trade_if"></block>
+      <block type="action_block"></block>
+    </category>
+    <category name="Risk &amp; Sizing" colour="#0d9488">
+      <block type="risk_value_block"></block>
+      <block type="math_multiply_block"></block>
+      <block type="math_number"></block>
+    </category>
+  </xml>
+
+  <!-- Error / info toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 text-sm px-4 py-3 rounded-lg shadow-lg max-w-md z-50"></div>
+
+  <!-- "My Strategies" panel -->
+  <div id="strategiesOverlay" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center px-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md max-h-[75vh] flex flex-col">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800 shrink-0">
+        <h2 class="font-semibold text-gray-100">My Strategies</h2>
+        <button id="closeStrategiesBtn" class="text-gray-400 hover:text-gray-200 text-xl leading-none px-1" title="Close">&times;</button>
+      </div>
+      <div id="strategiesList" class="overflow-y-auto p-2 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- Generic prompt/confirm dialog - replaces window.prompt()/confirm(),
+       which don't work in every embedding context (e.g. this app previews
+       inside a sandboxed iframe in some tooling, where native dialogs are
+       blocked outright rather than just looking different). -->
+  <div id="dialogOverlay" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center px-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-5">
+      <p id="dialogMessage" class="text-sm text-gray-200 mb-3 whitespace-pre-line"></p>
+      <input id="dialogInput" type="text"
+        class="hidden w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-100 mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      <div class="flex justify-end gap-2">
+        <button id="dialogCancelBtn" class="text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded-md">Cancel</button>
+        <button id="dialogOkBtn" class="text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-md">OK</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   1. CUSTOM BLOCK DEFINITIONS
+   ============================================================ */
+
+// A FieldDropdown whose popup adds a search box up top - the plain
+// Blockly menu widget doesn't support filtering, and with 75 assets in
+// the list below, scrolling to find one by hand isn't realistic. Built on
+// Blockly.DropDownDiv, the same public API Blockly's own rich fields
+// (colour picker, angle picker, etc.) use for a custom popup - only the
+// Asset field needs this, every other dropdown in this app has few enough
+// options that the stock menu is fine.
+class FieldSearchableDropdown extends Blockly.FieldDropdown {
+  showEditor_() {
+    Blockly.DropDownDiv.clearContent();
+    const contentDiv = Blockly.DropDownDiv.getContentDiv();
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-direction:column;width:240px;font-family:inherit;';
+
+    // Same stroke-icon style as every other icon in this app (header
+    // buttons, export buttons) - not an emoji.
+    const searchBox = document.createElement('div');
+    searchBox.style.cssText = 'position:relative;margin:6px;';
+    searchBox.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" '
+      + 'style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:14px;height:14px;pointer-events:none;">'
+      + '<circle cx="11" cy="11" r="7" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '<path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '</svg>';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search assets...';
+    searchInput.style.cssText = 'width:100%;padding:6px 8px 6px 28px;border-radius:6px;border:1px solid #4b5563;background:#111827;color:#e5e7eb;font-size:13px;outline:none;box-sizing:border-box;';
+    searchBox.appendChild(searchInput);
+
+    const listEl = document.createElement('div');
+    listEl.style.cssText = 'max-height:260px;overflow-y:auto;padding:0 4px 6px;';
+
+    const options = this.getOptions(false);
+    const currentValue = this.getValue();
+
+    const renderList = (filterText) => {
+      listEl.innerHTML = '';
+      const q = filterText.trim().toLowerCase();
+      // CUSTOM is handled as its own always-present row below, not as a
+      // regular searchable entry (avoids listing it twice).
+      const searchable = options.filter(([, value]) => value !== 'CUSTOM');
+      const filtered = q
+        ? searchable.filter(([text, value]) => text.toLowerCase().includes(q) || value.toLowerCase().includes(q))
+        : searchable;
+
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.textContent = 'No matches in the list';
+        empty.style.cssText = 'padding:8px 8px 4px;color:#9ca3af;font-size:13px;';
+        listEl.appendChild(empty);
+      } else {
+        filtered.forEach(([text, value]) => {
+          const item = document.createElement('div');
+          item.textContent = text;
+          item.dataset.selectable = 'true';
+          const isSelected = value === currentValue;
+          item.style.cssText = 'padding:6px 8px;border-radius:4px;cursor:pointer;font-size:13px;color:#e5e7eb;'
+            + (isSelected ? 'background:#374151;font-weight:600;' : '');
+          item.addEventListener('mouseenter', () => { item.style.background = '#374151'; });
+          item.addEventListener('mouseleave', () => { item.style.background = isSelected ? '#374151' : ''; });
+          // Keep the search input focused instead of stealing focus on click.
+          item.addEventListener('mousedown', (e) => e.preventDefault());
+          item.addEventListener('click', () => {
+            this.setValue(value);
+            Blockly.DropDownDiv.hideIfOwner(this);
+          });
+          listEl.appendChild(item);
+        });
+      }
+
+      // Custom / Other... is always reachable, not just when nothing
+      // matches - but it's what a trader actually needs whenever their
+      // broker's symbol isn't in the built-in list. Pre-fills the typed
+      // search text as the starting symbol.
+      const typed = filterText.trim().toUpperCase();
+      const customItem = document.createElement('div');
+      customItem.textContent = typed ? `Use "${typed}" (Custom / Other...)` : 'Custom / Other...';
+      customItem.dataset.selectable = 'true';
+      const customIsSelected = currentValue === 'CUSTOM';
+      customItem.style.cssText = 'padding:6px 8px;border-radius:4px;cursor:pointer;font-size:13px;color:#7dd3fc;'
+        + 'margin-top:4px;border-top:1px solid #374151;padding-top:8px;'
+        + (customIsSelected ? 'background:#374151;font-weight:600;' : '');
+      customItem.addEventListener('mouseenter', () => { customItem.style.background = '#374151'; });
+      customItem.addEventListener('mouseleave', () => { customItem.style.background = customIsSelected ? '#374151' : ''; });
+      customItem.addEventListener('mousedown', (e) => e.preventDefault());
+      customItem.addEventListener('click', () => {
+        this.setValue('CUSTOM');
+        const block = this.sourceBlock_;
+        if (block && block.updateCustomAssetShape_) {
+          block.updateCustomAssetShape_('CUSTOM');
+          if (typed) block.setFieldValue(typed, 'CUSTOM_ASSET');
+        }
+        Blockly.DropDownDiv.hideIfOwner(this);
+      });
+      listEl.appendChild(customItem);
+    };
+
+    searchInput.addEventListener('input', () => renderList(searchInput.value));
+    searchInput.addEventListener('keydown', (e) => {
+      e.stopPropagation(); // don't let Blockly's own shortcut handling eat these keystrokes
+      if (e.key === 'Escape') {
+        Blockly.DropDownDiv.hideIfOwner(this);
+      } else if (e.key === 'Enter') {
+        // The "No matches" text (if present) isn't selectable - skip to
+        // the first row that actually is (a real match, or Custom/Other).
+        const first = listEl.querySelector('[data-selectable]');
+        if (first) first.click();
+      }
+    });
+
+    renderList('');
+    wrapper.appendChild(searchBox);
+    wrapper.appendChild(listEl);
+    contentDiv.appendChild(wrapper);
+
+    Blockly.DropDownDiv.setColour('#1f2937', '#4b5563');
+    Blockly.DropDownDiv.showPositionedByField(this, () => {});
+    setTimeout(() => searchInput.focus(), 0);
+  }
+}
+
+// Deliberately wide/generous list (forex majors + a full 8-currency cross
+// matrix + common exotics + commodities + indices + crypto + a handful of
+// single-stock CFDs) since no fixed list can ever cover every broker's
+// offering - "Custom / Other..." (handled dynamically below) covers
+// whatever's still missing.
+const ASSET_OPTIONS = [
+  // Forex majors
+  ['EUR/USD (Forex)', 'EURUSD'],
+  ['GBP/USD (Forex)', 'GBPUSD'],
+  ['USD/JPY (Forex)', 'USDJPY'],
+  ['USD/CHF (Forex)', 'USDCHF'],
+  ['USD/CAD (Forex)', 'USDCAD'],
+  ['AUD/USD (Forex)', 'AUDUSD'],
+  ['NZD/USD (Forex)', 'NZDUSD'],
+  // Forex crosses (full matrix across the 8 major currencies)
+  ['EUR/GBP (Forex)', 'EURGBP'],
+  ['EUR/JPY (Forex)', 'EURJPY'],
+  ['EUR/CHF (Forex)', 'EURCHF'],
+  ['EUR/AUD (Forex)', 'EURAUD'],
+  ['EUR/CAD (Forex)', 'EURCAD'],
+  ['EUR/NZD (Forex)', 'EURNZD'],
+  ['GBP/JPY (Forex)', 'GBPJPY'],
+  ['GBP/CHF (Forex)', 'GBPCHF'],
+  ['GBP/AUD (Forex)', 'GBPAUD'],
+  ['GBP/CAD (Forex)', 'GBPCAD'],
+  ['GBP/NZD (Forex)', 'GBPNZD'],
+  ['AUD/JPY (Forex)', 'AUDJPY'],
+  ['AUD/CHF (Forex)', 'AUDCHF'],
+  ['AUD/CAD (Forex)', 'AUDCAD'],
+  ['AUD/NZD (Forex)', 'AUDNZD'],
+  ['NZD/JPY (Forex)', 'NZDJPY'],
+  ['NZD/CHF (Forex)', 'NZDCHF'],
+  ['NZD/CAD (Forex)', 'NZDCAD'],
+  ['CAD/JPY (Forex)', 'CADJPY'],
+  ['CAD/CHF (Forex)', 'CADCHF'],
+  ['CHF/JPY (Forex)', 'CHFJPY'],
+  // Forex exotics
+  ['USD/TRY (Forex, Exotic)', 'USDTRY'],
+  ['USD/ZAR (Forex, Exotic)', 'USDZAR'],
+  ['USD/MXN (Forex, Exotic)', 'USDMXN'],
+  ['USD/SEK (Forex, Exotic)', 'USDSEK'],
+  ['USD/NOK (Forex, Exotic)', 'USDNOK'],
+  ['USD/PLN (Forex, Exotic)', 'USDPLN'],
+  ['USD/SGD (Forex, Exotic)', 'USDSGD'],
+  // Commodities
+  ['Gold (Commodity)', 'XAUUSD'],
+  ['Silver (Commodity)', 'XAGUSD'],
+  ['Platinum (Commodity)', 'XPTUSD'],
+  ['WTI Crude Oil (Commodity)', 'USOIL'],
+  ['Brent Crude Oil (Commodity)', 'UKOIL'],
+  ['Natural Gas (Commodity)', 'NATGAS'],
+  // Indices
+  ['S&P 500 (Index)', 'US500'],
+  ['Nasdaq 100 (Index)', 'NAS100'],
+  ['Dow Jones 30 (Index)', 'US30'],
+  ['Russell 2000 (Index)', 'US2000'],
+  ['Germany 40 / DAX (Index)', 'DE40'],
+  ['UK 100 / FTSE (Index)', 'UK100'],
+  ['France 40 / CAC (Index)', 'FRA40'],
+  ['Europe 50 (Index)', 'EU50'],
+  ['Japan 225 / Nikkei (Index)', 'JP225'],
+  ['Australia 200 (Index)', 'AUS200'],
+  ['Hong Kong 50 (Index)', 'HK50'],
+  ['Spain 35 / IBEX (Index)', 'ESP35'],
+  // Crypto
+  ['Bitcoin (Crypto)', 'BTCUSD'],
+  ['Ethereum (Crypto)', 'ETHUSD'],
+  ['Solana (Crypto)', 'SOLUSD'],
+  ['XRP (Crypto)', 'XRPUSD'],
+  ['Litecoin (Crypto)', 'LTCUSD'],
+  ['Dogecoin (Crypto)', 'DOGEUSD'],
+  ['Cardano (Crypto)', 'ADAUSD'],
+  ['BNB (Crypto)', 'BNBUSD'],
+  ['Polkadot (Crypto)', 'DOTUSD'],
+  ['Avalanche (Crypto)', 'AVAXUSD'],
+  ['Chainlink (Crypto)', 'LINKUSD'],
+  ['Polygon (Crypto)', 'MATICUSD'],
+  ['TRON (Crypto)', 'TRXUSD'],
+  // Single-stock CFDs
+  ['Apple (Stock)', 'AAPL'],
+  ['Microsoft (Stock)', 'MSFT'],
+  ['Amazon (Stock)', 'AMZN'],
+  ['Alphabet / Google (Stock)', 'GOOGL'],
+  ['Tesla (Stock)', 'TSLA'],
+  ['Nvidia (Stock)', 'NVDA'],
+  ['Meta (Stock)', 'META'],
+  ['Netflix (Stock)', 'NFLX'],
+  // Escape hatch - no fixed list ever covers every broker's symbols.
+  ['Custom / Other...', 'CUSTOM'],
+];
+
+Blockly.Blocks['asset_block'] = {
+  init: function () {
+    this.appendDummyInput('ASSET_ROW')
+      .appendField('Asset')
+      .appendField(new FieldSearchableDropdown(ASSET_OPTIONS, this.onAssetChanged_.bind(this)), 'ASSET');
+    this.setOutput(true, 'Asset');
+    this.setColour('#2563eb');
+    this.setTooltip('The instrument this strategy trades. The generated EA always trades this asset explicitly, regardless of the chart it is attached to. Pick "Custom / Other..." to type any symbol your broker offers.');
+  },
+  // A field validator must return the (possibly unchanged) new value
+  // synchronously, so the shape update that depends on it is deferred to
+  // right after the value is actually committed (same pattern as
+  // trade_if's Positions dropdown).
+  onAssetChanged_: function (newValue) {
+    const block = this;
+    setTimeout(() => block.updateCustomAssetShape_(newValue), 0);
+    return newValue;
+  },
+  // Shows/hides the free-text "Symbol" field depending on whether
+  // "Custom / Other..." is selected.
+  updateCustomAssetShape_: function (value) {
+    if (value === 'CUSTOM') {
+      if (!this.getInput('CUSTOM_ASSET_ROW')) {
+        this.appendDummyInput('CUSTOM_ASSET_ROW')
+          .appendField('  Symbol')
+          .appendField(new Blockly.FieldTextInput('EURUSD', (newVal) => {
+            const trimmed = (newVal || '').trim().toUpperCase();
+            return trimmed || null; // null rejects the edit - keeps the previous value
+          }), 'CUSTOM_ASSET');
+      }
+    } else if (this.getInput('CUSTOM_ASSET_ROW')) {
+      this.removeInput('CUSTOM_ASSET_ROW');
+    }
+  },
+  // See trade_if's saveExtraState/loadExtraState for why this is needed:
+  // the CUSTOM_ASSET input only exists once "Custom / Other..." is
+  // selected, so a freshly-deserialized block needs its shape rebuilt
+  // before Blockly restores field values, or the saved symbol has nowhere
+  // to land.
+  saveExtraState: function () {
+    return { asset: this.getFieldValue('ASSET') };
+  },
+  loadExtraState: function (state) {
+    this.updateCustomAssetShape_(state.asset);
+  }
+};
+
+Blockly.Blocks['timeframe_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Timeframe')
+      .appendField(new Blockly.FieldDropdown([
+        ['1 Minute (M1)', 'PERIOD_M1'],
+        ['5 Minutes (M5)', 'PERIOD_M5'],
+        ['15 Minutes (M15)', 'PERIOD_M15'],
+        ['30 Minutes (M30)', 'PERIOD_M30'],
+        ['1 Hour (H1)', 'PERIOD_H1'],
+        ['4 Hours (H4)', 'PERIOD_H4'],
+        ['1 Day (D1)', 'PERIOD_D1'],
+      ]), 'TIMEFRAME');
+    this.setOutput(true, 'Timeframe');
+    this.setColour('#2563eb');
+    this.setTooltip('The chart timeframe used for analysis.');
+  }
+};
+
+Blockly.Blocks['indicator_ma'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Moving Average')
+      .appendField('Period')
+      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD')
+      .appendField('Type')
+      .appendField(new Blockly.FieldDropdown([
+        ['Simple (SMA)', 'MODE_SMA'],
+        ['Exponential (EMA)', 'MODE_EMA'],
+      ]), 'TYPE');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Moving Average indicator value.');
+  }
+};
+
+Blockly.Blocks['indicator_rsi'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('RSI')
+      .appendField('Period')
+      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD');
+    this.setOutput(true, ['Indicator', 'Oscillator']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Relative Strength Index value.');
+  }
+};
+
+Blockly.Blocks['indicator_macd'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('MACD (12, 26, 9)')
+      .appendField(new Blockly.FieldDropdown([
+        ['Main Line', 'MAIN'],
+        ['Histogram', 'HIST'],
+      ]), 'OUTPUT');
+    this.setOutput(true, ['Indicator', 'Macd']);
+    this.setColour('#7c3aed');
+    this.setTooltip('MACD value using the standard 12/26/9 parameters.');
+  }
+};
+
+Blockly.Blocks['indicator_bands'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Bollinger Band')
+      .appendField(new Blockly.FieldDropdown([
+        ['Upper Band', 'UPPER'],
+        ['Middle Band', 'MIDDLE'],
+        ['Lower Band', 'LOWER'],
+      ]), 'BAND');
+    this.appendDummyInput()
+      .appendField('Period')
+      .appendField(new Blockly.FieldNumber(20, 1, 1000, 1), 'PERIOD')
+      .appendField('Deviation')
+      .appendField(new Blockly.FieldNumber(2.0, 0.1, 10, 0.1), 'DEVIATION');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Bollinger Bands indicator value.');
+  }
+};
+
+Blockly.Blocks['indicator_atr'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('ATR (Average True Range)')
+      .appendField('Period')
+      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD');
+    this.setOutput(true, ['Indicator', 'Volatility']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Average True Range value - a measure of volatility. Great for dynamic Stop Loss / Take Profit sizing.');
+  }
+};
+
+Blockly.Blocks['indicator_stoch'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Stochastic')
+      .appendField(new Blockly.FieldDropdown([
+        ['%K Line', 'K'],
+        ['%D Line', 'D'],
+      ]), 'LINE');
+    this.appendDummyInput()
+      .appendField('K Period')
+      .appendField(new Blockly.FieldNumber(5, 1, 1000, 1), 'K_PERIOD')
+      .appendField('D Period')
+      .appendField(new Blockly.FieldNumber(3, 1, 1000, 1), 'D_PERIOD')
+      .appendField('Slowing')
+      .appendField(new Blockly.FieldNumber(3, 1, 1000, 1), 'SLOWING');
+    this.setOutput(true, ['Indicator', 'Oscillator']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Stochastic Oscillator %K or %D line value.');
+  }
+};
+
+Blockly.Blocks['candle_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Candle Data')
+      .appendField(new Blockly.FieldDropdown([
+        ['Current Price (Live)', 'CURRENT'],
+        ['Previous Open [1]', 'PREV_OPEN'],
+        ['Previous Close [1]', 'PREV_CLOSE'],
+        ['Previous High [1]', 'PREV_HIGH'],
+        ['Previous Low [1]', 'PREV_LOW'],
+      ]), 'CANDLE_TYPE');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#0891b2');
+    this.setTooltip('Raw price/candle data - current bid, or a previous (completed) candle\'s open/close/high/low.');
+  }
+};
+
+Blockly.Blocks['volume_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Volume')
+      .appendField(new Blockly.FieldDropdown([
+        ['Current Bar Volume', 'CURRENT'],
+        ['Previous Bar Volume [1]', 'PREVIOUS'],
+      ]), 'BAR');
+    this.setOutput(true, ['Indicator', 'Volume']);
+    this.setColour('#0891b2');
+    this.setTooltip('Tick volume of the current or previous bar.');
+  }
+};
+
+/* ============================================================
+   1b. VALUE CATEGORY SYSTEM (semantic unit compatibility)
+   ============================================================
+   Every value-producing block belongs to a measurement "category" so the
+   editor can stop traders from building comparisons/multiplications that
+   silently mix incompatible units - e.g. "Previous Low > Current Bar
+   Volume" (a price level vs. a tick count). Two values may be compared
+   or multiplied only if they share the same category, or if either side
+   is a plain Number (a universal wildcard - the trader picks the literal
+   knowing what it's being tested against, e.g. "RSI > 70").
+
+   Risk Value has no fixed category of its own (it's a distance/percent
+   meant for Stop Loss / Take Profit) and is intentionally excluded from
+   Condition entirely - it still works fine in SL/TP and inside Multiply. */
+
+const VALUE_CATEGORY = {
+  candle_block: 'Price',
+  indicator_ma: 'Price',
+  indicator_bands: 'Price',
+  indicator_rsi: 'Oscillator',
+  indicator_stoch: 'Oscillator',
+  indicator_atr: 'Volatility',
+  indicator_macd: 'Macd',
+  volume_block: 'Volume',
+  math_number: 'Number',
+};
+const ALL_CATEGORIES = ['Price', 'Oscillator', 'Volatility', 'Macd', 'Volume', 'Number'];
+// Base check for sockets that accept *any* value regardless of category
+// (Stop Loss / Take Profit, and the two Multiply inputs) - 'Indicator' is
+// what Risk Value (and an unresolved Multiply) carries, since those can't
+// be proven wrong and shouldn't be blocked from these slots.
+const ANY_VALUE_CHECK = ['Indicator', ...ALL_CATEGORIES];
+const CATEGORY_LABEL = {
+  Price: 'a price value',
+  Oscillator: 'an oscillator (0-100) value',
+  Volatility: 'a volatility (ATR) value',
+  Macd: 'a MACD value',
+  Volume: 'a volume value',
+  Number: 'a number',
+};
+
+// Resolves the category of whatever is plugged into a value slot:
+//  - a fixed-category block -> its category string (e.g. 'Price')
+//  - an empty slot -> null
+//  - Risk Value, or an incomplete Multiply -> 'Unknown' (deliberately
+//    permissive: allowed into Multiply / SL/TP, but can never enter a
+//    Comparison, since Comparison only accepts specific categories + Number)
+//  - a Multiply whose own two operands are provably incompatible ->
+//    'Conflict' (e.g. ATR x Volume - never allowed anywhere)
+function resolveCategory(block) {
+  if (!block) return null;
+  if (VALUE_CATEGORY[block.type]) return VALUE_CATEGORY[block.type];
+  if (block.type === 'math_multiply_block') {
+    const a = resolveCategory(block.getInputTargetBlock('A'));
+    const b = resolveCategory(block.getInputTargetBlock('B'));
+    if (a === 'Conflict' || b === 'Conflict') return 'Conflict';
+    if (!a || !b || a === 'Unknown' || b === 'Unknown') return 'Unknown';
+    if (a === 'Number') return b;
+    if (b === 'Number') return a;
+    if (a === b) return a;
+    return 'Conflict'; // e.g. ATR x Volume - genuinely incompatible units
+  }
+  return 'Unknown'; // e.g. risk_value_block
+}
+
+// True if two resolved categories may be combined (compared or multiplied).
+function categoriesCompatible(a, b) {
+  if (a === 'Conflict' || b === 'Conflict') return false;
+  if (a === null || b === null) return true; // an empty slot is never itself a violation
+  if (a === 'Unknown' || b === 'Unknown') return true; // can't prove it's wrong - allow
+  if (a === 'Number' || b === 'Number') return true;
+  return a === b;
+}
+
+// Condition (Comparison) slots are stricter than Multiply/SL-TP: only a
+// genuinely-measurable, specific category (or a plain Number) may sit
+// there - Risk Value and ambiguous Multiply results are turned away.
+function categoryAllowedInCondition(cat) {
+  return cat !== null && cat !== 'Unknown' && cat !== 'Conflict';
+}
+
+function categoryLabel(cat) {
+  return CATEGORY_LABEL[cat] || 'this value';
+}
+
+Blockly.Blocks['comparison_block'] = {
+  init: function () {
+    this.appendValueInput('LEFT').setCheck(ALL_CATEGORIES);
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ['>', '>'], ['<', '<'], ['=', '=='],
+      ]), 'OP');
+    this.appendValueInput('RIGHT').setCheck(ALL_CATEGORIES);
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour('#d97706');
+    this.setTooltip('Compare two values of the same kind (e.g. two prices, or an oscillator against a number). Mixing incompatible units, like a price against a volume, is not allowed.');
+  }
+};
+
+Blockly.Blocks['logical_operator'] = {
+  init: function () {
+    this.appendValueInput('A').setCheck('Boolean');
+    this.appendValueInput('B').setCheck('Boolean')
+      .appendField(new Blockly.FieldDropdown([
+        ['AND', 'AND'], ['OR', 'OR'],
+      ]), 'OP');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour('#b45309');
+    this.setTooltip('Combine two conditions (or nested Logical Operator blocks) with AND / OR. Nest these to build arbitrarily long chains, e.g. A AND B OR C.');
+  }
+};
+
+Blockly.Blocks['math_multiply_block'] = {
+  init: function () {
+    this.appendValueInput('A').setCheck(ANY_VALUE_CHECK);
+    this.appendValueInput('B').setCheck(ANY_VALUE_CHECK)
+      .appendField('\u00D7');
+    this.setInputsInline(true);
+    // Output check is kept in sync at runtime (see enforceMultiplyBlock)
+    // with whatever category its A/B operands resolve to, so this block
+    // can plug into comparisons, other Multiply blocks, or Stop Loss/Take
+    // Profit slots - e.g. build "2 x ATR(14)" for dynamic risk sizing.
+    this.setOutput(true, ANY_VALUE_CHECK);
+    this.setColour('#0d9488');
+    this.setTooltip('Multiply two values of the same kind together, e.g. a multiplier x an indicator (2 x ATR) for dynamic risk sizing. Mixing incompatible units, like ATR x Volume, is not allowed.');
+  }
+};
+
+Blockly.Blocks['risk_value_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Risk Value')
+      .appendField(new Blockly.FieldNumber(20, 0, 100000, 0.1), 'VALUE')
+      .appendField(new Blockly.FieldDropdown([
+        ['Pips', 'PIPS'],
+        ['% of Entry Price', 'PERCENT'],
+        ['Raw Price Distance', 'PRICE'],
+      ]), 'UNIT');
+    // Output is 'Indicator' only (no category tag) - it plugs directly
+    // into a Stop Loss / Take Profit slot, or into a Multiply (x) block,
+    // but is intentionally excluded from Condition/Comparison, since a
+    // risk distance has no sensible price/oscillator/volume equivalent
+    // to be compared against.
+    this.setOutput(true, ['Indicator']);
+    this.setColour('#0d9488');
+    this.setTooltip('The recommended way to set Stop Loss / Take Profit: in Pips (auto-adjusts for 3/5-digit brokers), as a % of the entry price, or as an exact raw price distance (advanced). Not usable inside a Condition - only in Stop Loss / Take Profit or Multiply.');
+  }
+};
+
+Blockly.Blocks['action_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ['Open BUY', 'BUY'],
+        ['Open SELL', 'SELL'],
+      ]), 'DIRECTION');
+    this.appendDummyInput()
+      .appendField('Lot Size')
+      .appendField(new Blockly.FieldNumber(0.1, 0.01, 1000, 0.01), 'LOT');
+    this.appendValueInput('SL').setCheck(ANY_VALUE_CHECK).appendField('Stop Loss');
+    this.appendValueInput('TP').setCheck(ANY_VALUE_CHECK).appendField('Take Profit');
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour('#059669');
+    this.setTooltip('Execute a trade. Plug a "Risk Value" block into Stop Loss / Take Profit to set them in Pips or % of entry price, or use a dynamic expression like "2 x ATR(14)" for volatility-based sizing. Leave a slot empty for no SL/TP.');
+  }
+};
+
+Blockly.Blocks['trade_if'] = {
+  init: function () {
+    this.appendDummyInput().appendField('IF (Strategy Rule)');
+    this.appendValueInput('ASSET').setCheck('Asset').appendField('  Asset');
+    this.appendValueInput('TIMEFRAME').setCheck('Timeframe').appendField('  Timeframe');
+    this.appendValueInput('CONDITION').setCheck('Boolean').appendField('  Condition');
+    this.appendDummyInput('POSITIONS_MODE_ROW')
+      .appendField('  Positions')
+      .appendField(new Blockly.FieldDropdown(
+        [
+          ['only one at a time', 'SINGLE'],
+          ['allow multiple at once', 'MULTIPLE'],
+        ],
+        this.onPositionsModeChanged_.bind(this)
+      ), 'POSITIONS_MODE');
+    this.appendStatementInput('DO').appendField('  THEN');
+    // Force one input per row always (Blockly's automatic inline layout
+    // otherwise packs everything onto a single horizontal line when the
+    // "Max simultaneous" row isn't present, then re-flows to a vertical
+    // stack once it is - same block looking like two different shapes
+    // depending on the Positions dropdown).
+    this.setInputsInline(false);
+    this.setColour('#059669');
+    this.setTooltip('Top-level strategy rule: when the condition is true, run the actions below. "Positions" controls whether a new signal can open more trades while one from an earlier signal is still open.');
+    // Standalone top-level block: no previous/next connections.
+  },
+  // Shows/hides the "Max simultaneous" field depending on the Positions
+  // dropdown - a field validator must return the (possibly unchanged) new
+  // value synchronously, so the shape update that depends on it is
+  // deferred to right after the value is actually committed.
+  onPositionsModeChanged_: function (newValue) {
+    const block = this;
+    setTimeout(() => block.updatePositionsShape_(newValue), 0);
+    return newValue;
+  },
+  updatePositionsShape_: function (mode) {
+    if (this.getInput('MAX_POSITIONS_ROW')) {
+      this.removeInput('MAX_POSITIONS_ROW');
+    }
+    if (mode === 'MULTIPLE') {
+      this.appendDummyInput('MAX_POSITIONS_ROW')
+        .appendField('    Max simultaneous')
+        .appendField(new Blockly.FieldNumber(3, 2, 50, 1), 'MAX_POSITIONS');
+      this.moveInputBefore('MAX_POSITIONS_ROW', 'DO');
+    }
+  },
+  // Blockly's JSON (de)serializer restores plain field values on their
+  // own, but the MAX_POSITIONS_ROW input only exists at all when
+  // Positions=MULTIPLE - a freshly-recreated block (e.g. loaded from
+  // localStorage) doesn't have that input yet until updatePositionsShape_
+  // runs, so a saved MAX_POSITIONS value would have nowhere to land.
+  // saveExtraState/loadExtraState is Blockly's supported hook for exactly
+  // this ("shape depends on a field") case: loadExtraState runs before
+  // field values are restored, so it rebuilds the shape just in time.
+  saveExtraState: function () {
+    return { positionsMode: this.getFieldValue('POSITIONS_MODE') };
+  },
+  loadExtraState: function (state) {
+    this.updatePositionsShape_(state.positionsMode);
+  }
+};
+
+/* ============================================================
+   2. WORKSPACE INITIALIZATION
+   ============================================================ */
+
+const workspace = Blockly.inject('blocklyDiv', {
+  toolbox: document.getElementById('toolbox'),
+  theme: Blockly.Theme.defineTheme('scratchDark', {
+    base: Blockly.Themes.Classic,
+    componentStyles: {
+      workspaceBackgroundColour: '#0f172a',
+      toolboxBackgroundColour: '#111827',
+      toolboxForegroundColour: '#e5e7eb',
+      flyoutBackgroundColour: '#1f2937',
+      flyoutForegroundColour: '#e5e7eb',
+      scrollbarColour: '#374151',
+    },
+    // math_number is Blockly's built-in block (no custom setColour of our
+    // own), so it's re-coloured here to match the Risk & Sizing category
+    // it now lives in, instead of editing the block definition itself.
+    blockStyles: {
+      math_blocks: {
+        colourPrimary: '#0d9488',
+      },
+    },
+  }),
+  grid: { spacing: 25, length: 3, colour: '#1f2937', snap: true },
+  zoom: { controls: true, wheel: true, startScale: 0.9 },
+  trashcan: true,
+});
+
+/* ============================================================
+   2c. STRATEGY AUTO-SAVE (Tier 0 - this browser only)
+   ============================================================
+   Silently persists the workspace to this browser's localStorage so a
+   refresh or accidental tab close doesn't lose work. Device-local only -
+   nothing ever leaves the browser: no account, no server call, nothing
+   for us to host or be responsible for. This is step 1 of a larger
+   tiered plan (see project notes / chat history) - later tiers may add
+   an exportable file, a shareable link, or optional bring-your-own-cloud
+   sync, but none of that is implemented here. Declared right after the
+   workspace is created (before the restore-or-seed step below needs it,
+   and before section 2b) so nothing here ever runs into a
+   temporal-dead-zone ordering issue. */
+
+const AUTOSAVE_KEY = 'scratchForTraders.workspace.v1';
+const AUTOSAVE_DEBOUNCE_MS = 500;
+
+// Which saved strategy (see section 2d) is currently open, if any - null
+// means the canvas holds a fresh/unsaved draft with no library entry yet.
+// Persisted alongside the draft itself so a page reload still remembers
+// what you were editing (see saveWorkspaceToLocalStorage/loadWorkspace...
+// below). `hasUnsavedChanges` tracks whether the canvas has drifted from
+// whatever was last explicitly Saved/Loaded/New'd - used to warn before
+// New/Load would silently discard in-progress edits.
+let currentStrategyId = null;
+let hasUnsavedChanges = false;
+// Blockly can fire a few more BLOCK_MOVE events right after a programmatic
+// load/render (e.g. settling block positions) that have nothing to do with
+// the trader actually editing anything. `markSynced()` resets the dirty
+// flag *and* briefly suppresses it being re-armed by that trailing noise.
+let ignoreChangesUntil = 0;
+function markSynced() {
+  hasUnsavedChanges = false;
+  ignoreChangesUntil = Date.now() + 300;
+}
+
+// Looks up the status element itself rather than closing over a
+// module-level const, so this is safe to call during the very first
+// synchronous page-load pass, before the <script> section that declares
+// `statusMsg` has run.
+function flashStatus(message) {
+  const el = document.getElementById('statusMsg');
+  if (!el || el.textContent) return; // don't clobber an in-flight export status
+  el.textContent = message;
+  clearTimeout(flashStatus._t);
+  flashStatus._t = setTimeout(() => {
+    if (el.textContent === message) el.textContent = '';
+  }, 1500);
+}
+
+function saveWorkspaceToLocalStorage() {
+  try {
+    const state = Blockly.serialization.workspaces.save(workspace);
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ version: 1, state, savedAt: Date.now(), currentStrategyId }));
+    // Silent by design - this fires on every debounced edit, so surfacing
+    // it every time (a "Draft saved" flash) was more noise than signal.
+    // Explicit actions (Save/Load/Delete via the header/panel) still show
+    // their own toast, since those are user-initiated and worth confirming.
+  } catch (err) {
+    // Storage full, private-browsing restrictions, a serialization
+    // hiccup, etc. - auto-save is a convenience, not a requirement, so
+    // fail silently rather than interrupt the trader's work.
+    console.warn('Scratch for Traders: auto-save failed.', err);
+  }
+}
+
+let autosaveTimer = null;
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveWorkspaceToLocalStorage, AUTOSAVE_DEBOUNCE_MS);
+}
+
+// Returns true if a previously saved draft was found and successfully
+// restored - even if that draft happened to be a fully empty canvas, since
+// deliberately clearing everything is still the trader's real state and
+// shouldn't be silently overwritten by the starter block.
+function loadWorkspaceFromLocalStorage() {
+  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  if (!raw) return false;
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved || !saved.state) return false;
+    Blockly.serialization.workspaces.load(saved.state, workspace);
+    currentStrategyId = saved.currentStrategyId || null;
+    return true;
+  } catch (err) {
+    console.warn('Scratch for Traders: could not restore the saved draft, starting fresh.', err);
+    localStorage.removeItem(AUTOSAVE_KEY);
+    return false;
+  }
+}
+
+workspace.addChangeListener((event) => {
+  if (event.type === Blockly.Events.BLOCK_MOVE ||
+      event.type === Blockly.Events.BLOCK_CREATE ||
+      event.type === Blockly.Events.BLOCK_DELETE ||
+      event.type === Blockly.Events.BLOCK_CHANGE) {
+    if (Date.now() >= ignoreChangesUntil) {
+      hasUnsavedChanges = true;
+    }
+    scheduleAutosave();
+  }
+});
+
+// Best-effort final save in case the debounce timer hasn't fired yet when
+// the tab actually closes.
+window.addEventListener('beforeunload', () => {
+  clearTimeout(autosaveTimer);
+  saveWorkspaceToLocalStorage();
+});
+
+// Restore the trader's last draft from this browser (see the auto-save
+// section above), or seed a starter block so first-time users see the
+// shape of a strategy immediately.
+if (loadWorkspaceFromLocalStorage()) {
+  // What was just restored *is* the saved state, by definition - not
+  // "unsaved" relative to itself.
+  markSynced();
+  // Deferred one tick so the workspace paints first, then the message
+  // appears - avoids the status text flashing before anything is visible.
+  setTimeout(() => flashStatus('Restored your last draft'), 0);
+} else {
+  const ifBlock = workspace.newBlock('trade_if');
+  ifBlock.initSvg();
+  ifBlock.render();
+  ifBlock.moveBy(40, 40);
+  markSynced();
+}
+
+/* ============================================================
+   2d. STRATEGIES LIBRARY (Tier 0 - named saves, still this browser only)
+   ============================================================
+   A named collection of strategies layered on top of the anonymous
+   auto-saved draft above - same mechanism (localStorage, zero backend,
+   nothing we host), just keyed by name instead of a single slot. Lets a
+   trader keep more than one strategy around and switch between them. */
+
+const STRATEGIES_KEY = 'scratchForTraders.strategies.v1';
+
+function loadStrategiesLibrary() {
+  try {
+    const raw = localStorage.getItem(STRATEGIES_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (err) {
+    console.warn('Scratch for Traders: could not read the strategies library, starting empty.', err);
+    return {};
+  }
+}
+
+let strategiesLibrary = loadStrategiesLibrary();
+
+function persistStrategiesLibrary() {
+  try {
+    localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategiesLibrary));
+  } catch (err) {
+    console.warn('Scratch for Traders: could not save the strategies library.', err);
+    showToast('Could not save - your browser storage may be full.', true);
+  }
+}
+
+function generateStrategyId() {
+  return (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+// Custom prompt/confirm - window.prompt()/confirm() throw ("not
+// supported") in some contexts this app gets previewed in (e.g. a
+// sandboxed iframe), so every save/rename/delete/discard interaction
+// goes through this instead. Promise-based, backed by the #dialogOverlay
+// markup declared in the HTML.
+function showDialog({ message, defaultValue = '', isPrompt = false }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('dialogOverlay');
+    const messageEl = document.getElementById('dialogMessage');
+    const inputEl = document.getElementById('dialogInput');
+    const okBtn = document.getElementById('dialogOkBtn');
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+
+    messageEl.textContent = message;
+    inputEl.classList.toggle('hidden', !isPrompt);
+    if (isPrompt) inputEl.value = defaultValue || '';
+
+    function cleanup(result) {
+      overlay.classList.add('hidden');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('keydown', onKeydown);
+      overlay.removeEventListener('mousedown', onOverlayClick);
+      resolve(result);
+    }
+    function onOk() {
+      cleanup(isPrompt ? inputEl.value : true);
+    }
+    function onCancel() {
+      cleanup(isPrompt ? null : false);
+    }
+    function onKeydown(e) {
+      if (e.key === 'Enter') onOk();
+      else if (e.key === 'Escape') onCancel();
+    }
+    function onOverlayClick(e) {
+      if (e.target === overlay) onCancel();
+    }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('keydown', onKeydown);
+    overlay.addEventListener('mousedown', onOverlayClick);
+
+    overlay.classList.remove('hidden');
+    (isPrompt ? inputEl : okBtn).focus();
+    if (isPrompt) inputEl.select();
+  });
+}
+
+function showPromptDialog(message, defaultValue) {
+  return showDialog({ message, defaultValue, isPrompt: true });
+}
+function showConfirmDialog(message) {
+  return showDialog({ message, isPrompt: false });
+}
+
+// Resolves an asset_block's actual traded symbol - the ASSET dropdown's
+// value directly, or whatever was typed into the Symbol field when
+// "Custom / Other..." is selected.
+function resolveAssetValue(assetBlock) {
+  if (!assetBlock) return null;
+  const raw = assetBlock.getFieldValue('ASSET');
+  return raw === 'CUSTOM' ? assetBlock.getFieldValue('CUSTOM_ASSET') : raw;
+}
+
+// Best-effort default name for the "Save" name prompt, based on the asset
+// already chosen in the strategy rule, if any.
+function suggestStrategyName() {
+  try {
+    const ruleBlock = workspace.getTopBlocks(true).find(b => b.type === 'trade_if');
+    const assetBlock = ruleBlock && ruleBlock.getInputTargetBlock('ASSET');
+    const asset = resolveAssetValue(assetBlock);
+    return asset ? `${asset} Strategy` : 'My Strategy';
+  } catch (err) {
+    return 'My Strategy';
+  }
+}
+
+function writeStrategyEntry(id, name) {
+  strategiesLibrary[id] = {
+    id,
+    name,
+    savedAt: Date.now(),
+    state: Blockly.serialization.workspaces.save(workspace),
+  };
+  persistStrategiesLibrary();
+}
+
+// The one Save button: always shows the name, pre-filled with whatever
+// strategy is currently open (or a suggested default if none is) so the
+// name can be adjusted right here - no separate trip through "My
+// Strategies" -> Rename needed just to fix a name at save time.
+async function handleSaveClick() {
+  const openEntry = currentStrategyId ? strategiesLibrary[currentStrategyId] : null;
+  const defaultName = openEntry ? openEntry.name : suggestStrategyName();
+  const name = await showPromptDialog('Name this strategy:', defaultName);
+  if (name === null) return; // cancelled
+  const trimmed = name.trim();
+  if (!trimmed) {
+    showToast('Strategy name cannot be empty.', true);
+    return;
+  }
+  const id = currentStrategyId || generateStrategyId();
+  writeStrategyEntry(id, trimmed);
+  currentStrategyId = id;
+  markSynced();
+  saveWorkspaceToLocalStorage();
+  showToast(`Saved as "${trimmed}".`, false);
+  renderStrategiesList();
+}
+
+// Guards New/Load against silently discarding in-progress edits that
+// were never explicitly Saved (the anonymous draft auto-save still has
+// them, but switching away loses that association with "what you meant
+// to keep").
+async function confirmDiscardIfNeeded(actionLabel) {
+  if (!hasUnsavedChanges) return true;
+  return showConfirmDialog(`You have unsaved changes. ${actionLabel} anyway? Unsaved changes will be lost.`);
+}
+
+async function handleNewClick() {
+  if (!(await confirmDiscardIfNeeded('Start a new strategy'))) return;
+  // Only top-level blocks - disposing a block cascades to (and disposes)
+  // its own children, so also disposing children separately here would
+  // hit already-removed blocks and throw.
+  workspace.getTopBlocks(false).forEach(b => b.dispose(false));
+  const ifBlock = workspace.newBlock('trade_if');
+  ifBlock.initSvg();
+  ifBlock.render();
+  ifBlock.moveBy(40, 40);
+  currentStrategyId = null;
+  markSynced();
+  saveWorkspaceToLocalStorage();
+}
+
+async function handleLoadStrategy(id) {
+  const entry = strategiesLibrary[id];
+  if (!entry) return;
+  if (!(await confirmDiscardIfNeeded(`Load "${entry.name}"`))) return;
+  workspace.getTopBlocks(false).forEach(b => b.dispose(false));
+  Blockly.serialization.workspaces.load(entry.state, workspace);
+  currentStrategyId = id;
+  markSynced();
+  saveWorkspaceToLocalStorage();
+  closeStrategiesPanel();
+  showToast(`Loaded "${entry.name}".`, false);
+}
+
+async function handleRenameStrategy(id) {
+  const entry = strategiesLibrary[id];
+  if (!entry) return;
+  const name = await showPromptDialog('Rename strategy:', entry.name);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  entry.name = trimmed;
+  persistStrategiesLibrary();
+  renderStrategiesList();
+}
+
+async function handleDeleteStrategy(id) {
+  const entry = strategiesLibrary[id];
+  if (!entry) return;
+  if (!(await showConfirmDialog(`Delete "${entry.name}"? This can't be undone.`))) return;
+  delete strategiesLibrary[id];
+  persistStrategiesLibrary();
+  if (currentStrategyId === id) {
+    currentStrategyId = null;
+    saveWorkspaceToLocalStorage();
+  }
+  renderStrategiesList();
+  showToast(`Deleted "${entry.name}".`, false);
+}
+
+function formatSavedAt(timestamp) {
+  try {
+    return new Date(timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  } catch (err) {
+    return '';
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderStrategiesList() {
+  const listEl = document.getElementById('strategiesList');
+  if (!listEl) return;
+  const entries = Object.values(strategiesLibrary).sort((a, b) => b.savedAt - a.savedAt);
+
+  if (entries.length === 0) {
+    listEl.innerHTML = '<p class="text-sm text-gray-500 text-center py-8 px-4">No saved strategies yet. Build something and hit "Save" to keep it here.</p>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  entries.forEach((entry) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-2 px-3 py-2.5 rounded-md hover:bg-gray-800';
+
+    const info = document.createElement('div');
+    info.className = 'min-w-0 flex-1';
+    const isOpen = entry.id === currentStrategyId;
+    info.innerHTML = `
+      <div class="text-sm font-medium text-gray-100 truncate">${escapeHtml(entry.name)}${isOpen ? ' <span class="text-emerald-400 text-xs font-normal">(currently open)</span>' : ''}</div>
+      <div class="text-xs text-gray-500">${formatSavedAt(entry.savedAt)}</div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'flex items-center gap-1 shrink-0';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.textContent = 'Load';
+    loadBtn.className = 'text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded';
+    loadBtn.addEventListener('click', () => handleLoadStrategy(entry.id));
+
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = 'Rename';
+    renameBtn.className = 'text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-2.5 py-1.5 rounded';
+    renameBtn.addEventListener('click', () => handleRenameStrategy(entry.id));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'text-xs font-medium bg-gray-700 hover:bg-red-700 text-gray-200 px-2.5 py-1.5 rounded';
+    deleteBtn.addEventListener('click', () => handleDeleteStrategy(entry.id));
+
+    actions.append(loadBtn, renameBtn, deleteBtn);
+    row.append(info, actions);
+    listEl.appendChild(row);
+  });
+}
+
+function openStrategiesPanel() {
+  renderStrategiesList();
+  document.getElementById('strategiesOverlay').classList.remove('hidden');
+}
+function closeStrategiesPanel() {
+  document.getElementById('strategiesOverlay').classList.add('hidden');
+}
+
+document.getElementById('newStrategyBtn').addEventListener('click', handleNewClick);
+document.getElementById('saveStrategyBtn').addEventListener('click', handleSaveClick);
+document.getElementById('openStrategiesBtn').addEventListener('click', openStrategiesPanel);
+document.getElementById('closeStrategiesBtn').addEventListener('click', closeStrategiesPanel);
+document.getElementById('strategiesOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'strategiesOverlay') closeStrategiesPanel(); // click outside the card
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('strategiesOverlay').classList.contains('hidden')) {
+    closeStrategiesPanel();
+  }
+});
+
+/* ============================================================
+   2b. VALUE CATEGORY ENFORCEMENT (live, in the editor)
+   ============================================================
+   Blockly's static setCheck() on comparison_block / math_multiply_block
+   (see section 1b) already stops the *obviously* wrong connections
+   outright - Blockly just refuses to snap them together. What static
+   checks can't express is "the two SIDES must agree with each other"
+   (e.g. Price is fine paired with Price, but not with Volume). This
+   listener recomputes that pairwise constraint after every block move,
+   and - as a safety net for cases that slip through anyway (e.g. a
+   Multiply's category resolving only after it's already plugged in) -
+   forcibly disconnects the offending block and explains why via toast. */
+
+function disconnectAndWarn(parentBlock, inputName, childBlock, message) {
+  const connection = parentBlock.getInput(inputName) && parentBlock.getInput(inputName).connection;
+  if (connection && connection.targetConnection) {
+    connection.disconnect();
+  }
+  childBlock.moveBy(40, 40);
+  childBlock.bumpNeighbours();
+  showToast(message, true);
+}
+
+// Restricts `siblingInputName`'s connection to whatever `ownCategory`
+// allows - the same category plus Number, or fully permissive if empty/
+// Number/unresolved.
+function updateSiblingCheck(parentBlock, siblingInputName, ownCategory) {
+  const siblingInput = parentBlock.getInput(siblingInputName);
+  if (!siblingInput || !siblingInput.connection) return;
+  const permissive = !ownCategory || ownCategory === 'Number' || ownCategory === 'Unknown' || ownCategory === 'Conflict';
+  siblingInput.connection.setCheck(permissive ? ALL_CATEGORIES.slice() : [ownCategory, 'Number']);
+}
+
+function enforceComparisonBlock(block) {
+  let leftBlock = block.getInputTargetBlock('LEFT');
+  let rightBlock = block.getInputTargetBlock('RIGHT');
+  let leftCat = resolveCategory(leftBlock);
+  let rightCat = resolveCategory(rightBlock);
+
+  if (leftBlock && !categoryAllowedInCondition(leftCat)) {
+    disconnectAndWarn(block, 'LEFT', leftBlock,
+      'That block can\'t be used inside a Condition - it\'s meant for Stop Loss / Take Profit instead. Disconnected it.');
+    leftBlock = null; leftCat = null;
+  }
+  if (rightBlock && !categoryAllowedInCondition(rightCat)) {
+    disconnectAndWarn(block, 'RIGHT', rightBlock,
+      'That block can\'t be used inside a Condition - it\'s meant for Stop Loss / Take Profit instead. Disconnected it.');
+    rightBlock = null; rightCat = null;
+  }
+  if (leftBlock && rightBlock && !categoriesCompatible(leftCat, rightCat)) {
+    disconnectAndWarn(block, 'RIGHT', rightBlock,
+      `Can't compare ${categoryLabel(leftCat)} to ${categoryLabel(rightCat)} - different units. Disconnected the second block.`);
+    rightBlock = null; rightCat = null;
+  }
+
+  updateSiblingCheck(block, 'RIGHT', leftCat);
+  updateSiblingCheck(block, 'LEFT', rightCat);
+}
+
+function enforceMultiplyBlock(block) {
+  let aBlock = block.getInputTargetBlock('A');
+  let bBlock = block.getInputTargetBlock('B');
+  let aCat = resolveCategory(aBlock);
+  let bCat = resolveCategory(bBlock);
+
+  if (aBlock && bBlock && !categoriesCompatible(aCat, bCat)) {
+    disconnectAndWarn(block, 'B', bBlock,
+      `Can't multiply ${categoryLabel(aCat)} by ${categoryLabel(bCat)} - different units. Disconnected the second block.`);
+    bBlock = null; bCat = null;
+  }
+
+  // Unlike Comparison, Multiply also accepts 'Indicator'-only values
+  // (Risk Value, or another unresolved Multiply) on the free side, since
+  // those can't be proven wrong - see resolveCategory().
+  const siblingCheckFor = (cat) => {
+    const permissive = !cat || cat === 'Number' || cat === 'Unknown' || cat === 'Conflict';
+    return permissive ? ANY_VALUE_CHECK.slice() : [cat, 'Number', 'Indicator'];
+  };
+  const aInput = block.getInput('A');
+  const bInput = block.getInput('B');
+  if (bInput && bInput.connection) bInput.connection.setCheck(siblingCheckFor(aCat));
+  if (aInput && aInput.connection) aInput.connection.setCheck(siblingCheckFor(bCat));
+
+  // Propagate the resolved category upward so a Comparison (or another
+  // Multiply) plugged into this block's output sees the right constraint.
+  const resolved = resolveCategory(block);
+  const outCheck = (resolved === 'Unknown' || resolved === 'Conflict')
+    ? ['Indicator']
+    : resolved === 'Number'
+      ? ['Indicator', 'Number']
+      : ['Indicator', resolved];
+  if (block.outputConnection) block.outputConnection.setCheck(outCheck);
+}
+
+let categoryRuleGuard = false;
+function refreshValueCategoryRules() {
+  if (categoryRuleGuard) return;
+  categoryRuleGuard = true;
+  try {
+    workspace.getBlocksByType('math_multiply_block', false).forEach(enforceMultiplyBlock);
+    workspace.getBlocksByType('comparison_block', false).forEach(enforceComparisonBlock);
+  } finally {
+    categoryRuleGuard = false;
+  }
+}
+
+workspace.addChangeListener((event) => {
+  if (event.type === Blockly.Events.BLOCK_MOVE ||
+      event.type === Blockly.Events.BLOCK_CREATE ||
+      event.type === Blockly.Events.BLOCK_DELETE) {
+    refreshValueCategoryRules();
+  }
+});
+
+// Blockly quirk (observed on 13.2.1 via the unpkg CDN build): when a
+// category flyout auto-closes, Blockly hides the flyout's own <svg> via
+// `display: none`, but the flyout's scrollbar is a *sibling* element in the
+// DOM (not a child of the flyout), so it never gets hidden along with it -
+// leaving a stray vertical scrollbar frozen on screen wherever the flyout
+// was last opened. Mirror each flyout's visibility onto its own scrollbar
+// to fix that.
+(function fixOrphanedFlyoutScrollbars() {
+  const injectionDiv = workspace.getInjectionDiv();
+  const sync = () => {
+    const anyFlyoutOpen = Array.from(injectionDiv.querySelectorAll('svg.blocklyFlyout'))
+      .some(f => f.style.display !== 'none');
+    injectionDiv.querySelectorAll('svg.blocklyFlyoutScrollbar').forEach(sb => {
+      sb.style.display = anyFlyoutOpen ? '' : 'none';
+    });
+  };
+  const observer = new MutationObserver(sync);
+  injectionDiv.querySelectorAll('svg.blocklyFlyout').forEach(f => {
+    observer.observe(f, { attributes: true, attributeFilter: ['style'] });
+  });
+  sync();
+})();
+
+/* ============================================================
+   3. SERIALIZATION: Blockly workspace -> clean backend JSON
+   ============================================================ */
+
+class WorkspaceValidationError extends Error {}
+
+function operandFromBlock(block) {
+  if (!block) throw new WorkspaceValidationError('A value slot is missing a block. Connect an indicator, price, volume, or number.');
+  switch (block.type) {
+    case 'indicator_ma':
+      return {
+        kind: 'MA',
+        period: Number(block.getFieldValue('PERIOD')),
+        ma_type: block.getFieldValue('TYPE'),
+      };
+    case 'indicator_rsi':
+      return {
+        kind: 'RSI',
+        period: Number(block.getFieldValue('PERIOD')),
+      };
+    case 'indicator_atr':
+      return {
+        kind: 'ATR',
+        period: Number(block.getFieldValue('PERIOD')),
+      };
+    case 'indicator_macd':
+      return {
+        kind: 'MACD',
+        line: block.getFieldValue('OUTPUT'),
+      };
+    case 'indicator_bands':
+      return {
+        kind: 'BANDS',
+        band: block.getFieldValue('BAND'),
+        period: Number(block.getFieldValue('PERIOD')),
+        deviation: Number(block.getFieldValue('DEVIATION')),
+      };
+    case 'indicator_stoch':
+      return {
+        kind: 'STOCH',
+        stoch_line: block.getFieldValue('LINE'),
+        k_period: Number(block.getFieldValue('K_PERIOD')),
+        d_period: Number(block.getFieldValue('D_PERIOD')),
+        slowing: Number(block.getFieldValue('SLOWING')),
+      };
+    case 'candle_block':
+      return {
+        kind: 'CANDLE',
+        candle_type: block.getFieldValue('CANDLE_TYPE'),
+      };
+    case 'volume_block':
+      return {
+        kind: 'VOLUME',
+        volume_bar: block.getFieldValue('BAR'),
+      };
+    case 'risk_value_block':
+      return {
+        kind: 'RISK_VALUE',
+        value: Number(block.getFieldValue('VALUE')),
+        unit: block.getFieldValue('UNIT'),
+      };
+    case 'math_multiply_block': {
+      const aBlock = block.getInputTargetBlock('A');
+      const bBlock = block.getInputTargetBlock('B');
+      if (!aBlock || !bBlock) {
+        throw new WorkspaceValidationError('A Multiply (x) block is missing one of its two inputs.');
+      }
+      // Defense-in-depth: the editor already stops this at connect-time
+      // (see enforceMultiplyBlock), but re-check here too in case a
+      // workspace was loaded from old/hand-edited XML.
+      if (!categoriesCompatible(resolveCategory(aBlock), resolveCategory(bBlock))) {
+        throw new WorkspaceValidationError('A Multiply (×) block combines incompatible value types (e.g. ATR × Volume) and makes no trading sense. Fix it before exporting.');
+      }
+      return {
+        kind: 'MULTIPLY',
+        left: operandFromBlock(aBlock),
+        right: operandFromBlock(bBlock),
+      };
+    }
+    case 'math_number':
+      return { kind: 'NUMBER', value: Number(block.getFieldValue('NUM')) };
+    default:
+      throw new WorkspaceValidationError(`Unsupported block "${block.type}" used in a value slot.`);
+  }
+}
+
+function conditionFromBlock(block) {
+  if (!block) {
+    throw new WorkspaceValidationError('The strategy rule is missing a Condition block (a comparison or a Logical Operator).');
+  }
+  if (block.type === 'comparison_block') {
+    const leftBlock = block.getInputTargetBlock('LEFT');
+    const rightBlock = block.getInputTargetBlock('RIGHT');
+    // Defense-in-depth: the editor already stops this at connect-time
+    // (see enforceComparisonBlock), but re-check here too in case a
+    // workspace was loaded from old/hand-edited XML.
+    const leftCat = resolveCategory(leftBlock);
+    const rightCat = resolveCategory(rightBlock);
+    if (!categoryAllowedInCondition(leftCat) || !categoryAllowedInCondition(rightCat) || !categoriesCompatible(leftCat, rightCat)) {
+      throw new WorkspaceValidationError('A comparison mixes incompatible value types (e.g. a price against a volume) and would never produce a meaningful trading signal. Fix the highlighted comparison before exporting.');
+    }
+    return {
+      type: 'comparison',
+      left: operandFromBlock(leftBlock),
+      operator: block.getFieldValue('OP'),
+      right: operandFromBlock(rightBlock),
+    };
+  }
+  if (block.type === 'logical_operator') {
+    const aBlock = block.getInputTargetBlock('A');
+    const bBlock = block.getInputTargetBlock('B');
+    if (!aBlock || !bBlock) {
+      throw new WorkspaceValidationError('A Logical Operator block is missing one of its two condition inputs.');
+    }
+    return {
+      type: 'logical',
+      operator: block.getFieldValue('OP'),
+      left: conditionFromBlock(aBlock),
+      right: conditionFromBlock(bBlock),
+    };
+  }
+  throw new WorkspaceValidationError(`The Condition slot must contain a comparison or Logical Operator block (found "${block.type}").`);
+}
+
+// Builds one rule's wire payload from a single "IF (Strategy Rule)" block.
+// `label` prefixes validation errors (e.g. "Rule 2: ...") so a mistake is
+// easy to locate when the workspace has more than one rule; for a single-
+// rule workspace it's left off entirely to match the original messages
+// traders are already used to.
+function ruleFromTradeIfBlock(ruleBlock, label) {
+  const prefix = label ? `${label}: ` : '';
+
+  const assetBlock = ruleBlock.getInputTargetBlock('ASSET');
+  const timeframeBlock = ruleBlock.getInputTargetBlock('TIMEFRAME');
+  const conditionBlock = ruleBlock.getInputTargetBlock('CONDITION');
+
+  if (!assetBlock) throw new WorkspaceValidationError(`${prefix}The strategy rule is missing an Asset block.`);
+  if (!timeframeBlock) throw new WorkspaceValidationError(`${prefix}The strategy rule is missing a Timeframe block.`);
+
+  const asset = resolveAssetValue(assetBlock);
+  if (!asset) {
+    throw new WorkspaceValidationError(`${prefix}Enter a custom asset symbol in the Asset block, or pick one from the list.`);
+  }
+
+  const condition = conditionFromBlock(conditionBlock);
+
+  // Walk the chained action blocks inside the "DO" statement input.
+  const actions = [];
+  let actionBlock = ruleBlock.getInputTargetBlock('DO');
+  while (actionBlock) {
+    if (actionBlock.type !== 'action_block') {
+      throw new WorkspaceValidationError(`${prefix}Only "Open BUY/SELL" action blocks are allowed inside THEN.`);
+    }
+    const slBlock = actionBlock.getInputTargetBlock('SL');
+    const tpBlock = actionBlock.getInputTargetBlock('TP');
+    actions.push({
+      direction: actionBlock.getFieldValue('DIRECTION'),
+      lot: Number(actionBlock.getFieldValue('LOT')),
+      sl: slBlock ? operandFromBlock(slBlock) : null,
+      tp: tpBlock ? operandFromBlock(tpBlock) : null,
+    });
+    actionBlock = actionBlock.getNextBlock();
+  }
+
+  if (actions.length === 0) {
+    throw new WorkspaceValidationError(`${prefix}Add at least one "Open BUY/SELL" action block inside THEN.`);
+  }
+
+  // "Positions" dropdown: SINGLE means only one open round of trades from
+  // this rule at a time (maxPositions = 1); MULTIPLE reveals a "Max
+  // simultaneous" field for how many concurrent rounds are allowed.
+  const positionsMode = ruleBlock.getFieldValue('POSITIONS_MODE') || 'SINGLE';
+  const maxPositions = positionsMode === 'MULTIPLE'
+    ? Number(ruleBlock.getFieldValue('MAX_POSITIONS'))
+    : 1;
+
+  return {
+    asset,
+    timeframe: timeframeBlock.getFieldValue('TIMEFRAME'),
+    condition,
+    actions,
+    max_positions: maxPositions,
+  };
+}
+
+// A workspace can hold more than one independent "IF (Strategy Rule)"
+// block - each becomes its own trigger inside ONE combined exported EA/
+// cBot (own asset/timeframe/condition/positions, own magic number/label on
+// the backend so their positions never get confused with each other - see
+// main.py). Ordered by canvas position (top-to-bottom, left-to-right,
+// same as Blockly's own getTopBlocks(true)) purely for a stable, visually
+// predictable rule numbering - it has no effect on how the rules behave.
+function serializeWorkspace(ws) {
+  const topBlocks = ws.getTopBlocks(true).filter(b => b.type === 'trade_if');
+
+  if (topBlocks.length === 0) {
+    throw new WorkspaceValidationError('Add an "IF (Strategy Rule)" block to define your strategy before exporting.');
+  }
+
+  const multiple = topBlocks.length > 1;
+  const rules = topBlocks.map((ruleBlock, i) => ruleFromTradeIfBlock(ruleBlock, multiple ? `Rule ${i + 1}` : null));
+
+  return { rules };
+}
+
+/* ============================================================
+   4. EXPORT FLOW
+   ============================================================ */
+
+const API_BASE = window.location.origin.includes('null') || window.location.protocol === 'file:'
+  ? 'http://127.0.0.1:8000'
+  : window.location.origin.replace(/:\d+$/, ':8000');
+
+const exportMt5Btn = document.getElementById('exportMt5Btn');
+const exportCtraderBtn = document.getElementById('exportCtraderBtn');
+const exportMt4Btn = document.getElementById('exportMt4Btn');
+const exportButtons = [exportMt5Btn, exportCtraderBtn, exportMt4Btn];
+const statusMsg = document.getElementById('statusMsg');
+const toast = document.getElementById('toast');
+
+function showToast(message, isError = true) {
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+  toast.classList.toggle('border-red-600', isError);
+  toast.classList.toggle('text-red-300', isError);
+  toast.classList.toggle('border-emerald-600', !isError);
+  toast.classList.toggle('text-emerald-300', !isError);
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.add('hidden'), 6000);
+}
+
+// Short filename-safe slug identifying the exported strategy: the asset
+// when there's exactly one rule (matches the original single-rule
+// filenames traders already know), or up to 3 distinct assets joined
+// together, or "multi_Nrules" once it's too many to usefully list.
+function assetSlugForFilename(rules) {
+  const distinctAssets = [...new Set(rules.map(r => r.asset.toLowerCase()))];
+  if (distinctAssets.length <= 3) return distinctAssets.join('_');
+  return `multi_${rules.length}rules`;
+}
+
+// Shared by all export buttons - same Blockly-workspace payload, same
+// download-a-.zip flow, only the endpoint / filename prefix / button /
+// in-flight status label differ per target platform.
+async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
+  let payload;
+  try {
+    payload = serializeWorkspace(workspace);
+  } catch (err) {
+    if (err instanceof WorkspaceValidationError) {
+      showToast(err.message, true);
+      return;
+    }
+    showToast('Unexpected error reading the workspace: ' + err.message, true);
+    return;
+  }
+
+  exportButtons.forEach(b => { b.disabled = true; });
+  statusMsg.textContent = busyLabel;
+
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      let detail = 'Failed to generate the strategy export.';
+      try {
+        const errJson = await res.json();
+        detail = errJson.detail ? JSON.stringify(errJson.detail) : detail;
+      } catch (_) {}
+      throw new Error(detail);
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filenamePrefix}_${assetSlugForFilename(payload.rules)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    // Not a warning, just a heads-up - multiple "IF" blocks on the canvas
+    // are fully supported (see main.py), but a trader building several at
+    // once should still know they all just got bundled into one file.
+    const ruleCountNote = payload.rules.length > 1
+      ? ` (${payload.rules.length} strategy rules combined into one file)`
+      : '';
+    showToast(`Export complete! Your .zip download has started.${ruleCountNote}`, false);
+  } catch (err) {
+    showToast('Export failed: ' + err.message, true);
+  } finally {
+    exportButtons.forEach(b => { b.disabled = false; });
+    statusMsg.textContent = '';
+  }
+}
+
+exportMt5Btn.addEventListener('click', () => exportStrategy({
+  endpoint: '/api/generate',
+  filenamePrefix: 'scratch_for_traders',
+  button: exportMt5Btn,
+  busyLabel: 'Generating EA...',
+}));
+
+exportCtraderBtn.addEventListener('click', () => exportStrategy({
+  endpoint: '/api/generate/ctrader',
+  filenamePrefix: 'scratch_for_traders_ctrader',
+  button: exportCtraderBtn,
+  busyLabel: 'Generating cBot...',
+}));
+
+exportMt4Btn.addEventListener('click', () => exportStrategy({
+  endpoint: '/api/generate/mt4',
+  filenamePrefix: 'scratch_for_traders_mt4',
+  button: exportMt4Btn,
+  busyLabel: 'Generating EA...',
+}));
+</script>
+</body>
+</html>

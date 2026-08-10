@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(grep -n '^\"\"\"$' main.py)",
+      "Bash(awk 'NR==895{print NR\": \"$0}' main.py)",
+      "Bash(grep -n '\\\\\\\\\"')",
+      "Bash(python -c \"import main; print\\('module OK'\\)\")",
+      "Bash(mkdir -p \"/c/Users/juliu/AppData/Local/Temp/claude/C--Users-juliu-Desktop-traders-scratch/3bfb8d31-e36c-462b-b950-82d06ab9dbae/scratchpad/export_check\")",
+      "Read(//c/Users/juliu/AppData/Local/Temp/claude/C--Users-juliu-Desktop-traders-scratch/3bfb8d31-e36c-462b-b950-82d06ab9dbae/scratchpad/**)",
+      "Bash(unzip -o \"/c/Users/juliu/Downloads/scratch_for_traders_eurusd.zip\")",
+      "Bash(mkdir -p \"C:/Users/juliu/Desktop/traders scratch/tests/fixtures\")",
+      "Bash(find \"/c/Users/juliu/AppData/Roaming/MetaQuotes/Terminal/47AEB69EDDAD4D73097816C71FB25856/MQL5/Experts\" -iname \"*.log\" -newer \"/c/Users/juliu/Desktop/traders scratch/mt5_build_check_strategy.mq5\" 2>&1 *)",
+      "Bash(rm -f \"/c/Users/juliu/AppData/Roaming/MetaQuotes/Terminal/47AEB69EDDAD4D73097816C71FB25856/MQL5/Experts/scratch_for_traders_test.ex5\")",
+      "Bash(powershell -NoProfile -Command \"& 'C:\\\\Program Files\\\\OANDA TMS MT5 Terminal\\\\MetaEditor64.exe' /compile:\\\\\"C:\\\\Users\\\\juliu\\\\AppData\\\\Roaming\\\\MetaQuotes\\\\Terminal\\\\47AEB69EDDAD4D73097816C71FB25856\\\\MQL5\\\\Experts\\\\scratch_for_traders_test.mq5\\\\\" /log:\\\\\"C:\\\\Users\\\\juliu\\\\Desktop\\\\traders scratch\\\\mt5_build_check.log\\\\\"\")",
+      "Bash(iconv -f UTF-16LE -t UTF-8)",
+      "Bash(DATA_FOLDER=\"/c/Users/juliu/AppData/Roaming/MetaQuotes/Terminal/47AEB69EDDAD4D73097816C71FB25856\" *)",
+      "Bash(python tools/verify_mt5_compile.py)",
+      "Bash(python tools/verify_ctrader_build.py)",
+      "Bash(python tools/strategy_matrix.py)",
+      "Bash(python -c *)",
+      "Bash(python tools/verify_ctrader_build.py --fixture simple_single)",
+      "Bash(python tools/verify_ctrader_build.py --matrix)",
+      "Bash(python tools/verify_mt5_compile.py --matrix)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/docs)"
+    ]
+  }
+}

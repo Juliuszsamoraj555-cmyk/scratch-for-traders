@@ -1,0 +1,41 @@
+{
+  "rules": [
+    {
+      "asset": "USDJPY",
+      "timeframe": "PERIOD_H1",
+      "condition": {
+        "type": "comparison",
+        "left": {
+          "kind": "MACD",
+          "line": "HIST"
+        },
+        "operator": ">",
+        "right": {
+          "kind": "STOCH",
+          "k_period": 5,
+          "d_period": 3,
+          "slowing": 3,
+          "stoch_line": "K"
+        }
+      },
+      "actions": [
+        {
+          "direction": "SELL",
+          "lot": 0.05,
+          "sl": {
+            "kind": "BANDS",
+            "period": 20,
+            "deviation": 2,
+            "band": "UPPER"
+          },
+          "tp": {
+            "kind": "BANDS",
+            "period": 20,
+            "deviation": 2,
+            "band": "LOWER"
+          }
+        }
+      ]
+    }
+  ]
+}

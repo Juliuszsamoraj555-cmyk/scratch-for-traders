@@ -1,0 +1,203 @@
+# Scratch for Traders — Handoff (update, 2026-08-08)
+
+This picks up from the original handoff doc (same project, same stack: FastAPI + Blockly, no build step). Everything below is new since then, in this session. Read this alongside the code — it documents *why* things are the way they are, which isn't always obvious from the diff alone.
+
+## TL;DR — start here
+
+- **What it is:** no-code Blockly strategy builder that exports to three platforms: MT5 (`.mq5`), cTrader (`.cs` cBot), MT4 (`.mq4`) — three buttons in `index_1.html`, three renderers in `main.py` (`render_mql5`/`render_csharp`/`render_mql4`) all consuming ONE shared `StrategyIR` produced by `parse_strategy()`. Never re-implement Blockly-tree interpretation per renderer — extend the IR/parser once, all three benefit.
+- **Verified, not assumed:** all three renderers compile for real against 46 combinatorially-generated test strategies (`tools/strategy_matrix.py`) — **138/138 real compiles**, via `tools/verify_{mt5,ctrader,mt4}_*.py --matrix` (real `MetaEditor64.exe`/`metaeditor.exe`/`dotnet build`, not simulated). Re-run any of these after touching a renderer.
+- **Not yet verified:** actual trading *behavior* in the real Strategy Tester / cTrader backtester (compiling ≠ behaving correctly) — see "Open items" below, that's the top of the list.
+- **Backend workflow:** runs via Claude Code Browser-pane `preview_start` (`.claude/launch.json`, name `scratch-for-traders-backend`, port 8000) — **no `--reload`**, restart it explicitly after any `main.py` edit before testing.
+- **Detailed history below (items 1-11)** explains *why* each design decision was made — read a specific item only if you need the reasoning; skip straight to "Open items" / "Reminders" if you just need to keep going.
+
+## File manifest (corrected)
+
+- `main.py` — FastAPI backend. Pydantic API models → `parse_strategy()` → `StrategyIR` → `render_mql5()` / `render_csharp()` / `render_mql4()`. See items 7 and 10 below for the shape.
+- `index_1.html` — **note: this is the actual frontend filename, not `index.html`** as the original handoff doc said. Three export buttons (MT5 green / cTrader blue / MT4 amber), sharing one `exportStrategy()` JS helper.
+- `requirements.txt` — currently **pinned**: `fastapi==0.115.0`, `uvicorn[standard]==0.30.6`, `pydantic==2.9.2`. (The installed environment actually has newer versions — fastapi 0.139.2, uvicorn 0.51.0 — that were never reconciled with the pin. Works fine today; worth tightening up at some point.)
+- `HANDOFF.md` — this file.
+- `.claude/launch.json` — Lets `preview_start` launch the backend (`python -m uvicorn main:app --port 8000`) directly from Claude Code's Browser pane.
+- `tests/fixtures/*.json` + `*.mq5.expected` + `*.readme.expected` — regression fixtures (pre-IR-refactor output), see item 7.
+- `tests/test_regression.py` — pytest suite covering the fixtures above (`pytest tests/test_regression.py -v`). First automated test coverage this project has had.
+- `tools/verify_mt5_compile.py` / `tools/verify_ctrader_build.py` / `tools/verify_mt4_compile.py` — real, repeatable compiler checks for all three export targets, see items 8 and 10. Not part of `pytest tests/` (need real local MT5/MT4 installs / `dotnet`+network) - run explicitly.
+- `tools/strategy_matrix.py` — combinatorial strategy generator (46 strategies, each-choice coverage of every operand/timeframe/operator/etc.), see item 9. `--matrix` flag on all three verify_*.py scripts uses it.
+- `ctrader_build_check/` — scratch `dotnet new classlib` project referencing the real `cTrader.Automate` NuGet package, used by `verify_ctrader_build.py`. `bin/`/`obj/` inside it are normal build output, safe to ignore/delete and regenerate.
+
+## What changed this session (in order)
+
+### 1. Backend MQL5-compatibility review + fixes
+- Removed `#property strict` (MQL4-only directive, does nothing in `.mq5`, was just noise in the compile log).
+- Added `SymbolSelect(TradeSymbol, true)` in `OnInit()` → then generalized into **`ResolveBrokerSymbol()`**: tries an exact symbol match first, then scans the broker's full symbol list for one containing the base name (handles `EURUSD` vs `EURUSD.a` vs `EURUSDm` etc.). `TradeSymbol` gets reassigned to whatever it resolves to.
+- Added **`NormalizeLot()`**: snaps the configured lot size to the broker's actual `SYMBOL_VOLUME_STEP`/`MIN`/`MAX` at runtime, since these vary broker to broker and were previously sent as a raw literal.
+- Fixed a self-introduced bug: `\"` inside the big triple-quoted f-string template was being consumed by Python's own string escaping (losing the backslash) instead of reaching the output — needed `\\"` to actually emit `\"` into the generated `.mq5`. Caught via test regeneration before it ever reached a real compile.
+
+### 2. Multi-action support (user requested: "multiple actions under one THEN may be needed")
+- Previously, the virtual SL/TP state was single global scalars (`g_virtualSL`/`g_virtualTP`/`g_virtualDirection`) — a second action in the same THEN block silently clobbered the first's stop.
+- Rebuilt as parallel arrays keyed by **MT5 position id** (resolved via `ResolveOpenedPositionId()`, which reads `DEAL_POSITION_ID` off the deal that the order produced — the only identifier that's correct on both netting and hedging accounts). `RegisterVirtualStop()` / `RemoveVirtualStop()` manage the arrays; the `OnTick()` monitor loop iterates all tracked positions instead of checking one.
+
+### 3. Live dev loop set up in Claude Code
+- `.claude/launch.json` added so the backend can run via the Browser pane's `preview_start`, without the user needing their own terminal.
+- Confirmed `index_1.html` opened via `file://` in the Browser pane is fully interactive (Blockly runs, not a static snapshot) and auto-detects the local backend at `127.0.0.1:8000`.
+- **Found and fixed a real Blockly 13.2.1 rendering bug**: when a toolbox flyout auto-closes, its scrollbar (a DOM *sibling* of the flyout, not a child) never gets hidden along with it, leaving a frozen vertical bar on screen. Fixed with a small `MutationObserver` in `index_1.html` that mirrors each flyout's visibility onto its own scrollbar.
+- Verified a real export (`scratch_for_traders_eurusd.zip`) against the running backend — contents matched expectations exactly (down to the escaped quotes and the timestamp proving it came from the patched backend).
+
+### 4. Diagnosed a real Strategy Tester backtest ("very few trades, all losing")
+User ran a backtest (OANDATMS-MT5 demo, EURUSD M1, "Every tick" modeling, spread manually set to `1` in the tester). Findings, confirmed by reproducing the P&L math exactly (-270.10 + -238.70 = **-508.80**, matching the report to the cent):
+- **Low trade count is not a bug.** The "don't pile into the same signal" gate blocks new entries while a position is open; with wide SL/TP (30/90 pips) relative to M1 noise, positions stayed open 13h and 3.5 days respectively — together covering nearly the whole test window. Expected given the gate + those distances.
+- **The realized loss is not a bug either.** The actual Bid/Ask spread in the tester's generated ticks was still ~240 pips *despite* the user setting "Spread: 1" in the tester config — this is the same anomalous-spread issue flagged as an open thread in the original handoff, now confirmed to persist even when the user tries to override it. Likely cause (untested): the override may only apply under "1-minute OHLC" tick generation, not "Every tick" synthetic generation from a symbol with no real historical tick archive. **Next step, not yet done:** have the user try switching Modelowanie to "1 minutowe OHLC" with the same spread override and compare.
+- The EA's own logic (measuring virtual SL/TP from the exit-side reference price) is working exactly as designed — it's not the source of the loss. The loss is 100% attributable to entry spread cost exceeding TP, which is a demo-data/tester-config issue outside the EA's control.
+
+### 5. "Max simultaneous positions" feature (user requested, explicitly: build this proactively when it improves trade reliability)
+- New `Positions` field on the `IF (Strategy Rule)` block: **"only one at a time"** (default, original behavior) vs **"allow multiple at once"**, which reveals a **"Max simultaneous"** number field.
+- Backend: new `max_positions` config field; gating logic changed from "is there any open position" to a counter `g_openRoundsSinceFlat` that increments per fired round and resets to 0 only once every tracked position has actually closed. This works correctly regardless of account mode (array-size-based gating would have failed on netting accounts, where merged orders don't grow the tracked-position array).
+- UI polish: forced `setInputsInline(false)` on the block — Blockly was auto-switching between a horizontal layout (when the Max-simultaneous row was absent) and a vertical stack (when present), which looked like two different blocks. Now always vertical, consistent in both modes. Verified live in the Browser pane, toggling both directions.
+
+### 6. Netting-account SL/TP correctness fix (user requested after asking a clarifying question, then said "wdrażajmy z automatu")
+Follow-up question exposed a real correctness gap: on a **netting account**, when a 2nd+ round merges into an already-open position, the old code just *overwrote* the tracked SL/TP with the new round's own reference price — silently discarding the first round's levels, and computing the new SL/TP distance from a price that ignored the position's actual blended average cost. Concretely: effective SL/TP distance from the real average price would end up randomly tighter or wider than configured, depending purely on how far price drifted between rounds.
+
+Fixed: `RegisterVirtualStop()` now takes `exitRefPrice` + `lot` per call and maintains a **volume-weighted running average exit-side reference price** (`g_vsExitRef[]` / `g_vsVolume[]`) per tracked position id, recomputing SL/TP from that blended average every time. Deliberately does **not** use MT5's own `POSITION_PRICE_OPEN` (that's the entry-side/Ask price for a BUY — anchoring to it would reintroduce the original "spread looks like an instant stop-out" bug that the exit-side design specifically avoids). On hedging accounts this is a no-op (each round gets its own distinct position id, so there's never anything to blend).
+
+### 7. cTrader (cBot C#) export added via a shared Strategy IR
+
+User requested a second export target (cTrader Automate, C#) alongside MT5, explicitly asking for it to go through a shared intermediate representation rather than a second from-scratch generator — to avoid exactly the "two places that can silently disagree" class of bug this project has already hit more than once (see the SL/TP saga and the netting-blend fix above).
+
+**Architecture change in `main.py`:**
+- `StrategyIR` / `OperandIR` / `ComparisonIR` / `LogicalIR` / `ActionIR` — plain dataclasses, no FastAPI/Pydantic dependency. This is the ONE representation both renderers consume.
+- `parse_strategy(config: WorkspaceConfig) -> StrategyIR` — validates (moved out of `generate_mql5`, now raises a plain `StrategyValidationError` instead of `HTTPException` so this layer has no web-framework dependency) and converts the Pydantic API model tree into `StrategyIR`. The MVP limitation "only the first top-level `trade_if` rule is exported" now lives simply in `StrategyIR` describing a single rule — both renderers inherit it automatically, nothing platform-specific to remember.
+- `render_mql5(ir: StrategyIR) -> str` — the old `generate_mql5`, refactored to consume `StrategyIR` instead of `WorkspaceConfig` directly. Internal builder functions renamed with an `_mql5_` prefix (`_mql5_build_operand`, `_mql5_build_condition`, `_mql5_action_block`, ...) to make the split obvious at a glance.
+- `render_csharp(ir: StrategyIR) -> str` — new, parallel renderer for a cTrader cBot, built the same shape (`_csharp_build_operand`, `_csharp_build_condition`, `_csharp_action_block`).
+- New endpoint `POST /api/generate/ctrader` (same request/response contract shape as `/api/generate` — same `WorkspaceConfig` body, same zip-with-README streaming response pattern), and a second "Export to cTrader" button in `index_1.html` next to "Export to MT5". The export click-handler was refactored into one shared `exportStrategy({endpoint, filenamePrefix, button, busyLabel})` function so the two buttons aren't two copies of the same fetch/download logic.
+
+**Regression requirement (from the task spec) — done and automated:** `tests/fixtures/*.json` capture 3 representative strategies (single action, multi-action with `max_positions`, and one exercising MACD/Bollinger/Stochastic) with their **pre-refactor** `generate_mql5()` output saved alongside as `.mq5.expected`/`.readme.expected`. `tests/test_regression.py` (pytest) asserts `render_mql5(parse_strategy(config))` is byte-identical to those (only the `Generated: <timestamp>` line is normalized out) — **0 differences**, confirmed. This is also the first actual automated test coverage this project has had (previously: manual curl + live MT5/Browser-pane testing only, per the earlier open-thread item asking for exactly this).
+
+**cAlgo (cTrader) API mapping decisions**, matching MT5 feature-for-feature but adapted to idiomatic cAlgo patterns rather than a literal transliteration:
+| MT5 concept | cAlgo equivalent used | Why different from MT5 |
+|---|---|---|
+| `iTime()`-comparison new-bar gate polled every `OnTick()` | `Bars.BarOpened` event | cAlgo has a native new-bar event; no need to hand-roll one |
+| `ResolveOpenedPositionId()` via `DEAL_POSITION_ID` history lookup | `TradeResult.Position.Id`, returned directly by `ExecuteMarketOrder()` | cAlgo hands back the Position object immediately - simpler, no lookup needed |
+| `g_vsPositionId[]`/`g_vsSL[]`/... parallel arrays | `Dictionary<long, VirtualStopState>` keyed by `Position.Id` | More natural in C#; same blending logic ported as-is into `RegisterVirtualStop()` |
+| `ResolveBrokerSymbol()` (MT5 suffix handling, e.g. `EURUSD.a`) | Same shape, using `Symbols.Exists()`/`Symbols` enumeration | **Unverified** whether cTrader brokers even use suffixes the way MT5 white labels do - kept as cheap insurance, flagged in code comments and the cTrader README as needing real-broker verification |
+| `NormalizeLot()` (hand-rolled step/min/max snapping) | `Symbol.NormalizeVolumeInUnits()` + `Symbol.QuantityToVolumeInUnits()` | Built into the cAlgo API - no reason to reimplement |
+| `PipSize()` (3/5-digit fractional-pip helper) | `Symbol.PipSize` | Built into the cAlgo API |
+| Manual `PositionSelectByTicket` polling for "did this close some other way" | `Positions.Closed` event, plus the same check as a fallback inside the `OnTick()` monitor loop | Event-driven cleanup, belt-and-suspenders with the polling check |
+| Netting-account SL/TP blend (see item 6 above) | Ported as-is into `RegisterVirtualStop()` in C# | Works for both `AccountType.Hedged` and `AccountType.Netted` without an explicit branch, because cAlgo returns the same `Position.Id` for merged netting rounds - same mechanism that makes the MT5 version work |
+
+**A lesson from item 1 above was applied proactively here:** the C# template (`_CSHARP_TEMPLATE`) is a **plain (non-f) string with `<<TOKEN>>` placeholders substituted via `.replace()`**, not an f-string. The MQL5 template's `\"` vs `\\"` bug happened because Python's f-string/string escaping silently ate characters meant for the *generated file's* syntax. `<<TOKEN>>` placeholders can't collide with C#'s `{`/`}` or `\"` at all, so that whole bug class isn't possible in the new renderer. (Not applied retroactively to the MQL5 renderer — it already works and is regression-tested; not touched beyond the IR refactor.)
+
+**Status: NOT yet verified against a real cTrader Automate compile.** Generated `.cs` output was checked for brace/paren balance, no leftover template tokens, and manual read-through against documented cAlgo API signatures (`Indicators.MovingAverage`, `RelativeStrengthIndex`, `MacdCrossOver`, `BollingerBands`, `AverageTrueRange`, `StochasticOscillator`, `ExecuteMarketOrder`, `ClosePosition`, `Symbol.NormalizeVolumeInUnits`, etc.) - all from the stable, well-documented parts of the API, but genuinely untested against the actual compiler. **Next action for the user:** paste `ScratchForTradersBot.cs` into cTrader Automate → New cBot → Ctrl+B, and report back the exact error text if it doesn't show "0 errors" - most likely failure mode would be a cAlgo API signature drift between platform versions, which would be a quick fix once the exact error is known.
+
+### 8. Real, repeatable compiler verification for BOTH export targets — no more "unverified"
+
+User asked directly: can this actually be tested without a human manually pasting code into MetaEditor/cTrader Automate every single time, given there are effectively unlimited block combinations to check? Answer turned out to be **yes, for both platforms**, via each platform's real command-line build tooling - not a simulation, not GUI automation (nothing here drives the MT5 or cTrader desktop UI - there's no tool available for that), but the actual compilers these apps use internally, invoked headlessly.
+
+**MT5 / MetaEditor:** `MetaEditor64.exe` has a documented CLI compile mode (`/compile:"path.mq5"`). Found two installs on this machine (`C:\Program Files\MetaTrader 5\` and `...\OANDA TMS MT5 Terminal\`) and the user's actual, already-initialized Data Folder at `%APPDATA%\MetaQuotes\Terminal\47AEB69EDDAD4D73097816C71FB25856\` (same one referenced in the user's own Strategy Tester screenshots earlier this session - it already had a hand-compiled `strategy.ex5` in `MQL5\Experts` from their manual testing). Compiling requires the target `.mq5` to sit inside a real Data Folder's `MQL5\Experts` so `#include <Trade\Trade.mqh>` resolves - a fresh, never-launched MT5 install has no such folder yet, which is a real constraint, not a tooling gap.
+
+`/log:` did not reliably produce a readable log file when invoked non-interactively in this environment (empty/undecodable output - not investigated further since a better signal was available). Instead: delete any stale `.ex5` for the target file first, invoke the compile, then check whether a **fresh, non-empty `.ex5` appears** - MetaEditor only ever produces one on a successful compile, so this is a reliable, encoding-independent success signal. **All 3 fixtures compiled successfully this way** - the first real confirmation the MT5 generator (post-`RegisterVirtualStop`-rewrite) actually compiles, not just "should compile based on manual review."
+
+**cTrader / cAlgo:** cTrader Desktop 4.2+ moved to the .NET SDK toolchain and **officially supports `dotnet build`** from outside the app (confirmed via cTrader's own docs, not assumed) - create a `dotnet new classlib` project, add the `cTrader.Automate` NuGet package (found on nuget.org, real, current version 1.0.19), drop the generated `.cs` in, `dotnet build --configuration Release`. **All 3 fixtures compiled successfully with 0 errors** on the very first attempt, producing genuine `.algo` output files - meaning `render_csharp()`'s hand-written API calls (`Indicators.MovingAverage`, `MacdCrossOver`, `BollingerBands`, `StochasticOscillator`, `AverageTrueRange`, `ExecuteMarketOrder`, `ClosePosition`, `Symbol.NormalizeVolumeInUnits`, `Positions.Closed`, `Bars.BarOpened`, etc.) were all correct against the real API on the first try. Cleaned up ~8-9 harmless nullable-reference-type warnings (`= null!;` on fields set in `OnStart()` rather than the constructor, and a `string?` return type on `ResolveBrokerSymbol()`) down to 2 benign ones, purely for cleanliness - none of them were ever compile errors.
+
+This directly earlier note in item 7 that cTrader-headless-build was "explicitly rejected due to cost/risk" - that guidance predates this verification and turned out to be more pessimistic than reality (cTrader's own docs now recommend exactly this workflow for external editors). Superseded by this item.
+
+**New, reusable, repeatable tooling (this is the actual answer to "how do we avoid doing this by hand forever"):**
+- `tools/verify_mt5_compile.py` — auto-discovers MetaEditor + Data Folder, compiles every `tests/fixtures/*.json` (or `--fixture name` / `--file path.json`) for real, reports PASS/FAIL per strategy, exits non-zero on any failure.
+- `tools/verify_ctrader_build.py` — same shape, targets the `ctrader_build_check/` scratch project + `dotnet build`.
+- Both are plain `python tools/verify_*.py` - no flags needed for the common case (checks all 3 fixtures), a few seconds each, safe to re-run anytime (e.g. after touching `render_mql5`/`render_csharp` again).
+- **Not wired into `pytest tests/`** on purpose - they need a real local MT5 install / `dotnet` + network access respectively, which a plain unit-test run shouldn't depend on. Run them explicitly, ideally after any change to either renderer.
+
+**What this does NOT cover:** actual strategy *correctness* at runtime (does the SL/TP math produce the right trade, does `max_positions` gate correctly under load, does the netting-blend behave as designed) - only "does the generated code compile". That still needs the real Strategy Tester / cTrader backtester, which remain desktop-only and outside what can be automated here. But "does it compile" was the open, expensive-to-repeat-by-hand question, and that part is now solved and automated.
+
+### 9. Combinatorial strategy matrix — 46 generated strategies, 92/92 real compiles pass on both platforms
+
+User's reasonable pushback on item 8: 3 hand-picked fixtures don't remotely cover "every indicator, every module" — and hand-writing thousands of individual test-strategy JSON files isn't tractable either. Resolution: `tools/strategy_matrix.py`, a **generator**, not a fixture set.
+
+Full cartesian coverage (every operand kind × every parameter variant × every role × every timeframe × ...) would be tens of thousands of strategies and mostly redundant. Instead this uses **each-choice combinatorial coverage**: every operand kind, every meaningful parameter variant per kind (MA type, BANDS line, MACD line, STOCH line, CANDLE type, VOLUME bar, RISK_VALUE unit), every timeframe, both comparison/logical operators, both trade directions, and multiple `max_positions` values each appear in **at least one** generated strategy - round-robin cycling through the other axes so nothing is tested in total isolation either - plus explicit structural cases (2- and 3-level nested logical trees, 2-level MULTIPLY nesting, multi-action strategies, "no SL/no TP at all"). `generate_matrix()` currently produces **46 strategies** from this scheme.
+
+Wired `--matrix` into both `tools/verify_mt5_compile.py` and `tools/verify_ctrader_build.py` (alongside the existing `--fixture`/`--file`/default-all-fixtures modes). Also added automatic failure-reproducer dumping: any strategy that fails to compile gets its JSON written to `tests/fixtures/failures/<name>.json`, so a real-world failure is immediately re-runnable in isolation (`--file`) and promotable to a permanent regression fixture once fixed - never just "combo #37 failed, good luck reproducing that."
+
+**Result: ran all 46 generated strategies through BOTH real compilers - 46/46 pass on cTrader (`dotnet build`), 46/46 pass on MT5 (`MetaEditor64.exe /compile`). 92/92 total, zero failures, zero reproducers needed.** This is now the strongest evidence available (short of literally running each one through the desktop apps' own UI) that both renderers handle the full breadth of what the Blockly builder can produce, not just the 3 strategies someone happened to think of by hand.
+
+**How to re-run after touching either renderer:**
+```
+python tools/verify_mt5_compile.py --matrix
+python tools/verify_ctrader_build.py --matrix
+```
+Takes a few minutes each (real compiler invocations, not free) - not part of the fast `pytest tests/` run for the same reason item 8 kept the single-fixture versions out of it.
+
+**Next step if this ever needs to grow further:** `strategy_matrix.py`'s variant lists (`OPERAND_VARIANTS`, `RISK_VARIANTS`, `MULTIPLY_VARIANTS`, etc.) are the only thing to extend - the generation/coverage logic around them doesn't need to change to add e.g. more MULTIPLY nesting depths or explicit pairwise (not just each-choice) coverage of specific axis combinations, if "does operand X as SL interact correctly with timeframe Y" ever becomes a real question worth asking directly instead of via round-robin cycling.
+
+### 10. MT4 export added — third renderer on the same StrategyIR, no netting-blend branch, 138/138 real compiles
+
+Third export target, same pattern as items 6-9: `render_mql4(ir: StrategyIR) -> str` consumes the same `StrategyIR` as `render_mql5`/`render_csharp` - no new Blockly-tree-walking logic duplicated. New endpoint `POST /api/generate/mt4`, third "Export to MT4" button in `index_1.html` (amber, alongside the green MT5 and blue cTrader buttons), all three sharing the same `exportStrategy()` JS helper (generalized from a 2-button special case to an `exportButtons` array).
+
+**Genuine simplifications versus the MT5 renderer, not shortcuts:**
+- **No netting-blend branch at all.** MT4 has no netting account type - every `OrderSend()` always gets its own independent ticket - so the volume-weighted `g_vsExitRef[]`/`g_vsVolume[]` blending machinery `RegisterVirtualStop()` needs on MT5 (item 6) simply doesn't apply. Confirmed by grep: `g_vsExitRef`/`g_vsVolume` do not appear anywhere in `render_mql4()`'s output.
+- **No indicator handle/CopyBuffer bookkeeping.** Classic MQL4 indicator functions (`iMA`, `iRSI`, `iBands`, `iStochastic`, `iMACD`, `iATR`) return their value directly from a single call - no handle to create in `OnInit()`, no buffer to copy in `OnTick()`, nothing to release in `OnDeinit()`. `_mql4_build_operand()` returns a plain expression string, not a wrapper object with decl/init/copy fields like the MQL5/C# builders need.
+- **Ticket tracking is simpler than MT5's position-id resolution.** `OrderSend()` returns the new ticket directly as its call result - no `DEAL_POSITION_ID` history lookup needed (the MT5 renderer's `ResolveOpenedPositionId()` hack), closer to how cTrader's `ExecuteMarketOrder()` also hands back the `Position` object immediately.
+
+**Deliberately restored:** `#property strict` (MQL4-only directive enabling stricter compile-time type checking) - this is the mirror image of removing it from the MT5 renderer (item 1), not an inconsistency.
+
+**Deliberately used the C#-style `<<TOKEN>>` + `.replace()` template** (not an f-string) for the same reason as the cTrader renderer - avoids any repeat of the `\"` vs `\\"` f-string-escaping bug hit once already in the original MQL5 renderer. Verified by direct inspection of generated output: quotes come out correctly as `\"` (single backslash + quote), matching valid MQL4 string-literal syntax.
+
+**Known MQL4-specific bug class watched for and applied correctly:** closing orders while iterating an order/ticket list forwards is the single most common MQL4 bug (the list shrinks under a forward-counting loop, silently skipping every other order). The `OnTick()` virtual-stop monitor loop iterates `for(int i = ArraySize(g_vsTicket) - 1; i >= 0; i--)` - backwards - with an explicit comment explaining why, not just because `RemoveVirtualStop()` swap-removes.
+
+**Verification - real compiles, not review:** found a genuine MT4 install on this machine (`C:\Program Files (x86)\FTMO MetaTrader 4\`, `metaeditor.exe` non-64-bit) with an already-initialized Data Folder (`MQL4\Experts` exists - the terminal has been launched at least once). `tools/verify_mt4_compile.py` added, same shape as `verify_mt5_compile.py`/`verify_ctrader_build.py` (auto-discovery, `--fixture`/`--file`/`--matrix`, failure-reproducer dumping to `tests/fixtures/failures/`).
+
+One auto-discovery wrinkle found and fixed: the naive "first `metaeditor*.exe` found under Program Files" picked the **MT5** install's `MetaEditor64.exe` first, which - despite the shared-compiler unification meaning it theoretically should handle `.mq4` - silently failed (no `.ex4`, no error) when pointed at a file inside the *MT4* Data Folder tree. Fixed by preferring a candidate whose install folder name contains "4" and whose executable isn't the "64" build; using the **matching** MT4 install's own MetaEditor against its own Data Folder is what's actually confirmed to work reliably.
+
+**Result: ran the same 46-strategy combinatorial matrix (`tools/strategy_matrix.py`, see item 9) through MT4 too - 46/46 pass, 0 errors.** Combined with items 8-9's cTrader and MT5 results: **138/138 real compiles across all three platforms (46 strategies × 3 platforms), zero failures.**
+
+```
+python tools/verify_mt4_compile.py --matrix
+```
+
+### Local environment reference (this machine, for re-running verify_*.py without rediscovering)
+
+| Platform | Install | Data Folder |
+|---|---|---|
+| MT5 (OANDA TMS) | `C:\Program Files\OANDA TMS MT5 Terminal\MetaEditor64.exe` | `...\AppData\Roaming\MetaQuotes\Terminal\47AEB69EDDAD4D73097816C71FB25856\` |
+| MT5 (generic) | `C:\Program Files\MetaTrader 5\MetaEditor64.exe` | same underlying account, same Data Folder as above |
+| MT4 (FTMO) | `C:\Program Files (x86)\FTMO MetaTrader 4\metaeditor.exe` | `...\AppData\Roaming\MetaQuotes\Terminal\2C68BEE3A904BDCEE3EEF5A5A77EC162\` |
+| cTrader | n/a (no desktop install found/needed) | `ctrader_build_check/` scratch `dotnet` project instead |
+
+All of `tools/verify_*.py` auto-discover these; this table is just so a future session doesn't have to re-run the discovery commands from scratch.
+
+### 11. README.txt rewritten for all three platforms — traced the actual trader path, not just re-worded
+
+User asked to trace the trader's real path from downloading the export to a confirmed-running strategy, on all three platforms, and fix the README files accordingly. Did real research (not just recall) via WebSearch before rewriting:
+- Confirmed MT5/MT4 Navigator does **not** auto-detect a file dropped into `Experts` while the terminal is running — needs an explicit right-click → Refresh. Neither old README mentioned this; a trader following the old steps literally would not see their EA in the Navigator at Step 4/5 and have no idea why. **Added as its own step in both MT5 and MT4 READMEs.**
+- Confirmed cTrader's actual modern attach flow is **not** "drag from the Automate panel onto a chart" (what the old README said) - it's the "Add cBot" icon in the chart's own toolbar → pick from a list → "Add to chart" → then a separate "Start" click that prompts for **Local vs Cloud instance**. Old README's Step 6 was simply wrong about the mechanism. **Rewritten to match the real flow**, with a plain-English explanation of Local vs Cloud (Local for a first Demo test, Cloud once you trust the strategy).
+- Found and removed a **stale, now-false claim**: the cTrader README said the build "has NOT been verified against a real cTrader Automate compile yet" - that was true when originally written, but items 8-10 since confirmed 138/138 real compiles across all three platforms. Leaving that sentence in would have undersold something already fixed and could have made the trader more hesitant than necessary.
+
+**Added to all three READMEs (previously present in none):**
+- An explicit "Confirm it's actually running" step, naming the exact Print/log message the generated code emits on successful init (`Scratch for Traders EA initialized on <asset>` / `...cBot initialized on <asset>`) and which platform panel to find it in (MT5/MT4: Toolbox → "Experts" tab; cTrader: "Log" tab next to Positions/Orders/History) - so the trader has a concrete, unambiguous "yes it's working" signal instead of just hoping.
+- A "what you'll see in [Positions/Trade tab]" note explaining that SL/TP will show as empty on the platform's own position list - this is expected (virtual/EA-managed stops, see the SL/TP debugging saga), not a bug, and was flagged internally in this project's own history as something worth surfacing to end users. Now it is.
+- A short "(Always start with a Demo account...)" pointer at Step 1 forward-referencing the safety notes, so that guidance lands before the trader has done anything risky, not only in a footer they may skip.
+
+`tests/fixtures/*.readme.expected` regenerated to match (regression test's job is to catch *unintended* drift from refactors, not to freeze content that was deliberately improved) - `pytest tests/` passes again, 9/9. No renderer code (`render_mql5`/`render_csharp`/`render_mql4`) touched, so the 138/138 real-compile results from items 8-10 are unaffected and weren't re-run.
+
+## Current live state (as of this handoff)
+
+- Backend running via Claude Code's Browser-pane preview server (`.claude/launch.json`, config name `scratch-for-traders-backend`, port 8000). If it's not running when you come back, just `preview_start` it again by name, or the user can run `python -m uvicorn main:app --port 8000` manually.
+- **The backend does NOT run with `--reload`** — any further edit to `main.py` needs an explicit `preview_stop` + `preview_start` (or manual restart) before it's live, not just a save.
+- `index_1.html` opened in the Browser pane via `file://...index_1.html` — fully interactive, all three export buttons present and each confirmed working end-to-end through the actual UI (built a strategy via the Blockly JS API, clicked each button, all three `POST /api/generate*` endpoints returned 200 OK, each `.zip` download triggered).
+- `pytest tests/test_regression.py` passes (9/9) as of the latest `main.py`.
+- **All three export targets now confirmed to compile for real, across a broad combinatorial matrix** (items 8-10 above) — MT5 via `MetaEditor64.exe /compile`, cTrader via `dotnet build` against the real `cTrader.Automate` package, MT4 via the FTMO install's `metaeditor.exe /compile`. **46/46 generated strategies pass on all three = 138/138 total.** Re-run `python tools/verify_{mt5,ctrader,mt4}_{compile,build}.py --matrix` after touching any renderer (a few minutes each); use `--fixture`/`--file` for a quicker single-strategy check while iterating.
+- Third UI button ("Export to MT4", amber) confirmed working end-to-end through the actual Browser-pane UI (built a strategy via the Blockly JS API, clicked the button, `POST /api/generate/mt4` returned 200 OK, `.zip` download triggered) - same verification already done for the other two buttons.
+- What's still NOT verified: actual runtime/strategy correctness in the real apps (Strategy Tester / cTrader backtester) — compiling cleanly isn't the same as behaving correctly under real price action. See open items below.
+
+## Open items / suggested next steps
+
+1. Run a real MT5 Strategy Tester backtest against the latest export (post-`RegisterVirtualStop` rewrite) — compilation is now confirmed automatically, but tester *behavior* (does `max_positions`/netting-blend actually do the right thing with real ticks) still needs a human to run it.
+2. Same for cTrader — run the compiled `.algo` through cTrader's own backtester at least once, ideally on both a Hedged and a Netted demo account, to confirm the blended-price fix behaves as designed in practice (not just in generated-code review).
+3. Same for MT4 — run the compiled `.ex4` through MT4's own Strategy Tester at least once. Lower risk than the other two (no netting-blend branch exists to get wrong), but never actually watched trade/tick.
+4. Resolve the Strategy Tester spread-override question: try "1 minutowe OHLC" modeling mode with the same spread setting and compare against "Każdy tick" — determine whether the override genuinely doesn't apply in tick mode, or whether it was set in the wrong place.
+5. **Resolved:** `tools/strategy_matrix.py` (item 9) covers combinatorial coverage — 46 generated strategies, each-choice coverage of every operand/timeframe/operator/direction/RISK_VALUE-unit/nesting-depth, **138/138 real compiles passing across all three platforms** (item 10). If a specific *pairwise* interaction (not just each-choice) ever becomes a real question, extend the generator rather than hand-writing more fixtures.
+6. `requirements.txt` pins vs. actually-installed versions are out of sync (see file manifest above) — not urgent since it currently works, but worth reconciling before it silently breaks on a clean install.
+7. If the cTrader broker-suffix scanning in `ResolveBrokerSymbol()` (C# side) turns out to be unnecessary (real cTrader accounts don't suffix symbol names), it's harmless to leave in - but worth confirming and noting either way once known. Same open question for the MT4 renderer's copy of `ResolveBrokerSymbol()`.
+
+## Reminders carried over from the original handoff (still true)
+
+- User (Juliusz) is on Windows + PowerShell, moderate technical comfort, MT5 client is in Polish (Kompiluj = Compile, Dziennik = Journal, Historyczna weryfikacja = backtest stats tab).
+- Full manual test cycle after any backend change: restart uvicorn → hard refresh browser → rebuild/re-export from Blockly → replace `strategy.mq5` in `MQL5\Experts` → recompile in MetaEditor (F7) → rerun backtest. Skipping steps (especially the backend restart) has caused wasted debugging rounds before.
+- Only the first top-level `trade_if` block on the canvas is exported; multiple independent strategies on one canvas still isn't supported.
+- Conversation language: Polish (per explicit user request partway through the prior session).

@@ -1,0 +1,56 @@
+{
+  "rules": [
+    {
+      "asset": "EURUSD",
+      "timeframe": "PERIOD_M15",
+      "condition": {
+        "type": "comparison",
+        "left": {"kind": "RSI", "period": 14},
+        "operator": ">",
+        "right": {"kind": "NUMBER", "value": 70}
+      },
+      "actions": [
+        {"direction": "BUY", "lot": 0.1, "sl": {"kind": "RISK_VALUE", "unit": "PIPS", "value": 20}, "tp": null}
+      ],
+      "max_positions": 1
+    },
+    {
+      "asset": "GBPUSD",
+      "timeframe": "PERIOD_H1",
+      "condition": {
+        "type": "comparison",
+        "left": {"kind": "CANDLE", "candle_type": "CURRENT"},
+        "operator": ">",
+        "right": {"kind": "MA", "period": 50, "ma_type": "MODE_SMA"}
+      },
+      "actions": [
+        {"direction": "SELL", "lot": 0.2, "sl": null, "tp": {"kind": "MULTIPLY", "left": {"kind": "NUMBER", "value": 2}, "right": {"kind": "ATR", "period": 14}}}
+      ],
+      "max_positions": 3
+    },
+    {
+      "asset": "EURUSD",
+      "timeframe": "PERIOD_M5",
+      "condition": {
+        "type": "logical",
+        "operator": "AND",
+        "left": {
+          "type": "comparison",
+          "left": {"kind": "RSI", "period": 7},
+          "operator": "<",
+          "right": {"kind": "NUMBER", "value": 30}
+        },
+        "right": {
+          "type": "comparison",
+          "left": {"kind": "VOLUME", "volume_bar": "CURRENT"},
+          "operator": ">",
+          "right": {"kind": "VOLUME", "volume_bar": "PREVIOUS"}
+        }
+      },
+      "actions": [
+        {"direction": "BUY", "lot": 0.05, "sl": {"kind": "RISK_VALUE", "unit": "PERCENT", "value": 1}, "tp": {"kind": "RISK_VALUE", "unit": "PIPS", "value": 15}}
+      ],
+      "max_positions": 2
+    }
+  ]
+}

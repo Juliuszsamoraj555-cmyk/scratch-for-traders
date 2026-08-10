@@ -1,0 +1,70 @@
+{
+  "rules": [
+    {
+      "asset": "GBPUSD",
+      "timeframe": "PERIOD_M15",
+      "condition": {
+        "type": "logical",
+        "operator": "AND",
+        "left": {
+          "type": "comparison",
+          "left": {
+            "kind": "MA",
+            "period": 20,
+            "ma_type": "MODE_EMA"
+          },
+          "operator": ">",
+          "right": {
+            "kind": "CANDLE",
+            "candle_type": "CURRENT"
+          }
+        },
+        "right": {
+          "type": "comparison",
+          "left": {
+            "kind": "RSI",
+            "period": 14
+          },
+          "operator": "<",
+          "right": {
+            "kind": "NUMBER",
+            "value": 70
+          }
+        }
+      },
+      "actions": [
+        {
+          "direction": "BUY",
+          "lot": 0.1,
+          "sl": {
+            "kind": "MULTIPLY",
+            "left": {
+              "kind": "NUMBER",
+              "value": 2
+            },
+            "right": {
+              "kind": "ATR",
+              "period": 14
+            }
+          },
+          "tp": {
+            "kind": "RISK_VALUE",
+            "unit": "PERCENT",
+            "value": 1.5
+          }
+        },
+        {
+          "direction": "SELL",
+          "lot": 0.2,
+          "sl": null,
+          "tp": {
+            "kind": "RISK_VALUE",
+            "unit": "PIPS",
+            "value": 50
+          }
+        }
+      ],
+      "max_positions": 4
+    }
+  ]
+}

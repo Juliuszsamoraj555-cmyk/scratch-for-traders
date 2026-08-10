@@ -1,0 +1,36 @@
+{
+  "rules": [
+    {
+      "asset": "EURUSD",
+      "timeframe": "PERIOD_M1",
+      "condition": {
+        "type": "comparison",
+        "left": {
+          "kind": "RSI",
+          "period": 14
+        },
+        "operator": "<",
+        "right": {
+          "kind": "NUMBER",
+          "value": 30
+        }
+      },
+      "actions": [
+        {
+          "direction": "BUY",
+          "lot": 0.1,
+          "sl": {
+            "kind": "RISK_VALUE",
+            "unit": "PIPS",
+            "value": 30
+          },
+          "tp": {
+            "kind": "RISK_VALUE",
+            "unit": "PIPS",
+            "value": 90
+          }
+        }
+      ]
+    }
+  ]
+}
