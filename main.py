@@ -28,10 +28,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Annotated, List, Literal, Optional, Union
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
+
+import billing
+import db
+from device_identity import get_device_id
+from settings import settings
 
 # --------------------------------------------------------------------------
 # FastAPI app setup
@@ -39,11 +44,14 @@ from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(title="Scratch for Traders - Strategy Generator", version="0.2.0")
 
-# CORS wide open for the local MVP (frontend is a static file served separately
-# or opened directly in the browser).
+# CORS restricted to known origins (settings.ALLOWED_ORIGINS, see
+# .env.example) - required as soon as `allow_credentials=True` is set,
+# since browsers reject a wildcard "*" origin alongside credentialed
+# (cookie-bearing) requests. The device-identity cookie (see
+# device_identity.py) is what needs this.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -2735,8 +2743,36 @@ def _asset_slug_for_filename(config: WorkspaceConfig) -> str:
     return f"multi_{len(config.rules)}rules"
 
 
+async def _require_export_entitlement(device_id: str, platform: str) -> None:
+    """Consumes one unit of export entitlement (free allowance -> paid
+    credit -> active day-pass, checked in that order - see
+    consume_export_entitlement() in supabase/schema.sql) or raises 402
+    Payment Required.
+
+    If DATABASE_URL isn't configured at all, billing is treated as not
+    wired up yet (e.g. local dev without a Supabase project) and every
+    export is allowed through - loudly logged so this can never be
+    silently true in production by accident."""
+    if not settings.DATABASE_URL:
+        print(f"[billing] WARNING: DATABASE_URL not set - allowing '{platform}' export with no entitlement check.")
+        return
+
+    granted, _consumed_from = await db.consume_export(device_id, platform)
+    if not granted:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "payment_required",
+                "message": (
+                    "Wykorzystałeś darmowe eksporty. Kup pojedynczy eksport "
+                    "(5 zł) lub 30-dniowy pass bez limitu, żeby kontynuować."
+                ),
+            },
+        )
+
+
 @app.post("/api/generate")
-async def generate_expert_advisor(config: WorkspaceConfig):
+async def generate_expert_advisor(config: WorkspaceConfig, device_id: str = Depends(get_device_id)):
     """Receive a serialized Blockly workspace, generate the .mq5 Expert
     Advisor, package it with a README, and stream the .zip back."""
 
@@ -2749,6 +2785,10 @@ async def generate_expert_advisor(config: WorkspaceConfig):
         readme_text = generate_readme_mql5(ir)
     except StrategyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # Entitlement is only consumed once we know the strategy is actually
+    # valid - a broken/invalid config never costs the user anything.
+    await _require_export_entitlement(device_id, "mt5")
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2766,7 +2806,7 @@ async def generate_expert_advisor(config: WorkspaceConfig):
 
 
 @app.post("/api/generate/ctrader")
-async def generate_cbot(config: WorkspaceConfig):
+async def generate_cbot(config: WorkspaceConfig, device_id: str = Depends(get_device_id)):
     """Receive a serialized Blockly workspace, generate a cTrader cBot
     (.cs), package it with a README, and stream the .zip back. Same
     contract shape as /api/generate (MT5) - same request body, same
@@ -2781,6 +2821,8 @@ async def generate_cbot(config: WorkspaceConfig):
         readme_text = generate_readme_csharp(ir)
     except StrategyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    await _require_export_entitlement(device_id, "ctrader")
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2798,7 +2840,7 @@ async def generate_cbot(config: WorkspaceConfig):
 
 
 @app.post("/api/generate/mt4")
-async def generate_expert_advisor_mt4(config: WorkspaceConfig):
+async def generate_expert_advisor_mt4(config: WorkspaceConfig, device_id: str = Depends(get_device_id)):
     """Receive a serialized Blockly workspace, generate an MT4 Expert
     Advisor (.mq4), package it with a README, and stream the .zip back.
     Same contract shape as /api/generate (MT5) and /api/generate/ctrader -
@@ -2813,6 +2855,8 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig):
         readme_text = generate_readme_mql4(ir)
     except StrategyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    await _require_export_entitlement(device_id, "mt4")
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2832,3 +2876,77 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig):
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# --------------------------------------------------------------------------
+# Billing (Stripe + anonymous device entitlement)
+# --------------------------------------------------------------------------
+# No accounts, no login - see device_identity.py. A device pays either
+# per export (one-time, ~5 zl) or for a 30-day unlimited pass (one-time,
+# ~30 zl); /api/generate* above is what actually spends that entitlement.
+
+@app.get("/api/billing/status")
+async def billing_status(device_id: str = Depends(get_device_id)):
+    """Entitlement snapshot for the current browser - the frontend uses
+    this to show 'N free exports left' / paywall state without needing
+    to attempt (and fail) an export first."""
+    if not settings.DATABASE_URL:
+        return {
+            "free_exports_used": 0,
+            "free_exports_remaining": settings.FREE_EXPORT_LIMIT,
+            "paid_export_credits": 0,
+            "pass_active": False,
+            "pass_expires_at": None,
+            "billing_configured": False,
+        }
+    status = await db.get_entitlement_status(device_id)
+    status["billing_configured"] = True
+    return status
+
+
+@app.post("/api/billing/checkout/export")
+async def billing_checkout_export(device_id: str = Depends(get_device_id)):
+    """Creates a Stripe Checkout Session for a single export credit and
+    returns its hosted URL for the frontend to redirect to."""
+    try:
+        url = billing.create_checkout_session(device_id, "export_credit")
+    except billing.BillingNotConfigured as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    return {"url": url}
+
+
+@app.post("/api/billing/checkout/pass")
+async def billing_checkout_pass(device_id: str = Depends(get_device_id)):
+    """Creates a Stripe Checkout Session for the 30-day unlimited pass
+    and returns its hosted URL for the frontend to redirect to."""
+    try:
+        url = billing.create_checkout_session(device_id, "day_pass")
+    except billing.BillingNotConfigured as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    return {"url": url}
+
+
+@app.post("/api/billing/webhook")
+async def billing_webhook(request: Request):
+    """Stripe calls this directly (not the browser) whenever a payment
+    event happens - configure this URL in the Stripe dashboard under
+    Developers -> Webhooks, subscribed to at least `checkout.session.completed`.
+
+    Verifies the signature against STRIPE_WEBHOOK_SECRET before trusting
+    anything in the body - without that check, anyone could POST a fake
+    "payment succeeded" event here and grant themselves free credits."""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        event = billing.construct_webhook_event(payload, sig_header)
+    except billing.BillingNotConfigured as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception:
+        # Covers stripe.error.SignatureVerificationError (bad/missing
+        # signature) and malformed-payload errors alike - either way this
+        # request is not a trustworthy Stripe event.
+        raise HTTPException(status_code=400, detail="Invalid webhook signature or payload.")
+
+    kind = await billing.apply_completed_checkout(event)
+    return JSONResponse({"status": "ok", "applied": kind})

@@ -55,6 +55,7 @@
         </button>
       </div>
       <span id="statusMsg" class="text-sm text-gray-400"></span>
+      <span id="billingIndicator" class="hidden text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
       <button id="exportMt5Btn"
         class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
         <img src="assets/mt5_icon.png"
@@ -116,6 +117,39 @@
 
   <!-- Error / info toast -->
   <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 text-sm px-4 py-3 rounded-lg shadow-lg max-w-md z-50"></div>
+
+  <!-- Paywall - shown when a device is out of free exports (backend
+       returns 402). No account/login involved: paying just unlocks the
+       anonymous device cookie that's already been issued (see
+       device_identity.py) - "Pay" below hands off to Stripe's own
+       hosted Checkout page, this app never touches a card number. -->
+  <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center px-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md p-6">
+      <h2 class="text-lg font-semibold text-gray-100 mb-1">Free exports used up</h2>
+      <p id="paywallMessage" class="text-sm text-gray-400 mb-5">Choose how you'd like to keep exporting.</p>
+      <div class="space-y-3">
+        <button id="paywallExportBtn"
+          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-4 py-3 transition">
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-gray-100">Single export</span>
+            <span class="font-semibold text-emerald-400">5 zł</span>
+          </div>
+          <p class="text-xs text-gray-400 mt-0.5">One-time payment, unlocks exactly one export.</p>
+        </button>
+        <button id="paywallPassBtn"
+          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-emerald-700 rounded-lg px-4 py-3 transition">
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-gray-100">30-day unlimited pass</span>
+            <span class="font-semibold text-emerald-400">30 zł</span>
+          </div>
+          <p class="text-xs text-gray-400 mt-0.5">Unlimited exports on this browser for 30 days.</p>
+        </button>
+      </div>
+      <div class="flex justify-end mt-5">
+        <button id="paywallCancelBtn" class="text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded-md">Not now</button>
+      </div>
+    </div>
+  </div>
 
   <!-- "My Strategies" panel -->
   <div id="strategiesOverlay" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center px-4">
@@ -1588,15 +1622,121 @@ function serializeWorkspace(ws) {
    4. EXPORT FLOW
    ============================================================ */
 
-const API_BASE = window.location.origin.includes('null') || window.location.protocol === 'file:'
-  ? 'http://127.0.0.1:8000'
-  : window.location.origin.replace(/:\d+$/, ':8000');
+// PRODUCTION_API_BASE: set this to the deployed backend's real URL
+// (e.g. "https://scratch-for-traders-api.onrender.com") the moment the
+// backend is deployed - leave it null for local dev, where the
+// port-guessing fallback below (same host, backend on :8000) is correct.
+// This can't be auto-detected once frontend and backend live on
+// different hosts (Render gives each service its own subdomain), so
+// there is no way around hand-setting this one line per deploy target.
+const PRODUCTION_API_BASE = null;
+
+const API_BASE = PRODUCTION_API_BASE || (
+  window.location.origin.includes('null') || window.location.protocol === 'file:'
+    ? 'http://127.0.0.1:8000'
+    : window.location.origin.replace(/:\d+$/, ':8000')
+);
 
 const exportMt5Btn = document.getElementById('exportMt5Btn');
 const exportCtraderBtn = document.getElementById('exportCtraderBtn');
 const exportMt4Btn = document.getElementById('exportMt4Btn');
 const exportButtons = [exportMt5Btn, exportCtraderBtn, exportMt4Btn];
 const statusMsg = document.getElementById('statusMsg');
+const billingIndicator = document.getElementById('billingIndicator');
+
+/* ------------------------------------------------------------
+   Billing / entitlement (no account, no login - see device_identity.py
+   and billing.py on the backend). The device is identified purely by a
+   signed httpOnly cookie the backend issues automatically; every fetch
+   here needs `credentials: 'include'` so that cookie is actually sent,
+   since the frontend and backend usually live on different origins.
+   ------------------------------------------------------------ */
+
+async function fetchBillingStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/api/billing/status`, { credentials: 'include' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_) {
+    return null; // backend unreachable - fail silent, export itself will surface any real problem
+  }
+}
+
+function renderBillingIndicator(status) {
+  if (!status || !status.billing_configured) {
+    billingIndicator.classList.add('hidden');
+    return;
+  }
+  let label;
+  if (status.pass_active) {
+    const until = status.pass_expires_at ? new Date(status.pass_expires_at).toLocaleDateString() : '';
+    label = `Unlimited pass active${until ? ` (until ${until})` : ''}`;
+  } else if (status.paid_export_credits > 0) {
+    label = `${status.paid_export_credits} paid export${status.paid_export_credits === 1 ? '' : 's'} available`;
+  } else {
+    label = `${status.free_exports_remaining} free export${status.free_exports_remaining === 1 ? '' : 's'} left`;
+  }
+  billingIndicator.textContent = label;
+  billingIndicator.classList.remove('hidden');
+}
+
+async function refreshBillingIndicator() {
+  renderBillingIndicator(await fetchBillingStatus());
+}
+
+const paywallOverlay = document.getElementById('paywallOverlay');
+const paywallMessage = document.getElementById('paywallMessage');
+
+function showPaywall(message) {
+  if (message) paywallMessage.textContent = message;
+  paywallOverlay.classList.remove('hidden');
+}
+function hidePaywall() {
+  paywallOverlay.classList.add('hidden');
+}
+
+async function startCheckout(kind) {
+  const endpoint = kind === 'pass' ? '/api/billing/checkout/pass' : '/api/billing/checkout/export';
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', credentials: 'include' });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.detail || 'Could not start checkout.');
+    }
+    const { url } = await res.json();
+    window.location.href = url; // hands off to Stripe's own hosted Checkout page
+  } catch (err) {
+    hidePaywall();
+    showToast('Payment could not be started: ' + err.message, true);
+  }
+}
+
+document.getElementById('paywallExportBtn').addEventListener('click', () => startCheckout('export'));
+document.getElementById('paywallPassBtn').addEventListener('click', () => startCheckout('pass'));
+document.getElementById('paywallCancelBtn').addEventListener('click', hidePaywall);
+paywallOverlay.addEventListener('click', (e) => { if (e.target === paywallOverlay) hidePaywall(); });
+
+// Coming back from Stripe Checkout - success_url/cancel_url (see
+// billing.py) tag the return with ?checkout=success|cancel so we can
+// show a toast and refresh the indicator without the user re-checking.
+(function handleCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const checkout = params.get('checkout');
+  if (!checkout) return;
+  if (checkout === 'success') {
+    const kind = params.get('kind');
+    showToast(kind === 'pass' ? 'Payment received - unlimited exports unlocked for 30 days.' : 'Payment received - export credit added.', false);
+  } else if (checkout === 'cancel') {
+    showToast('Payment cancelled - no charge was made.', true);
+  }
+  // Clean the query string so a page refresh doesn't re-show the toast.
+  params.delete('checkout');
+  params.delete('kind');
+  const cleanUrl = window.location.pathname + (params.toString() ? `?${params}` : '');
+  window.history.replaceState({}, '', cleanUrl);
+})();
+
+refreshBillingIndicator();
 const toast = document.getElementById('toast');
 
 function showToast(message, isError = true) {
@@ -1643,8 +1783,16 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // sends the anonymous device cookie - see device_identity.py
       body: JSON.stringify(payload),
     });
+
+    if (res.status === 402) {
+      const errJson = await res.json().catch(() => ({}));
+      const message = errJson.detail && errJson.detail.message ? errJson.detail.message : undefined;
+      showPaywall(message);
+      return;
+    }
 
     if (!res.ok) {
       let detail = 'Failed to generate the strategy export.';
@@ -1672,6 +1820,7 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
       ? ` (${payload.rules.length} strategy rules combined into one file)`
       : '';
     showToast(`Export complete! Your .zip download has started.${ruleCountNote}`, false);
+    refreshBillingIndicator(); // this export just consumed a free/paid credit - reflect it immediately
   } catch (err) {
     showToast('Export failed: ' + err.message, true);
   } finally {

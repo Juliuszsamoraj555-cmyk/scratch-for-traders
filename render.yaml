@@ -1,0 +1,49 @@
+# Render Blueprint - https://render.com/docs/blueprint-spec
+# Lets Render provision both services from this one file ("New +" ->
+# "Blueprint" in the Render dashboard, pointed at this repo) instead of
+# clicking through service creation by hand. Field names match Render's
+# blueprint spec as of when this was written - if Render's dashboard
+# shows a different option name for something below, trust the
+# dashboard and adjust this file to match.
+#
+# `sync: false` env vars are intentionally left blank here - Render will
+# prompt for them once during the Blueprint's first deploy (or set them
+# later in the service's Environment tab). Never put real secret values
+# in this file; it's committed to the repo.
+
+services:
+  - type: web
+    name: scratch-for-traders-api
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Supabase connection string - see .env.example
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_EXPORT
+        sync: false
+      - key: STRIPE_PRICE_PASS
+        sync: false
+      - key: COOKIE_SIGNING_SECRET
+        generateValue: true # Render generates a random secret automatically
+      - key: COOKIE_DOMAIN
+        sync: false # leave blank until a real domain exists (see DEPLOYMENT.md)
+      - key: ALLOWED_ORIGINS
+        sync: false # e.g. https://app.yourdomain.pl (the frontend's URL)
+      - key: SITE_URL
+        sync: false # e.g. https://app.yourdomain.pl - used for Stripe redirect URLs
+
+  - type: web
+    name: scratch-for-traders-frontend
+    env: static
+    buildCommand: ""
+    staticPublishPath: "."
+    # index_1.html talks to the API via a hardcoded-by-convention port
+    # guess (see API_BASE in index_1.html) that only works for local dev -
+    # before going live, point API_BASE at the deployed API service's
+    # real URL (see DEPLOYMENT.md).

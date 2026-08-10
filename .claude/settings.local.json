@@ -22,7 +22,13 @@
       "Bash(python tools/verify_ctrader_build.py --fixture simple_single)",
       "Bash(python tools/verify_ctrader_build.py --matrix)",
       "Bash(python tools/verify_mt5_compile.py --matrix)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/docs)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/docs)",
+      "Bash(pip install *)",
+      "Bash(python -c \"import sys; print\\(sys.version_info\\)\")",
+      "Bash(python -c \"import main; print\\('main.py imports OK'\\)\")",
+      "Bash(python -m pytest tests/test_regression.py -q)",
+      "Bash(docker --version)",
+      "Bash(python -c \"import main; print\\('main.py OK'\\)\")"
     ]
   }
 }
