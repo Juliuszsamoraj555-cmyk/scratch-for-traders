@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- ============================================================
+     SEO
+     Domain is still TBD (see DEPLOYMENT.md step 7) - the canonical/OG
+     URLs below use a placeholder. Search-and-replace
+     "https://REPLACE-WITH-REAL-DOMAIN" once a domain is live.
+     ============================================================ -->
+<title>Scratch for Traders — No-Code MT5, MT4 & cTrader Strategy Builder</title>
+<meta name="description" content="Build MetaTrader 5, MetaTrader 4 and cTrader trading strategies by connecting blocks — no programming required. Export a ready-to-run Expert Advisor or cBot in seconds, free to start." />
+<link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Scratch for Traders — No-Code MT5, MT4 & cTrader Strategy Builder" />
+<meta property="og:description" content="Drag, drop, and connect blocks to define entry conditions, risk, and position sizing. Export a ready-to-run EA or cBot in seconds." />
+<meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Scratch for Traders — No-Code MT5, MT4 & cTrader Strategy Builder" />
+<meta name="twitter:description" content="Build automated trading strategies by connecting blocks — no code required." />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Scratch for Traders",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "description": "No-code visual builder for MetaTrader 5, MetaTrader 4 and cTrader trading strategies. Connect blocks to define conditions and risk, then export a ready-to-run Expert Advisor or cBot.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "PLN",
+    "description": "Free to start - first exports included at no cost."
+  }
+}
+</script>
+
+<link rel="icon" href="data:," />
+<script src="assets/vendor/tailwind/tailwind-3.4.17.js"></script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+  /* Page-leave transition when the CTA is clicked - fades the whole
+     page out before handing off to index_1.html, so the jump into the
+     builder feels like one continuous motion instead of a hard cut. */
+  #pageRoot { opacity: 1; transition: opacity 320ms ease; }
+  #pageRoot.leaving { opacity: 0; }
+
+  /* Scroll-reveal - sections start slightly lower + transparent, then
+     settle into place once they enter the viewport (see the
+     IntersectionObserver below). */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease, transform 600ms ease; }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+
+  /* Hero mark: ascending "block" bars (still the Blockly-piece shape
+     used everywhere else in this app) doubling as a rising price/bar
+     chart, with a trend line drawing itself across the tops on a loop -
+     a cheap, dependency-free way to gesture at both "blocks" and
+     "trading" without needing a real screenshot yet. */
+  .block-anim rect {
+    transform-box: fill-box;
+    transform-origin: bottom;
+    animation: growUp 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  .block-anim rect:nth-of-type(2) { animation-delay: 0.15s; }
+  .block-anim rect:nth-of-type(3) { animation-delay: 0.3s; }
+  @keyframes growUp {
+    0%   { transform: scaleY(0); }
+    35%  { transform: scaleY(1); }
+    85%  { transform: scaleY(1); }
+    100% { transform: scaleY(0); }
+  }
+  .block-anim .trend-line-sm {
+    stroke-dasharray: 45;
+    stroke-dashoffset: 45;
+    animation: drawLineSm 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    animation-delay: 0.5s;
+  }
+  @keyframes drawLineSm {
+    0%   { stroke-dashoffset: 45; opacity: 0; }
+    12%  { opacity: 1; }
+    45%  { stroke-dashoffset: 0; opacity: 1; }
+    80%  { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  .block-anim .trend-line-lg {
+    stroke-dasharray: 280;
+    stroke-dashoffset: 280;
+    animation: drawLineLg 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    animation-delay: 0.5s;
+  }
+  @keyframes drawLineLg {
+    0%   { stroke-dashoffset: 280; opacity: 0; }
+    12%  { opacity: 1; }
+    45%  { stroke-dashoffset: 0; opacity: 1; }
+    80%  { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+<div id="pageRoot">
+
+  <!-- ============================================================
+       NAV
+       ============================================================ -->
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5">
+        <!-- Provisional wordmark: ascending block-bars reading as both
+             "connected blocks" (the Blockly piece shape used throughout
+             the app) and a rising price chart, with a small trend arrow
+             across the tops - standing in for a real logo until one
+             exists (see project memory). -->
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
+          <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
+          <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
+          <!-- static (no loop animation) - this mark is in the sticky
+               nav and always on screen, unlike the hero version below. -->
+          <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400">
+        <a href="#how-it-works" class="hover:text-gray-100 transition">How it works</a>
+        <a href="#features" class="hover:text-gray-100 transition">Features</a>
+        <a href="#platforms" class="hover:text-gray-100 transition">Platforms</a>
+      </nav>
+      <a href="index_1.html" data-cta
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="max-w-6xl mx-auto px-6 pt-20 pb-24 grid md:grid-cols-2 gap-12 items-center">
+    <div>
+      <p class="text-sm font-medium text-emerald-400 mb-4">
+        No code. No signup to start.
+      </p>
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-gray-50 leading-tight">
+        Build MT5, MT4 &amp; cTrader strategies —
+        <span class="text-emerald-400">without writing code.</span>
+      </h1>
+      <p class="mt-6 text-lg text-gray-400 leading-relaxed">
+        Connect blocks to define your entry conditions, stop loss, take profit and position
+        sizing. Export a ready-to-run Expert Advisor or cBot — in seconds, straight from your
+        browser.
+      </p>
+      <div class="mt-8 flex items-center gap-4">
+        <a href="index_1.html" data-cta
+          class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+          Start Building — Free
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Decorative animated mark, no real screenshot yet: the same
+         ascending block-bars as the nav logo, scaled up and animated -
+         bars grow in from the baseline like a rising chart, then a
+         trend line draws itself across the tops, on a loop. -->
+    <div class="hidden md:flex justify-center">
+      <svg class="block-anim" width="260" height="140" viewBox="0 0 260 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="80" width="45" height="40" rx="6" fill="#059669"/>
+        <rect x="95" y="55" width="45" height="65" rx="6" fill="#10b981"/>
+        <rect x="170" y="25" width="45" height="95" rx="6" fill="#34d399"/>
+        <path class="trend-line-lg" d="M42 74 L117 50 L222 14 L200 14 M222 14 L222 36"
+          stroke="#d1fae5" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       HOW IT WORKS
+       ============================================================ -->
+  <section id="how-it-works" class="border-t border-gray-800 bg-gray-900/40">
+    <div class="max-w-6xl mx-auto px-6 py-20">
+      <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">From idea to running strategy in three steps</h2>
+      <div class="mt-14 grid md:grid-cols-3 gap-8">
+        <div class="reveal">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-semibold">1</div>
+          <h3 class="mt-4 font-semibold text-gray-100">Define your conditions</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Combine price, indicators (RSI, MACD, Bollinger Bands, ATR, Stochastic...) and volume into a rule with drag-and-drop blocks. No syntax to remember, no editor to fight.</p>
+        </div>
+        <div class="reveal">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-semibold">2</div>
+          <h3 class="mt-4 font-semibold text-gray-100">Set your risk</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Attach Stop Loss / Take Profit in pips, % of entry price, or a dynamic ATR multiple. Control lot size and how many positions can be open at once.</p>
+        </div>
+        <div class="reveal">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-semibold">3</div>
+          <h3 class="mt-4 font-semibold text-gray-100">Export &amp; run</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Get a ready .mq5, .mq4 or .cs file — plus a README that walks you through installing it — for MetaTrader 5, MetaTrader 4, or cTrader.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURES
+       ============================================================ -->
+  <section id="features" class="max-w-6xl mx-auto px-6 py-20">
+    <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">Built for traders who think in rules, not syntax</h2>
+    <div class="mt-14 grid sm:grid-cols-2 gap-6">
+      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+        <h3 class="font-semibold text-gray-100">Multi-rule strategies</h3>
+        <p class="mt-2 text-sm text-gray-400 leading-relaxed">Combine several independent triggers — even across different assets — into a single exported EA or cBot.</p>
+      </div>
+      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+        <h3 class="font-semibold text-gray-100">Built-in guardrails</h3>
+        <p class="mt-2 text-sm text-gray-400 leading-relaxed">The editor blocks nonsensical comparisons — like a price against a volume figure — before you ever get to export.</p>
+      </div>
+      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+        <h3 class="font-semibold text-gray-100">Consistent stop management</h3>
+        <p class="mt-2 text-sm text-gray-400 leading-relaxed">EA-managed Stop Loss / Take Profit behaves identically across brokers, instead of relying on broker-side order handling that varies.</p>
+      </div>
+      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+        <h3 class="font-semibold text-gray-100">Real, compiled code</h3>
+        <p class="mt-2 text-sm text-gray-400 leading-relaxed">Every export target is checked against the platform's actual compiler during development — not just generated and hoped for.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PLATFORMS
+       ============================================================ -->
+  <section id="platforms" class="border-t border-gray-800 bg-gray-900/40">
+    <div class="max-w-6xl mx-auto px-6 py-20 text-center">
+      <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50">Works with the platforms you already trade on</h2>
+      <div class="reveal mt-12 flex flex-wrap justify-center gap-10">
+        <div class="flex items-center gap-3 bg-gray-900/60 border border-gray-800 rounded-xl px-6 py-4">
+          <img src="assets/mt5_icon.png" alt="MetaTrader 5" class="w-8 h-8 object-contain" />
+          <span class="font-medium text-gray-200">MetaTrader 5</span>
+        </div>
+        <div class="flex items-center gap-3 bg-gray-900/60 border border-gray-800 rounded-xl px-6 py-4">
+          <img src="assets/mt4_icon.png" alt="MetaTrader 4" class="w-8 h-8 object-contain" />
+          <span class="font-medium text-gray-200">MetaTrader 4</span>
+        </div>
+        <div class="flex items-center gap-3 bg-gray-900/60 border border-gray-800 rounded-xl px-6 py-4">
+          <img src="assets/ctrader_icon.png" alt="cTrader" class="w-8 h-8 object-contain" />
+          <span class="font-medium text-gray-200">cTrader</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FINAL CTA
+       ============================================================ -->
+  <section class="max-w-4xl mx-auto px-6 py-24 text-center">
+    <h2 class="reveal text-3xl font-bold text-gray-50">Ready to build your first strategy?</h2>
+    <p class="reveal mt-4 text-gray-400">It's free to start, and there's nothing to install.</p>
+    <a href="index_1.html" data-cta
+      class="reveal mt-8 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-7 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+      Start Building — Free
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </section>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="border-t border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <span>&copy; <span id="year"></span> Scratch for Traders</span>
+      <span>Built for traders, by traders.</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Fade the page out before handing off to the builder, so the jump
+  // feels like one motion instead of a hard cut. Falls back to an
+  // instant navigation if anything goes wrong.
+  document.querySelectorAll('[data-cta]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const href = el.getAttribute('href');
+      document.getElementById('pageRoot').classList.add('leaving');
+      setTimeout(() => { window.location.href = href; }, 300);
+    });
+  });
+
+  // Scroll-reveal: sections settle into place as they enter view.
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+</script>
+</body>
+</html>

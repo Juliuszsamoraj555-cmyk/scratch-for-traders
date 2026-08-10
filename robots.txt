@@ -1,0 +1,9 @@
+# The builder itself (index_1.html) is a canvas-based editor with no
+# meaningful indexable content - only the landing page (index.html) is
+# meant to show up in search results. Sitemap points at the real domain
+# once one exists (see DEPLOYMENT.md).
+User-agent: *
+Allow: /
+Disallow: /index_1.html
+
+Sitemap: https://REPLACE-WITH-REAL-DOMAIN/sitemap.xml
