@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>What Is Algorithmic Trading? A Plain-English Introduction - Scratch for Traders</title>
+<meta name="description" content="A beginner-friendly explanation of algorithmic trading: what it actually is, why traders use it, and what you need to get started - no coding background required." />
+<link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/blog/what-is-algorithmic-trading.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="What Is Algorithmic Trading? A Plain-English Introduction" />
+<meta property="og:description" content="What algorithmic trading actually is, why traders use it, and what you need to get started - no coding background required." />
+<meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/blog/what-is-algorithmic-trading.html" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "What Is Algorithmic Trading? A Plain-English Introduction",
+  "description": "A beginner-friendly explanation of algorithmic trading: what it actually is, why traders use it, and what you need to get started.",
+  "author": { "@type": "Organization", "name": "Scratch for Traders" },
+  "publisher": { "@type": "Organization", "name": "Scratch for Traders" },
+  "datePublished": "2026-08-10"
+}
+</script>
+
+<link rel="icon" href="data:," />
+<script src="../assets/vendor/tailwind/tailwind-3.4.17.js"></script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
+          <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
+          <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
+          <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">What Is Algorithmic Trading?</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Algorithmic trading means letting a fixed set of rules decide when to buy and sell, instead of deciding in the moment. You write down exactly what should trigger a trade - "if the price crosses above its 50-period moving average" - and exactly what should happen next - "buy, with a stop loss 20 pips below entry." From then on, the computer watches the market and executes those rules precisely, every time, without hesitation or second-guessing.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why traders use it</h2>
+      <p>The appeal isn't that algorithms are smarter than people - it's that they're consistent. A human trader watching a chart for hours will start to feel things: hope that a losing trade turns around, fear after two losses in a row, the urge to move a stop loss "just this once." An algorithm has none of that. It follows the rule exactly as written, in the same way at 3am as at 3pm. That consistency is the entire point - it turns a strategy from something you *believe* into something you can actually measure.</p>
+      <p>It also removes a very real bottleneck: a person can watch one or two charts closely. A rule-based system can watch dozens of instruments across multiple timeframes at once, and it never gets tired.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What a strategy is actually made of</h2>
+      <p>Strip away the jargon and every algorithmic strategy is built from the same three pieces:</p>
+      <ul class="list-disc pl-5 space-y-1.5">
+        <li><strong class="text-gray-200">A condition</strong> - the thing that has to be true before you act. Often built from price data or an indicator like RSI, MACD, or a moving average.</li>
+        <li><strong class="text-gray-200">An action</strong> - what to do once the condition is met: open a buy or sell, with a lot size.</li>
+        <li><strong class="text-gray-200">Risk management</strong> - where the trade gets closed if it goes wrong (stop loss) or right (take profit).</li>
+      </ul>
+      <p>That's genuinely most of it. A strategy that sounds sophisticated - "a mean-reversion system on the 15-minute chart" - is still, underneath, just a condition, an action, and a risk rule.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Do you need to know how to code?</h2>
+      <p>Traditionally, yes - turning a strategy idea into something that actually runs on MetaTrader or cTrader meant learning MQL5, MQL4, or C#. That requirement is what keeps a lot of traders with genuinely good ideas from ever testing them. It's also the specific gap a block-based builder closes: you describe the condition, action, and risk rule by connecting pieces instead of writing syntax, and the platform-specific code gets generated for you underneath.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Where to start</h2>
+      <p>The fastest way to understand algorithmic trading isn't to read more about it - it's to build one simple rule and watch what it actually does. Start with something you already believe about the market ("price tends to pull back after a sharp move") and turn it into a condition, an action, and a stop loss. Everything else builds on that same shape.</p>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Try building your first rule - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <span>&copy; <span id="year"></span> Scratch for Traders</span>
+      <span>Built for traders, by traders.</span>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>RSI, MACD & Moving Averages, Quickly - Scratch for Traders</title>
+<meta name="description" content="A short, plain-language primer on the three indicators traders reach for most often - what each one measures and what it's actually telling you." />
+<link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/blog/trading-indicators-explained.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="RSI, MACD & Moving Averages, Quickly" />
+<meta property="og:description" content="What each of these three indicators measures and what it's actually telling you." />
+<meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/blog/trading-indicators-explained.html" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "RSI, MACD & Moving Averages, Quickly",
+  "description": "A short primer on the three indicators traders reach for most often, and what each one is actually telling you.",
+  "author": { "@type": "Organization", "name": "Scratch for Traders" },
+  "publisher": { "@type": "Organization", "name": "Scratch for Traders" },
+  "datePublished": "2026-08-10"
+}
+</script>
+
+<link rel="icon" href="data:," />
+<script src="../assets/vendor/tailwind/tailwind-3.4.17.js"></script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
+          <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
+          <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
+          <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Indicators</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">RSI, MACD & Moving Averages, Quickly</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Indicators aren't magic - every one of them is just a calculation performed on price (and sometimes volume) that reorganizes the same raw data into something easier to act on. These three cover most of what a rule-based strategy actually needs.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Moving Average - where's the trend?</h2>
+      <p>A moving average takes the last N candles' closing prices and averages them, then updates that average as each new candle forms. The result is a smoothed line that filters out the minute-to-minute noise and shows the underlying direction more clearly. Price sitting above a rising moving average generally suggests an uptrend; below a falling one, a downtrend. A short-period average (e.g. 10) hugs the price closely and reacts fast; a long-period one (e.g. 200) moves slowly but filters out far more noise.</p>
+      <p>The two common flavors are Simple (SMA - every candle weighted equally) and Exponential (EMA - recent candles weighted more heavily, so it reacts faster to new information).</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">RSI - has this move gone too far?</h2>
+      <p>The Relative Strength Index measures how strong recent price gains have been compared to recent losses, expressed as a number from 0 to 100. Readings above 70 are conventionally read as "overbought" - the move up may have gotten ahead of itself - and below 30 as "oversold," the opposite. RSI doesn't predict a reversal is coming; it just quantifies how stretched the recent move already is, which is exactly the kind of thing a condition block ("RSI &gt; 70") is good at reacting to.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">MACD - is momentum shifting?</h2>
+      <p>MACD (Moving Average Convergence Divergence) tracks the relationship between two moving averages of different lengths - specifically the gap between a fast one and a slow one. When the fast average is pulling away from the slow one, momentum is building; when the gap starts shrinking, momentum is fading, often before that shows up clearly in price itself. Traders typically watch its main line, its signal line, or the histogram of the difference between the two.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Using them together</h2>
+      <p>Each of these answers a different question - direction (moving average), how stretched the current move is (RSI), and whether momentum is building or fading (MACD) - which is exactly why they're often combined rather than used alone. A common pattern: use a moving average to establish the broader trend direction, then only take RSI or MACD signals that agree with it, instead of trading every signal in isolation.</p>
+      <p>None of these needs to be complicated to be useful. "RSI above 70 while price is below its 50-period moving average" is a complete, testable condition - and building it is a matter of connecting two or three blocks, not writing an indicator formula from scratch.</p>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Try an indicator in the builder - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <span>&copy; <span id="year"></span> Scratch for Traders</span>
+      <span>Built for traders, by traders.</span>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
