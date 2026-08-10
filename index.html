@@ -57,23 +57,53 @@
   .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease, transform 600ms ease; }
   .reveal.in-view { opacity: 1; transform: translateY(0); }
 
-  /* Hero mark: ascending "block" bars (still the Blockly-piece shape
-     used everywhere else in this app) doubling as a rising price/bar
-     chart, with a trend line drawing itself across the tops on a loop -
-     a cheap, dependency-free way to gesture at both "blocks" and
-     "trading" without needing a real screenshot yet. */
+  /* Hero mark: ascending "block" bars (the same rounded-rect shape as
+     every Blockly piece in the app) dropping in from above and
+     snapping into place one at a time - like blocks being connected,
+     not a bar chart filling up - while their staircase arrangement plus
+     the trend line still reads as a rising price chart. */
+  /* Entrances are staggered (baked into each bar's own keyframe
+     percentages, one drops in after another), but all three share the
+     exact same 80% -> 92% exit window so they always land and leave
+     together - no animation-delay here, since delaying a shared
+     keyframe set shifts BOTH the entrance and the exit, which is what
+     caused blocks to disappear one-by-one instead of as a group. */
   .block-anim rect {
     transform-box: fill-box;
-    transform-origin: bottom;
-    animation: growUp 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    transform-origin: center;
   }
-  .block-anim rect:nth-of-type(2) { animation-delay: 0.15s; }
-  .block-anim rect:nth-of-type(3) { animation-delay: 0.3s; }
-  @keyframes growUp {
-    0%   { transform: scaleY(0); }
-    35%  { transform: scaleY(1); }
-    85%  { transform: scaleY(1); }
-    100% { transform: scaleY(0); }
+  .block-anim rect:nth-of-type(1) { animation: snapDown1 3.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+  .block-anim rect:nth-of-type(2) { animation: snapDown2 3.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+  .block-anim rect:nth-of-type(3) { animation: snapDown3 3.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+  @keyframes snapDown1 {
+    0%   { transform: translateY(-55px); opacity: 0; }
+    8%   { opacity: 1; }
+    14%  { transform: translateY(0); }
+    18%  { transform: translateY(-7px); }
+    23%  { transform: translateY(0); }
+    80%  { transform: translateY(0); opacity: 1; }
+    92%  { transform: translateY(-55px); opacity: 0; }
+    100% { transform: translateY(-55px); opacity: 0; }
+  }
+  @keyframes snapDown2 {
+    0%, 16%  { transform: translateY(-55px); opacity: 0; }
+    24%  { opacity: 1; }
+    30%  { transform: translateY(0); }
+    34%  { transform: translateY(-7px); }
+    39%  { transform: translateY(0); }
+    80%  { transform: translateY(0); opacity: 1; }
+    92%  { transform: translateY(-55px); opacity: 0; }
+    100% { transform: translateY(-55px); opacity: 0; }
+  }
+  @keyframes snapDown3 {
+    0%, 32%  { transform: translateY(-55px); opacity: 0; }
+    40%  { opacity: 1; }
+    46%  { transform: translateY(0); }
+    50%  { transform: translateY(-7px); }
+    55%  { transform: translateY(0); }
+    80%  { transform: translateY(0); opacity: 1; }
+    92%  { transform: translateY(-55px); opacity: 0; }
+    100% { transform: translateY(-55px); opacity: 0; }
   }
   .block-anim .trend-line-sm {
     stroke-dasharray: 45;
@@ -88,17 +118,20 @@
     80%  { stroke-dashoffset: 0; opacity: 1; }
     100% { stroke-dashoffset: 0; opacity: 0; }
   }
+  /* Same 3.2s cycle and the same 80% -> 92% exit window as the blocks
+     above, so the trend line always leaves together with them - it only
+     starts drawing once block 3 (the last one) has landed, around 55%. */
   .block-anim .trend-line-lg {
     stroke-dasharray: 280;
     stroke-dashoffset: 280;
-    animation: drawLineLg 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-    animation-delay: 0.5s;
+    animation: drawLineLg 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   }
   @keyframes drawLineLg {
-    0%   { stroke-dashoffset: 280; opacity: 0; }
-    12%  { opacity: 1; }
-    45%  { stroke-dashoffset: 0; opacity: 1; }
+    0%, 58%  { stroke-dashoffset: 280; opacity: 0; }
+    64%  { opacity: 1; }
+    72%  { stroke-dashoffset: 0; opacity: 1; }
     80%  { stroke-dashoffset: 0; opacity: 1; }
+    92%  { opacity: 0; }
     100% { stroke-dashoffset: 0; opacity: 0; }
   }
 </style>
