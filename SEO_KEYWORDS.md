@@ -37,26 +37,26 @@ already covered (title tag, every page's `<title>`).
 ## 2. Algorithmic trading (broad/educational — highest search volume, most competitive)
 - ✅ "what is algorithmic trading" — full article (`blog/what-is-algorithmic-trading.html`)
 - ✅ "algorithmic trading for beginners" — close match, same article
+- ✅ "how to build a trading bot" — full article (`blog/how-to-build-a-trading-bot-without-coding.html`)
 - ❌ "algo trading strategies for beginners"
-- ❌ "how to build a trading bot"
 - ❌ "automated trading strategy examples"
 
 ## 3. Platform-specific (usually easier to rank for - less competition than generic "algo trading")
 - ✅ "MT5 EA builder" / "cTrader cBot builder" — homepage title + platforms section
-- ⚠️ "MT4 expert advisor builder" — MT4 is mentioned everywhere but never the specific focus of a heading
+- ✅ "MT4 expert advisor builder" / MT4 vs MT5 vs cTrader comparison — full article (`blog/mt4-vs-mt5-vs-ctrader-automation.html`)
 - ❌ "create MT5 robot without MQL5"
 - ❌ "MetaTrader strategy builder no code"
 
 ## 4. Risk management & indicators (already our strongest coverage)
 - ✅ "stop loss vs take profit" — full article
 - ✅ "RSI MACD moving average explained" — full article
+- ✅ "position sizing forex" — full article (`blog/position-sizing-how-much-to-risk.html`), cross-linked from the SL/TP article
 - ❌ "how to size a stop loss" / "ATR stop loss sizing" (touched on inside the SL/TP article, no dedicated one)
-- ❌ "position sizing forex"
 
-## Suggested next 3 articles (fills the biggest gaps, in priority order)
-1. **"How to Build a Trading Bot Without Coding"** — directly hits gap #1's strongest phrase, and doubles as a soft product walkthrough.
-2. **"MT4 vs MT5 vs cTrader: Which Should You Automate On?"** — hits the platform-specific gap, and is a comparison-style title that tends to attract links from forums.
-3. **"Position Sizing: How Much Should One Trade Risk?"** — fills gap #4, natural follow-up to the existing SL/TP article (can cross-link both ways).
+## Next 3 candidates (once ready for another round)
+1. **"Visual Trading Strategy Builder: How It Works"** — hits the remaining no-code/builder gap directly.
+2. **"Backtesting Basics: What It Can and Can't Tell You"** — new topic area entirely, high natural search volume among beginner algo traders.
+3. **"ATR-Based Stop Loss Sizing, Explained"** — the one remaining risk-management gap, natural follow-up to both existing risk articles.
 
 Say the word and I'll write any/all of these using the same process as
 `CONTENT_GUIDE.md`.
