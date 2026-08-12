@@ -29,7 +29,17 @@
       "Bash(python -m pytest tests/test_regression.py -q)",
       "Bash(docker --version)",
       "Bash(python -c \"import main; print\\('main.py OK'\\)\")",
-      "Bash(find /c/Users/juliu/AppData/Local/Temp -iname \"*.png\" -newermt \"-10 minutes\" 2>/dev/null | head -20)"
+      "Bash(find /c/Users/juliu/AppData/Local/Temp -iname \"*.png\" -newermt \"-10 minutes\" 2>/dev/null | head -20)",
+      "Bash(where winget *)",
+      "Bash(where choco *)",
+      "Bash(where scoop *)",
+      "PowerShell(winget --version)",
+      "PowerShell(winget install --id OpenJS.NodeJS.LTS -e --silent --accept-package-agreements --accept-source-agreements)",
+      "Bash(curl -sSL -o node.zip \"https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip\")",
+      "Bash(/c/Users/juliu/AppData/Local/Temp/claude/C--Users-juliu-Desktop-traders-scratch/56a5d292-93f0-4bce-8f59-e165eacb74e1/scratchpad/node-portable/node-v22.14.0-win-x64/node.exe --version)",
+      "Bash(/c/Users/juliu/AppData/Local/Temp/claude/C--Users-juliu-Desktop-traders-scratch/56a5d292-93f0-4bce-8f59-e165eacb74e1/scratchpad/node-portable/node-v22.14.0-win-x64/npm --version)",
+      "Bash(sed -i 's|<script src=\"assets/vendor/tailwind/tailwind-3.4.17.js\"></script>|<link rel=\"stylesheet\" href=\"assets/vendor/tailwind/tailwind-compiled.css\" />|' index.html index_1.html)",
+      "Bash(sed -i 's|<script src=\"../assets/vendor/tailwind/tailwind-3.4.17.js\"></script>|<link rel=\"stylesheet\" href=\"../assets/vendor/tailwind/tailwind-compiled.css\" />|' blog/index.html blog/stop-loss-take-profit-guide.html blog/trading-indicators-explained.html blog/what-is-algorithmic-trading.html)"
     ]
   }
 }

@@ -9,7 +9,10 @@
      going down (or silently breaking on an unannounced upstream update)
      whenever a third-party CDN we don't control has a bad day. See
      assets/vendor/. -->
-<script src="assets/vendor/tailwind/tailwind-3.4.17.js"></script>
+<!-- Precompiled Tailwind (see DEPLOYMENT.md step 0) - NOT the Play CDN
+     JIT script. Adding a new Tailwind class anywhere requires
+     `npm run build:css` or it silently won't be styled. -->
+<link rel="stylesheet" href="assets/vendor/tailwind/tailwind-compiled.css" />
 <script src="assets/vendor/blockly/blockly_compressed.js"></script>
 <script src="assets/vendor/blockly/blocks_compressed.js"></script>
 <script src="assets/vendor/blockly/msg/en.js"></script>

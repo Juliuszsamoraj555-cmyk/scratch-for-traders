@@ -9,6 +9,31 @@ details, domain purchase are outside what Claude Code can act on).
 
 Do these roughly in order — each step unblocks the next.
 
+## 0. Rebuild the CSS after touching any Tailwind class
+
+`index.html`, `index_1.html`, and `blog/*.html` link a **precompiled**
+stylesheet (`assets/vendor/tailwind/tailwind-compiled.css`) instead of
+loading Tailwind's Play CDN JIT script at runtime - the JIT script works
+but is explicitly flagged by Tailwind's own docs as unsuitable for
+production (it recompiles every class in-browser on every page load,
+which is a real, if modest, Core Web Vitals cost - and Core Web Vitals
+are a real Google ranking factor).
+
+The tradeoff: the compiled file only contains whatever classes existed
+in the HTML **at the moment it was built**. If you (or a future Claude
+Code session) add a new Tailwind utility class anywhere and forget this
+step, the class will do nothing - no error, it just silently won't be
+styled. Whenever you add/change Tailwind classes:
+
+```bash
+npm install        # first time only
+npm run build:css
+```
+
+(Needs Node.js - if it's not installed, grab it from
+[nodejs.org](https://nodejs.org).) Commit the updated
+`tailwind-compiled.css` alongside your HTML changes.
+
 ## 1. Push the repo to GitHub
 
 Render deploys from a git remote, not a local folder.

@@ -112,7 +112,10 @@
 </script>
 
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-<script src="assets/vendor/tailwind/tailwind-3.4.17.js"></script>
+<!-- Precompiled Tailwind (see DEPLOYMENT.md step 0) - NOT the Play CDN
+     JIT script. Adding a new Tailwind class anywhere requires
+     `npm run build:css` or it silently won't be styled. -->
+<link rel="stylesheet" href="assets/vendor/tailwind/tailwind-compiled.css" />
 <style>
   html { scroll-behavior: smooth; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }

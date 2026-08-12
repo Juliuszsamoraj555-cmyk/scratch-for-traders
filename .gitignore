@@ -1,3 +1,6 @@
+# Node (Tailwind CSS build step only - see package.json)
+node_modules/
+
 # Python
 __pycache__/
 *.pyc
