@@ -28,7 +28,8 @@
       "Bash(python -c \"import main; print\\('main.py imports OK'\\)\")",
       "Bash(python -m pytest tests/test_regression.py -q)",
       "Bash(docker --version)",
-      "Bash(python -c \"import main; print\\('main.py OK'\\)\")"
+      "Bash(python -c \"import main; print\\('main.py OK'\\)\")",
+      "Bash(find /c/Users/juliu/AppData/Local/Temp -iname \"*.png\" -newermt \"-10 minutes\" 2>/dev/null | head -20)"
     ]
   }
 }

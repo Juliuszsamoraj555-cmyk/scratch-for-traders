@@ -12,15 +12,21 @@
      ============================================================ -->
 <title>Scratch for Traders - No-Code MT5, MT4 & cTrader Strategy Builder</title>
 <meta name="description" content="Build MetaTrader 5, MetaTrader 4 and cTrader trading strategies by connecting blocks - no programming required. Export a ready-to-run Expert Advisor or cBot in seconds, free to start." />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#030712" />
 <link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Scratch for Traders - No-Code MT5, MT4 & cTrader Strategy Builder" />
 <meta property="og:description" content="Drag, drop, and connect blocks to define entry conditions, risk, and position sizing. Export a ready-to-run EA or cBot in seconds." />
 <meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/" />
-<meta name="twitter:card" content="summary" />
+<meta property="og:image" content="https://REPLACE-WITH-REAL-DOMAIN/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Scratch for Traders - No-Code MT5, MT4 & cTrader Strategy Builder" />
 <meta name="twitter:description" content="Build automated trading strategies by connecting blocks - no code required." />
+<meta name="twitter:image" content="https://REPLACE-WITH-REAL-DOMAIN/assets/og-image.png" />
 
 <script type="application/ld+json">
 {
@@ -36,6 +42,27 @@
     "priceCurrency": "PLN",
     "description": "Free to start - first exports included at no cost."
   }
+}
+</script>
+<!-- Organization + WebSite schema - mainly relevant once the real
+     domain is live and this has been crawled/indexed a few times
+     (eligibility for a knowledge-panel-style brand result). Harmless
+     and cheap to have in place now either way. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Scratch for Traders",
+  "url": "https://REPLACE-WITH-REAL-DOMAIN/",
+  "logo": "https://REPLACE-WITH-REAL-DOMAIN/assets/favicon.svg"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Scratch for Traders",
+  "url": "https://REPLACE-WITH-REAL-DOMAIN/"
 }
 </script>
 <!-- Mirrors the FAQ section's questions below - keep the two in sync
@@ -84,7 +111,7 @@
 }
 </script>
 
-<link rel="icon" href="data:," />
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 <script src="assets/vendor/tailwind/tailwind-3.4.17.js"></script>
 <style>
   html { scroll-behavior: smooth; }
@@ -101,6 +128,33 @@
      IntersectionObserver below). */
   .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease, transform 600ms ease; }
   .reveal.in-view { opacity: 1; transform: translateY(0); }
+
+  /* Step 1's illustration: the two blocks slide together and "snap"
+     into place once the section scrolls into view, reusing the same
+     .reveal/.in-view trigger as everything else on the page. */
+  .step-blocks .blk-a { transform: translateX(-14px); opacity: 0; transition: transform 500ms ease, opacity 500ms ease; }
+  .step-blocks .blk-b { transform: translateX(14px); opacity: 0; transition: transform 500ms ease 150ms, opacity 500ms ease 150ms; }
+  .reveal.in-view .step-blocks .blk-a,
+  .reveal.in-view .step-blocks .blk-b { transform: translateX(0); opacity: 1; }
+
+  /* Feature cards: staggered entrance (each one settles slightly after
+     the last) plus a hover lift/glow and an icon nudge, so the section
+     reads as alive rather than a static grid of text. */
+  #features .feature-card:nth-child(1) { transition-delay: 0ms; }
+  #features .feature-card:nth-child(2) { transition-delay: 90ms; }
+  #features .feature-card:nth-child(3) { transition-delay: 180ms; }
+  #features .feature-card:nth-child(4) { transition-delay: 270ms; }
+  #features .feature-card {
+    transition: transform 500ms ease, opacity 600ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  }
+  #features .feature-card:hover {
+    transform: translateY(-4px);
+    border-color: #047857;
+    background-color: rgba(6, 78, 59, 0.18);
+    box-shadow: 0 10px 30px -12px rgba(16, 185, 129, 0.35);
+  }
+  #features .feature-card:hover .feature-icon { transform: scale(1.1) rotate(-3deg); }
+  #features .feature-icon { transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
   /* Tailwind's Preflight reset apparently overrides the browser's native
      "hide everything but <summary> inside a closed <details>" rule (that
@@ -276,14 +330,24 @@
       <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">From idea to running strategy in three steps</h2>
       <div class="mt-14 grid md:grid-cols-3 gap-8">
         <div class="reveal">
-          <svg class="w-full h-36 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="24" y="62" width="58" height="36" rx="6" fill="#059669"/>
-            <rect x="76" y="62" width="10" height="36" fill="#059669"/>
-            <rect x="86" y="62" width="66" height="36" rx="6" fill="#10b981"/>
-            <rect x="146" y="62" width="10" height="36" fill="#10b981"/>
-            <path d="M172 74 L184 80 L172 86" stroke="#d1fae5" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="192" y="62" width="26" height="36" rx="6" fill="#34d399"/>
-            <text x="205" y="85" fill="#052e21" font-size="16" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">70</text>
+          <svg class="step-blocks w-full h-36 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Same block shapes/colors as the real toolbox (Indicators
+                 = purple, Conditions = amber) - this is meant to look
+                 like an actual snippet of the builder, not an abstract
+                 chart. -->
+            <text x="24" y="38" fill="#6ee7b7" font-size="13" font-weight="700" font-family="ui-sans-serif,system-ui" letter-spacing="1">IF</text>
+            <rect x="20" y="48" width="200" height="2" fill="#1f2937"/>
+            <g class="blk blk-a">
+              <rect x="22" y="66" width="82" height="46" rx="9" fill="#7c3aed"/>
+              <rect x="96" y="83" width="12" height="12" fill="#7c3aed"/>
+              <text x="63" y="95" fill="white" font-size="18" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">RSI</text>
+            </g>
+            <g class="blk blk-b">
+              <rect x="108" y="60" width="112" height="58" rx="9" fill="#d97706"/>
+              <text x="128" y="96" fill="white" font-size="24" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">&gt;</text>
+              <rect x="150" y="76" width="56" height="26" rx="6" fill="#fef3c7"/>
+              <text x="178" y="94" fill="#78350f" font-size="15" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">70</text>
+            </g>
           </svg>
           <div class="mt-4 w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-sm font-semibold">1</div>
           <h3 class="mt-3 font-semibold text-gray-100">Define your conditions</h3>
@@ -329,25 +393,58 @@
   <!-- ============================================================
        FEATURES
        ============================================================ -->
-  <section id="features" class="max-w-6xl mx-auto px-6 py-20">
+  <section id="features" class="max-w-6xl mx-auto px-6 py-20 overflow-hidden">
     <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">Built for traders who think in rules, not syntax</h2>
-    <div class="mt-14 grid sm:grid-cols-2 gap-6">
-      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
-        <h3 class="font-semibold text-gray-100">Multi-rule strategies</h3>
+    <div class="mt-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      <div class="reveal feature-card lg:mt-0 bg-gray-900/60 border border-gray-800 rounded-xl p-6 cursor-default">
+        <svg class="feature-icon w-11 h-11" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="16" height="10" rx="3" fill="#059669"/>
+          <rect x="2" y="30" width="16" height="10" rx="3" fill="#10b981"/>
+          <path d="M20 11 L32 20" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/>
+          <path d="M20 35 L32 26" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/>
+          <rect x="30" y="17" width="16" height="14" rx="3" fill="#34d399"/>
+        </svg>
+        <h3 class="mt-4 font-semibold text-gray-100">Multi-rule strategies</h3>
         <p class="mt-2 text-sm text-gray-400 leading-relaxed">Combine several independent triggers - even across different assets - into a single exported EA or cBot.</p>
       </div>
-      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
-        <h3 class="font-semibold text-gray-100">Built-in guardrails</h3>
+
+      <div class="reveal feature-card lg:mt-8 bg-gray-900/60 border border-gray-800 rounded-xl p-6 cursor-default">
+        <svg class="feature-icon w-11 h-11" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="16" width="16" height="16" rx="4" fill="#0891b2"/>
+          <circle cx="34" cy="24" r="9" fill="#d97706"/>
+          <circle cx="24" cy="24" r="13" fill="none" stroke="#f87171" stroke-width="2.5"/>
+          <line x1="15" y1="15" x2="33" y2="33" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <h3 class="mt-4 font-semibold text-gray-100">Built-in guardrails</h3>
         <p class="mt-2 text-sm text-gray-400 leading-relaxed">The editor blocks nonsensical comparisons - like a price against a volume figure - before you ever get to export.</p>
       </div>
-      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
-        <h3 class="font-semibold text-gray-100">Consistent stop management</h3>
+
+      <div class="reveal feature-card lg:mt-0 bg-gray-900/60 border border-gray-800 rounded-xl p-6 cursor-default">
+        <svg class="feature-icon w-11 h-11" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="8" height="8" rx="2" fill="#f87171"/>
+          <rect x="20" y="8" width="8" height="8" rx="2" fill="#f87171"/>
+          <rect x="36" y="8" width="8" height="8" rx="2" fill="#f87171"/>
+          <line x1="8" y1="24" x2="40" y2="24" stroke="#374151" stroke-width="2" stroke-dasharray="3 3"/>
+          <circle cx="8" cy="24" r="5" fill="#34d399"/>
+          <circle cx="24" cy="24" r="5" fill="#34d399"/>
+          <circle cx="40" cy="24" r="5" fill="#34d399"/>
+        </svg>
+        <h3 class="mt-4 font-semibold text-gray-100">Consistent stop management</h3>
         <p class="mt-2 text-sm text-gray-400 leading-relaxed">EA-managed Stop Loss / Take Profit behaves identically across brokers, instead of relying on broker-side order handling that varies.</p>
       </div>
-      <div class="reveal bg-gray-900/60 border border-gray-800 rounded-xl p-6">
-        <h3 class="font-semibold text-gray-100">Real, compiled code</h3>
+
+      <div class="reveal feature-card lg:mt-8 bg-gray-900/60 border border-gray-800 rounded-xl p-6 cursor-default">
+        <svg class="feature-icon w-11 h-11" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 12 L6 24 L16 36" stroke="#34d399" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M32 12 L42 24 L32 36" stroke="#34d399" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="24" cy="34" r="10" fill="#059669"/>
+          <path d="M19 34 L23 38 L30 29" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3 class="mt-4 font-semibold text-gray-100">Real, compiled code</h3>
         <p class="mt-2 text-sm text-gray-400 leading-relaxed">Every export target is checked against the platform's actual compiler during development - not just generated and hoped for.</p>
       </div>
+
     </div>
   </section>
 
