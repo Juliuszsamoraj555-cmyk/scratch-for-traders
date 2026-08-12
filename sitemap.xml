@@ -25,4 +25,19 @@
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
+  <url>
+    <loc>https://REPLACE-WITH-REAL-DOMAIN/blog/how-to-build-a-trading-bot-without-coding.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-REAL-DOMAIN/blog/mt4-vs-mt5-vs-ctrader-automation.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-REAL-DOMAIN/blog/position-sizing-how-much-to-risk.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>

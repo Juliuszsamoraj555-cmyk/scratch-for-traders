@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Position Sizing: How Much Should One Trade Risk? - Scratch for Traders</title>
+<meta name="description" content="How to think about position sizing and lot size so a single losing trade never threatens your account - with a practical worked example." />
+<link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/blog/position-sizing-how-much-to-risk.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Position Sizing: How Much Should One Trade Risk?" />
+<meta property="og:description" content="How to think about position sizing so a single losing trade never threatens your account." />
+<meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/blog/position-sizing-how-much-to-risk.html" />
+<meta property="og:image" content="https://REPLACE-WITH-REAL-DOMAIN/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Position Sizing: How Much Should One Trade Risk?",
+  "description": "How to think about position sizing and lot size so a single losing trade never threatens your account.",
+  "author": { "@type": "Organization", "name": "Scratch for Traders" },
+  "publisher": { "@type": "Organization", "name": "Scratch for Traders" },
+  "datePublished": "2026-08-12"
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<!-- Precompiled Tailwind (see DEPLOYMENT.md step 0) - NOT the Play CDN
+     JIT script. Adding a new Tailwind class anywhere requires
+     `npm run build:css` or it silently won't be styled. -->
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
+          <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
+          <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
+          <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Position Sizing: How Much Should One Trade Risk?</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>A <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss</a> decides where a trade exits. Position sizing decides something different and just as important: how much of your account is actually on the line before that stop loss is even hit. Two traders can use the identical entry rule and identical stop loss placement, and still take wildly different amounts of risk, purely because of lot size.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The mistake: a fixed lot size</h2>
+      <p>Always trading 0.1 lots, regardless of the setup, is the most common way traders unknowingly take inconsistent risk. A 15-pip stop and a 60-pip stop at the same lot size risk very different dollar amounts - the lot size didn't adjust to the situation, so neither did the risk.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">A steadier approach: risk a fixed percent of your account</h2>
+      <p>Instead of fixing the lot size, fix the <em>risk</em> - commonly 1-2% of account balance per trade - and let the lot size be whatever number makes that percentage true, given that specific trade's stop loss distance. The math behind it is simple:</p>
+      <p class="pl-4 border-l-2 border-emerald-700 text-gray-200">Lot size = (Account balance &times; Risk %) &divide; (Stop loss distance in pips &times; Value per pip)</p>
+      <p>The result: a trade with a tight stop gets a larger lot size, a trade with a wide stop gets a smaller one - but the actual amount of money at risk stays consistent every time.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">A worked example</h2>
+      <p>Account balance: $2,000. Risk per trade: 1% ($20). Stop loss distance: 25 pips. On a pair where 1 pip &asymp; $10 per standard lot, that's $250 per lot per pip-equivalent risk unit - so the position works out to roughly 0.08 lots, sized specifically so a full stop-out costs exactly the $20 you decided on in advance, not whatever the market happened to hand you.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why this matters more than people expect</h2>
+      <p>Risking a consistent 1-2% means a losing streak of even 5-6 trades in a row - which happens to every strategy eventually - costs a manageable, planned-for slice of the account, not a crisis. Risking a careless 10% per trade turns the same losing streak into a wipeout. The entry signal gets most of a trader's attention; position sizing is what actually determines whether a string of bad luck is survivable.</p>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Set your lot size and risk in the builder - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <span>&copy; <span id="year"></span> Scratch for Traders</span>
+      <span>Built for traders, by traders.</span>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>How to Build a Trading Bot Without Coding - Scratch for Traders</title>
+<meta name="description" content="A step-by-step look at building a working trading bot using visual blocks instead of code - no MQL5, MQL4, or C# required." />
+<link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/blog/how-to-build-a-trading-bot-without-coding.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How to Build a Trading Bot Without Coding" />
+<meta property="og:description" content="A step-by-step look at building a working trading bot using visual blocks instead of code." />
+<meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/blog/how-to-build-a-trading-bot-without-coding.html" />
+<meta property="og:image" content="https://REPLACE-WITH-REAL-DOMAIN/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "How to Build a Trading Bot Without Coding",
+  "description": "A step-by-step look at building a working trading bot using visual blocks instead of code.",
+  "author": { "@type": "Organization", "name": "Scratch for Traders" },
+  "publisher": { "@type": "Organization", "name": "Scratch for Traders" },
+  "datePublished": "2026-08-12"
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<!-- Precompiled Tailwind (see DEPLOYMENT.md step 0) - NOT the Play CDN
+     JIT script. Adding a new Tailwind class anywhere requires
+     `npm run build:css` or it silently won't be styled. -->
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
+          <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
+          <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
+          <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">How to Build a Trading Bot Without Coding</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>A "trading bot" sounds more complicated than what it actually is: a program that watches the market and does exactly what you told it to do, every time, without you sitting at the screen. You don't need to be a programmer to build one - you need a clear idea and a way to turn that idea into rules a computer can follow.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The traditional path (and why it stops most people)</h2>
+      <p>Historically, building one meant learning MQL5, MQL4, or C# first, then debugging syntax errors before you ever got to test whether your actual trading idea worked. That's a real barrier - plenty of traders have a genuinely good, testable idea and never build it, purely because the tooling demanded a second skill set unrelated to trading itself.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The visual path: four steps</h2>
+      <p>A block-based builder skips the programming step entirely. The process looks like this:</p>
+      <ul class="list-disc pl-5 space-y-2">
+        <li><strong class="text-gray-200">Pick your asset and timeframe.</strong> What you're trading, and which chart interval the bot should watch.</li>
+        <li><strong class="text-gray-200">Define the condition.</strong> Connect price, indicator, and volume blocks into the rule that should trigger a trade - e.g. "RSI(14) crosses above 70."</li>
+        <li><strong class="text-gray-200">Set the action and risk.</strong> Buy or sell, what lot size, and where the Stop Loss / Take Profit sit.</li>
+        <li><strong class="text-gray-200">Export.</strong> Get a ready-to-run file for MetaTrader 5, MetaTrader 4, or cTrader, plus a README that walks through installing it.</li>
+      </ul>
+      <p>That's genuinely the whole process. No compiler errors to chase, no language reference to keep open in another tab.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What happens after you export</h2>
+      <p>The exported file still needs to be compiled inside your platform's own editor (MetaEditor for MT5/MT4, the cAlgo editor for cTrader) - that step is a one-click "Compile" button, not something you write. Once it compiles cleanly, you attach it to a chart and it runs.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">A realistic expectation to set</h2>
+      <p>Removing the coding barrier doesn't remove the trading barrier. A bot executes your rules faithfully - it doesn't know whether those rules are actually good. Test on a demo account first, and treat the first version of any bot as a draft to refine, not a finished product.</p>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build your first bot - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <span>&copy; <span id="year"></span> Scratch for Traders</span>
+      <span>Built for traders, by traders.</span>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
