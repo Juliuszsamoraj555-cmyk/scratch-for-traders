@@ -19,6 +19,8 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8 # Render defaults to 3.14, which pydantic-core (via PyO3) doesn't support yet - see .env.example
       - key: DATABASE_URL
         sync: false # Supabase connection string - see .env.example
       - key: STRIPE_SECRET_KEY
