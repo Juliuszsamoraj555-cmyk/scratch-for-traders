@@ -76,7 +76,16 @@
       <span id="billingIndicator" class="hidden text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
       <!-- Only shown once actually logged in (30-day pass account - see
            supabase_auth.py). Free tier / single export never need this. -->
-      <span id="authStatus" class="hidden items-center gap-2 text-xs text-gray-400">
+      <!-- Always shows exactly one of these two, never both/neither -
+           logged out always gets a visible way in, logged in always
+           gets a visible way out. Previously this whole block was
+           hidden until a session existed, with no equivalent "Log in"
+           control shown in its place - so a logged-out trader had no
+           persistent sign of the login feature at all. -->
+      <span id="authStatusLoggedOut" class="items-center text-xs text-gray-400">
+        <button id="authHeaderLoginBtn" class="underline hover:text-gray-200">Log in</button>
+      </span>
+      <span id="authStatusLoggedIn" class="hidden items-center gap-2 text-xs text-gray-400">
         <span id="authStatusEmail"></span>
         <button id="authSignOutBtn" class="underline hover:text-gray-200">Log out</button>
       </span>
@@ -1900,21 +1909,26 @@ async function getValidAccessToken() {
   }
 }
 
-const authStatus = document.getElementById('authStatus');
+const authStatusLoggedOut = document.getElementById('authStatusLoggedOut');
+const authStatusLoggedIn = document.getElementById('authStatusLoggedIn');
 const authStatusEmail = document.getElementById('authStatusEmail');
 
 function renderAuthStatus() {
   const session = getAuthSession();
-  if (session && session.user && session.user.email) {
-    authStatusEmail.textContent = session.user.email;
-    authStatus.classList.remove('hidden');
-    authStatus.classList.add('flex');
-  } else {
-    authStatus.classList.add('hidden');
-    authStatus.classList.remove('flex');
-  }
+  const isLoggedIn = !!(session && session.user && session.user.email);
+  authStatusLoggedIn.classList.toggle('hidden', !isLoggedIn);
+  authStatusLoggedIn.classList.toggle('flex', isLoggedIn);
+  authStatusLoggedOut.classList.toggle('hidden', isLoggedIn);
+  authStatusLoggedOut.classList.toggle('flex', !isLoggedIn);
+  if (isLoggedIn) authStatusEmail.textContent = session.user.email;
 }
 renderAuthStatus();
+
+document.getElementById('authHeaderLoginBtn').addEventListener('click', () => {
+  showAuthOverlay(() => {
+    refreshBillingIndicator(); // picks up pass_active if this account already has one
+  });
+});
 
 document.getElementById('authSignOutBtn').addEventListener('click', async () => {
   await authSignOut();
