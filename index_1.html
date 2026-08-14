@@ -216,7 +216,10 @@
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 id="authTitle" class="text-lg font-semibold text-gray-100 mb-1">Log in</h2>
       <p id="authSubtitle" class="text-sm text-gray-400 mb-4">The 30-day pass works across every device once you're logged in.</p>
-      <p id="authError" class="hidden text-sm text-red-400 mb-3"></p>
+      <!-- Was plain small red text - easy to miss entirely next to a
+           dark modal background. Now a solid alert box: background
+           tint + strong border + icon, same treatment as the toast. -->
+      <p id="authError" class="hidden text-sm font-medium bg-red-950 border border-red-600 text-red-200 rounded-md px-3 py-2.5 mb-3 flex items-start gap-2"><span aria-hidden="true">✕</span><span id="authErrorText"></span></p>
       <div class="space-y-3">
         <div>
           <label class="block text-xs text-gray-400 mb-1" for="authEmail">Email</label>
@@ -249,7 +252,7 @@
   <div id="authResetOverlay" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center px-4">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 class="text-lg font-semibold text-gray-100 mb-1">Set a new password</h2>
-      <p id="authResetError" class="hidden text-sm text-red-400 mb-3"></p>
+      <p id="authResetError" class="hidden text-sm font-medium bg-red-950 border border-red-600 text-red-200 rounded-md px-3 py-2.5 mb-3 flex items-start gap-2"><span aria-hidden="true">✕</span><span id="authResetErrorText"></span></p>
       <label class="block text-xs text-gray-400 mb-1" for="authNewPassword">New password</label>
       <input id="authNewPassword" type="password" autocomplete="new-password"
         class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-100" />
@@ -1997,17 +2000,21 @@ authOverlay.addEventListener('click', (e) => { if (e.target === authOverlay) hid
 authToggleModeBtn.addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
 authForgotBtn.addEventListener('click', () => setAuthMode('reset'));
 
+const authErrorText = document.getElementById('authErrorText');
+function showAuthError(message) {
+  authErrorText.textContent = message;
+  authError.classList.remove('hidden');
+}
+
 authSubmitBtn.addEventListener('click', async () => {
   const email = authEmailInput.value.trim();
   const password = authPasswordInput.value;
   if (!email) {
-    authError.textContent = 'Enter your email first.';
-    authError.classList.remove('hidden');
+    showAuthError('Enter your email first.');
     return;
   }
   if (authMode !== 'reset' && !password) {
-    authError.textContent = 'Enter your password first.';
-    authError.classList.remove('hidden');
+    showAuthError('Enter your password first.');
     return;
   }
 
@@ -2023,24 +2030,26 @@ authSubmitBtn.addEventListener('click', async () => {
       showToast(`Logged in as ${email}.`, false);
       if (authOnSuccess) authOnSuccess();
     } else if (authMode === 'signup') {
-      const session = await authSignUp(email, password);
-      // authSignUp only resolves (rather than throwing) when Supabase
-      // handed back a real session immediately - i.e. this project has
-      // email confirmation turned off. If it's on, the catch block below
-      // shows the "check your inbox" message instead and the modal
-      // stays open, since there's no session yet to log in with.
-      renderAuthStatus();
-      hideAuthOverlay();
-      showToast(`Account created - logged in as ${session.user.email}.`);
-      if (authOnSuccess) authOnSuccess();
+      const result = await authSignUp(email, password);
+      if (result.needsConfirmation) {
+        // Real success (the account was created) with an extra step
+        // needed, not a failure - shown via the green toast, same as
+        // every other success here, not the red error box.
+        hideAuthOverlay();
+        showToast('Account created - check your inbox for a confirmation link, then log in.', false);
+      } else {
+        renderAuthStatus();
+        hideAuthOverlay();
+        showToast(`Account created - logged in as ${result.user.email}.`, false);
+        if (authOnSuccess) authOnSuccess();
+      }
     } else {
       await authRequestPasswordReset(email);
-      showToast('Check your email for a reset link.');
+      showToast('Check your email for a reset link.', false);
       setAuthMode('login');
     }
   } catch (err) {
-    authError.textContent = err.message;
-    authError.classList.remove('hidden');
+    showAuthError(err.message);
   } finally {
     authSubmitBtn.textContent = originalLabel;
     authSubmitBtn.disabled = false;
@@ -2057,13 +2066,14 @@ authSubmitBtn.addEventListener('click', async () => {
   const recoveryToken = hash.get('access_token');
   const overlay = document.getElementById('authResetOverlay');
   const errorEl = document.getElementById('authResetError');
+  const errorText = document.getElementById('authResetErrorText');
   const input = document.getElementById('authNewPassword');
   const submitBtn = document.getElementById('authResetSubmitBtn');
   overlay.classList.remove('hidden');
 
   submitBtn.addEventListener('click', async () => {
     if (!input.value) {
-      errorEl.textContent = 'Enter a new password first.';
+      errorText.textContent = 'Enter a new password first.';
       errorEl.classList.remove('hidden');
       return;
     }
@@ -2071,13 +2081,18 @@ authSubmitBtn.addEventListener('click', async () => {
     errorEl.classList.add('hidden');
     try {
       await authSetNewPassword(input.value, recoveryToken);
-      overlay.classList.add('hidden');
       // Clean the token out of the URL - it's single-use and shouldn't
       // linger in browser history / be re-submitted on a page refresh.
       history.replaceState(null, '', window.location.pathname + window.location.search);
-      showToast('Password updated - log in with your new password.');
+      // Toast fires before hiding the overlay (not after) so it's
+      // already visible by the time the modal that was covering it
+      // disappears - same reasoning as the signup flow above, where
+      // hiding first meant a later crash left no visible feedback at
+      // all.
+      showToast('Password updated - log in with your new password.', false);
+      overlay.classList.add('hidden');
     } catch (err) {
-      errorEl.textContent = err.message;
+      errorText.textContent = err.message;
       errorEl.classList.remove('hidden');
     } finally {
       submitBtn.disabled = false;
