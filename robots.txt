@@ -6,4 +6,4 @@ User-agent: *
 Allow: /
 Disallow: /index_1.html
 
-Sitemap: https://REPLACE-WITH-REAL-DOMAIN/sitemap.xml
+Sitemap: https://algopuzzle.com/sitemap.xml
