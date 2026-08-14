@@ -112,7 +112,19 @@
       "Bash(rm -f /tmp/prod_test_token.txt)",
       "Bash(curl -s -i -X POST https://algopuzzle-api.onrender.com/api/billing/checkout/pass -H \"Origin: https://algopuzzle.com\" -H \"Authorization: Bearer test\")",
       "Bash(curl -s -i -X OPTIONS https://algopuzzle-api.onrender.com/api/billing/checkout/pass -H 'Origin: https://algopuzzle.com' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,content-type')",
-      "Bash(python -c \"import db; print\\('db.py imports OK'\\)\")"
+      "Bash(python -c \"import db; print\\('db.py imports OK'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} \" https://algopuzzle-api.onrender.com/api/billing/status)",
+      "Bash(curl -s -o /dev/null -w \"algopuzzle.com: %{http_code}\\\\n\" https://algopuzzle.com/)",
+      "Bash(curl -s -o /dev/null -w \"builder: %{http_code}\\\\n\" https://algopuzzle.com/index_1.html)",
+      "Bash(rm -f /tmp/full_test.txt)",
+      "Bash(curl -s -c /tmp/full_test.txt -b /tmp/full_test.txt https://algopuzzle-api.onrender.com/api/billing/status)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -c /tmp/full_test.txt -b /tmp/full_test.txt -X POST https://algopuzzle-api.onrender.com/api/generate -H \"Content-Type: application/json\" --data @tests/fixtures/simple_single.json)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -c /tmp/full_test.txt -b /tmp/full_test.txt -X POST https://algopuzzle-api.onrender.com/api/generate/ctrader -H \"Content-Type: application/json\" --data @tests/fixtures/simple_single.json)",
+      "Bash(curl -s -c /tmp/full_test.txt -b /tmp/full_test.txt -w \"\\\\nhttp: %{http_code}\\\\n\" -X POST https://algopuzzle-api.onrender.com/api/generate/mt4 -H \"Content-Type: application/json\" --data @tests/fixtures/simple_single.json)",
+      "Bash(curl -s https://algopuzzle-api.onrender.com/api/billing/status -H \"Authorization: Bearer $\\(cat /tmp/tok.txt\\)\")",
+      "Bash(curl -s -X POST https://algopuzzle-api.onrender.com/api/billing/checkout/pass -H \"Authorization: Bearer $\\(cat /tmp/tok.txt\\)\" -w \"\\\\nhttp: %{http_code}\\\\n\")",
+      "Bash(rm -f /tmp/tok.txt)",
+      "Bash(python -c \"import supabase_auth; print\\('supabase_auth.py imports OK'\\)\")"
     ]
   }
 }

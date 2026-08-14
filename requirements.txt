@@ -9,5 +9,8 @@ itsdangerous==2.2.0
 python-dotenv==1.2.2
 
 # Supabase Auth token verification (login, 30-day pass only - see
-# settings.py's SUPABASE_JWT_SECRET)
+# supabase_auth.py). cryptography is required by PyJWT for ES256/RS256 -
+# real Supabase access tokens are ES256-signed (JWKS), not the legacy
+# HS256 shared-secret scheme.
 PyJWT==2.9.0
+cryptography==43.0.3

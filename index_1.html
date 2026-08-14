@@ -153,7 +153,14 @@
   </xml>
 
   <!-- Error / info toast -->
-  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 text-sm px-4 py-3 rounded-lg shadow-lg max-w-md z-50"></div>
+  <!-- Success/error toast, bottom-center. Background tint + border +
+       icon all change together with the message (not just text color) -
+       color alone is an easy thing to miss/misread, especially at a
+       glance, so every state is redundantly signaled three ways. -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 border text-sm font-medium px-4 py-3 rounded-lg shadow-lg max-w-md z-50 flex items-center gap-2">
+    <span id="toastIcon" aria-hidden="true"></span>
+    <span id="toastText"></span>
+  </div>
 
   <!-- Paywall - shown when a device is out of free exports (backend
        returns 402). Single export stays anonymous - paying just unlocks
@@ -1822,10 +1829,13 @@ async function authSignUp(email, password) {
   const redirectTo = window.location.origin + window.location.pathname;
   const json = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, { email, password });
   // If email confirmation is required (Supabase project setting), signup
-  // succeeds but returns no session yet - the caller needs to know that
-  // rather than treating it as a normal logged-in state.
+  // succeeds but returns no session yet. That's still a SUCCESS, not an
+  // error - it used to be thrown as one, which meant "check your inbox"
+  // rendered in the same red/failure styling as an actual failed signup.
+  // A plain object return (instead of a session) is the caller's signal
+  // to treat this as the confirmation-pending case.
   if (!json.access_token) {
-    throw new Error('Account created - check your inbox for a confirmation link, then log in.');
+    return { needsConfirmation: true };
   }
   return saveAuthSession(json);
 }
@@ -1910,7 +1920,7 @@ document.getElementById('authSignOutBtn').addEventListener('click', async () => 
   await authSignOut();
   renderAuthStatus();
   refreshBillingIndicator();
-  showToast('Logged out.');
+  showToast('Logged out.', false);
 });
 
 /* --- Auth modal: login / signup / forgot-password, three modes of the
@@ -1996,7 +2006,7 @@ authSubmitBtn.addEventListener('click', async () => {
       await authSignIn(email, password);
       renderAuthStatus();
       hideAuthOverlay();
-      showToast(`Logged in as ${email}.`);
+      showToast(`Logged in as ${email}.`, false);
       if (authOnSuccess) authOnSuccess();
     } else if (authMode === 'signup') {
       const session = await authSignUp(email, password);
@@ -2203,13 +2213,21 @@ paywallOverlay.addEventListener('click', (e) => { if (e.target === paywallOverla
 refreshBillingIndicator();
 const toast = document.getElementById('toast');
 
-function showToast(message, isError = true) {
-  toast.textContent = message;
+// isError has no default on purpose - every call site must say which
+// one it means. A silent default previously left several genuine
+// success messages (logged in, account created, password updated...)
+// falling through to the error styling, which is worse than no
+// feedback at all: it tells the trader something failed when it didn't.
+function showToast(message, isError) {
+  document.getElementById('toastText').textContent = message;
+  document.getElementById('toastIcon').textContent = isError ? '✕' : '✓';
   toast.classList.remove('hidden');
+  toast.classList.toggle('bg-red-950', isError);
   toast.classList.toggle('border-red-600', isError);
-  toast.classList.toggle('text-red-300', isError);
+  toast.classList.toggle('text-red-200', isError);
+  toast.classList.toggle('bg-emerald-950', !isError);
   toast.classList.toggle('border-emerald-600', !isError);
-  toast.classList.toggle('text-emerald-300', !isError);
+  toast.classList.toggle('text-emerald-200', !isError);
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => toast.classList.add('hidden'), 6000);
 }
