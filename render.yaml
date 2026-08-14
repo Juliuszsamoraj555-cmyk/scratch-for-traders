@@ -40,7 +40,7 @@ services:
       - key: COOKIE_SIGNING_SECRET
         generateValue: true # Render generates a random secret automatically
       - key: COOKIE_DOMAIN
-        sync: false # .algopuzzle.com (leading dot) - shares the device cookie between algopuzzle.com and api.algopuzzle.com
+        sync: false # leave BLANK - the API stays on algopuzzle-api.onrender.com (see PRODUCTION_API_BASE in index_1.html for why), not a subdomain of algopuzzle.com, so there's no shared parent domain to scope the cookie to. A browser silently drops any Set-Cookie whose Domain isn't the response's own host or a parent of it.
       - key: ALLOWED_ORIGINS
         sync: false # https://algopuzzle.com (the frontend's URL)
       - key: SITE_URL
@@ -52,5 +52,8 @@ services:
     buildCommand: ""
     staticPublishPath: "."
     # index_1.html's PRODUCTION_API_BASE is already set to
-    # https://api.algopuzzle.com - only revisit this if that subdomain
-    # ever changes (see DEPLOYMENT.md step 7).
+    # https://algopuzzle-api.onrender.com - deliberately NOT a custom
+    # api.algopuzzle.com subdomain, since Cloudflare (our DNS host)
+    # refuses to point any record at Render's IP range (error 1000) -
+    # see the comment on PRODUCTION_API_BASE itself for the full story.
+    # Purely internal either way, never shown to a trader.

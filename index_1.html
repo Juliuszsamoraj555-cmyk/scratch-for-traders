@@ -2050,12 +2050,19 @@ authSubmitBtn.addEventListener('click', async () => {
    4. EXPORT FLOW
    ============================================================ */
 
-// PRODUCTION_API_BASE: the deployed backend's real URL. Only takes
-// effect when actually served from algopuzzle.com/www - local dev
-// (localhost/127.0.0.1/file://) always uses the port-guessing fallback
-// below instead, regardless of this value, so there's no need to touch
-// it while developing locally.
-const PRODUCTION_API_BASE = 'https://api.algopuzzle.com';
+// PRODUCTION_API_BASE: the deployed backend's real URL. Deliberately
+// still the raw onrender.com URL, not api.algopuzzle.com - Cloudflare
+// (our DNS host) refuses to point any record, CNAME or A, proxied or
+// not, at Render's IP range (Cloudflare error 1000, "DNS points to
+// prohibited IP" - Render's own infra is itself Cloudflare-fronted,
+// which Cloudflare's DNS treats as a prohibited double-proxy target
+// regardless of record type). Purely cosmetic either way - nothing in
+// the UI ever shows this URL to a trader, it's only ever used here as
+// a fetch() target. Only takes effect when actually served from
+// algopuzzle.com/www - local dev (localhost/127.0.0.1/file://) always
+// uses the port-guessing fallback below instead, regardless of this
+// value, so there's no need to touch it while developing locally.
+const PRODUCTION_API_BASE = 'https://algopuzzle-api.onrender.com';
 
 const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
 

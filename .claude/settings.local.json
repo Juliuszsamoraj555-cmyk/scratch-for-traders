@@ -69,7 +69,22 @@
       "Bash(python -c \"import stripe; print\\(stripe.api_version\\)\")",
       "Bash(curl -s -i -X POST http://localhost:8000/api/billing/checkout/pass -c /tmp/cookies3.txt -b /tmp/cookies3.txt)",
       "Bash(curl -s -i -X POST http://localhost:8000/api/billing/checkout/pass -c /tmp/cookies3.txt -b /tmp/cookies3.txt -H \"Authorization: Bearer $\\(cat /tmp/test_token2.txt\\)\")",
-      "Bash(rm -f /tmp/test_token2.txt)"
+      "Bash(rm -f /tmp/test_token2.txt)",
+      "Bash(curl -s -i https://algopuzzle-api.onrender.com/api/billing/status)",
+      "Bash(curl -s -i https://algopuzzle-frontend.onrender.com/)",
+      "Bash(curl -s -i -X POST https://algopuzzle-api.onrender.com/api/billing/checkout/export)",
+      "Bash(curl -s -i -X POST https://algopuzzle-api.onrender.com/api/billing/checkout/pass)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://algopuzzle-frontend.onrender.com/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{ssl_verify_result}\\\\n\" https://algopuzzle.com/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://www.algopuzzle.com/)",
+      "Bash(curl -s -i https://api.algopuzzle.com/api/billing/status)",
+      "Bash(nslookup api.algopuzzle.com)",
+      "Bash(nslookup algopuzzle-api.onrender.com)",
+      "Bash(curl -s https://api.algopuzzle.com/api/billing/status)",
+      "WebFetch(domain:render.discourse.group)",
+      "WebFetch(domain:community.render.com)",
+      "WebFetch(domain:community.cloudflare.com)",
+      "WebFetch(domain:developers.cloudflare.com)"
     ]
   }
 }
