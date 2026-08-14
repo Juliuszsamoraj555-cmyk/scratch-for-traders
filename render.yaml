@@ -29,21 +29,26 @@ services:
         sync: false
       - key: STRIPE_PRICE_PASS
         sync: false
+      - key: SUPABASE_URL
+        sync: false # Project Settings -> API - login for the 30-day pass only
+      - key: SUPABASE_ANON_KEY
+        sync: false # same page - public by design, but kept as an env var like the rest
+      - key: SUPABASE_JWT_SECRET
+        sync: false # Project Settings -> API -> JWT Settings - a real secret, unlike the anon key above
       - key: COOKIE_SIGNING_SECRET
         generateValue: true # Render generates a random secret automatically
       - key: COOKIE_DOMAIN
-        sync: false # leave blank until a real domain exists (see DEPLOYMENT.md)
+        sync: false # .algopuzzle.com (leading dot) - shares the device cookie between algopuzzle.com and api.algopuzzle.com
       - key: ALLOWED_ORIGINS
-        sync: false # e.g. https://app.yourdomain.pl (the frontend's URL)
+        sync: false # https://algopuzzle.com (the frontend's URL)
       - key: SITE_URL
-        sync: false # e.g. https://app.yourdomain.pl - used for Stripe redirect URLs
+        sync: false # https://algopuzzle.com - used for Stripe redirect URLs
 
   - type: web
     name: algopuzzle-frontend
     env: static
     buildCommand: ""
     staticPublishPath: "."
-    # index_1.html talks to the API via a hardcoded-by-convention port
-    # guess (see API_BASE in index_1.html) that only works for local dev -
-    # before going live, point API_BASE at the deployed API service's
-    # real URL (see DEPLOYMENT.md).
+    # index_1.html's PRODUCTION_API_BASE is already set to
+    # https://api.algopuzzle.com - only revisit this if that subdomain
+    # ever changes (see DEPLOYMENT.md step 7).

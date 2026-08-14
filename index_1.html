@@ -2050,20 +2050,20 @@ authSubmitBtn.addEventListener('click', async () => {
    4. EXPORT FLOW
    ============================================================ */
 
-// PRODUCTION_API_BASE: set this to the deployed backend's real URL
-// (e.g. "https://algopuzzle-api.onrender.com") the moment the
-// backend is deployed - leave it null for local dev, where the
-// port-guessing fallback below (same host, backend on :8000) is correct.
-// This can't be auto-detected once frontend and backend live on
-// different hosts (Render gives each service its own subdomain), so
-// there is no way around hand-setting this one line per deploy target.
-const PRODUCTION_API_BASE = null;
+// PRODUCTION_API_BASE: the deployed backend's real URL. Only takes
+// effect when actually served from algopuzzle.com/www - local dev
+// (localhost/127.0.0.1/file://) always uses the port-guessing fallback
+// below instead, regardless of this value, so there's no need to touch
+// it while developing locally.
+const PRODUCTION_API_BASE = 'https://api.algopuzzle.com';
 
-const API_BASE = PRODUCTION_API_BASE || (
-  window.location.origin.includes('null') || window.location.protocol === 'file:'
-    ? 'http://127.0.0.1:8000'
-    : window.location.origin.replace(/:\d+$/, ':8000')
-);
+const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
+
+const API_BASE = IS_LOCAL_DEV
+  ? (window.location.origin.includes('null') || window.location.protocol === 'file:'
+      ? 'http://127.0.0.1:8000'
+      : window.location.origin.replace(/:\d+$/, ':8000'))
+  : PRODUCTION_API_BASE;
 
 const exportMt5Btn = document.getElementById('exportMt5Btn');
 const exportCtraderBtn = document.getElementById('exportCtraderBtn');
