@@ -63,7 +63,13 @@
       "Bash(python -c \"import main; print\\('OK'\\)\")",
       "Read(//tmp/**)",
       "Bash(curl -s http://localhost:8000/api/billing/status -H \"Authorization: Bearer $\\(cat /tmp/test_token.txt\\)\" -b /tmp/cookies2.txt)",
-      "Bash(rm -f /tmp/test_token.txt)"
+      "Bash(rm -f /tmp/test_token.txt)",
+      "Bash(python -c \"import secrets; print\\(secrets.token_hex\\(32\\)\\)\")",
+      "Bash(curl -s -i -X POST http://localhost:8000/api/billing/checkout/export -c /tmp/cookies3.txt -b /tmp/cookies3.txt)",
+      "Bash(python -c \"import stripe; print\\(stripe.api_version\\)\")",
+      "Bash(curl -s -i -X POST http://localhost:8000/api/billing/checkout/pass -c /tmp/cookies3.txt -b /tmp/cookies3.txt)",
+      "Bash(curl -s -i -X POST http://localhost:8000/api/billing/checkout/pass -c /tmp/cookies3.txt -b /tmp/cookies3.txt -H \"Authorization: Bearer $\\(cat /tmp/test_token2.txt\\)\")",
+      "Bash(rm -f /tmp/test_token2.txt)"
     ]
   }
 }

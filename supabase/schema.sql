@@ -75,10 +75,23 @@ create table if not exists billing_events (
     user_id                  uuid references auth.users (id),
     event_type               text not null, -- 'export_credit_purchase' | 'day_pass_purchase'
     stripe_checkout_session_id text,
-    amount_total_grosze      integer, -- Stripe amounts are in the smallest currency unit
+    amount_total_cents       integer, -- Stripe amounts are in the smallest currency unit
     currency                 text,
     created_at                timestamptz not null default now()
 );
+
+-- Pricing moved from PLN to USD (2026-08-14 decision) - renames the
+-- column on any database that already has it under the old name from
+-- before that switch. No-op (and safe to re-run) once it's done.
+do $$
+begin
+    if exists (
+        select 1 from information_schema.columns
+         where table_name = 'billing_events' and column_name = 'amount_total_grosze'
+    ) then
+        alter table billing_events rename column amount_total_grosze to amount_total_cents;
+    end if;
+end $$;
 
 -- Append-only log of every export actually delivered - lets you see
 -- where a device's entitlement went (useful for support questions like

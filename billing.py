@@ -49,6 +49,15 @@ def _require_configured() -> None:
             "See .env.example."
         )
     stripe.api_key = settings.STRIPE_SECRET_KEY
+    # The stripe==11.1.1 SDK defaults to API version 2024-09-30.acacia,
+    # which this Stripe account rejects ("Managed Payments is not
+    # supported on API version 2024-09-30.acacia") - the account's
+    # products were created with a product category (Downloadable
+    # Software) that opts into Managed Payments, which needs a newer
+    # API version than the pinned SDK's default. Pinning it explicitly
+    # here (rather than bumping the whole SDK) keeps every other Stripe
+    # call's behavior exactly as tested.
+    stripe.api_version = "2025-03-31.basil"
 
 
 def create_checkout_session(device_id: str, kind: Kind, user_id: Optional[str] = None) -> str:
@@ -127,7 +136,7 @@ async def apply_completed_checkout(event: "stripe.Event") -> Optional[str]:
     email = customer_details.get("email")
 
     amount_total = session.get("amount_total") or 0
-    currency = session.get("currency") or "pln"
+    currency = session.get("currency") or "usd"
     stripe_event_id = event["id"]
     session_id = session["id"]
 

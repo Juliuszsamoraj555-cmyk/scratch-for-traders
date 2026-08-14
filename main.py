@@ -2784,8 +2784,8 @@ async def _require_export_entitlement(request: Request, device_id: str, platform
             detail={
                 "error": "payment_required",
                 "message": (
-                    "Wykorzystałeś darmowe eksporty. Kup pojedynczy eksport "
-                    "(5 zł) lub 30-dniowy pass bez limitu, żeby kontynuować."
+                    "You've used your free exports. Buy a single export "
+                    "($2.00) or the unlimited 30-day pass ($9.99) to keep going."
                 ),
             },
         )

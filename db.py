@@ -190,7 +190,7 @@ def _grant_export_credits_sync(
     n: int,
     stripe_event_id: str,
     session_id: str,
-    amount_grosze: int,
+    amount_cents: int,
     currency: str,
     email: Optional[str],
 ) -> bool:
@@ -205,9 +205,9 @@ def _grant_export_credits_sync(
         cur.execute(
             "insert into billing_events "
             "(stripe_event_id, device_id, event_type, stripe_checkout_session_id, "
-            " amount_total_grosze, currency) "
+            " amount_total_cents, currency) "
             "values (%s, %s, 'export_credit_purchase', %s, %s, %s)",
-            (stripe_event_id, device_id, session_id, amount_grosze, currency),
+            (stripe_event_id, device_id, session_id, amount_cents, currency),
         )
         return True
 
@@ -217,12 +217,12 @@ async def grant_export_credits(
     n: int,
     stripe_event_id: str,
     session_id: str,
-    amount_grosze: int,
+    amount_cents: int,
     currency: str,
     email: Optional[str] = None,
 ) -> bool:
     return await run_in_threadpool(
-        _grant_export_credits_sync, device_id, n, stripe_event_id, session_id, amount_grosze, currency, email
+        _grant_export_credits_sync, device_id, n, stripe_event_id, session_id, amount_cents, currency, email
     )
 
 
@@ -231,7 +231,7 @@ def _grant_day_pass_sync(
     days: int,
     stripe_event_id: str,
     session_id: str,
-    amount_grosze: int,
+    amount_cents: int,
     currency: str,
     email: Optional[str],
 ) -> bool:
@@ -255,9 +255,9 @@ def _grant_day_pass_sync(
         cur.execute(
             "insert into billing_events "
             "(stripe_event_id, user_id, event_type, stripe_checkout_session_id, "
-            " amount_total_grosze, currency) "
+            " amount_total_cents, currency) "
             "values (%s, %s, 'day_pass_purchase', %s, %s, %s)",
-            (stripe_event_id, user_id, session_id, amount_grosze, currency),
+            (stripe_event_id, user_id, session_id, amount_cents, currency),
         )
         return True
 
@@ -267,7 +267,7 @@ async def grant_day_pass(
     days: int,
     stripe_event_id: str,
     session_id: str,
-    amount_grosze: int,
+    amount_cents: int,
     currency: str,
     email: Optional[str] = None,
 ) -> bool:
@@ -275,7 +275,7 @@ async def grant_day_pass(
     device_id - the 30-day pass is the one entitlement that requires
     login, see schema.sql's header comment for why."""
     return await run_in_threadpool(
-        _grant_day_pass_sync, user_id, days, stripe_event_id, session_id, amount_grosze, currency, email
+        _grant_day_pass_sync, user_id, days, stripe_event_id, session_id, amount_cents, currency, email
     )
 
 

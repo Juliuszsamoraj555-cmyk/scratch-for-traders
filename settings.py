@@ -80,10 +80,14 @@ class Settings:
     # cancel redirect URLs. Update this the moment a real domain exists.
     SITE_URL: str = os.getenv("SITE_URL", "http://localhost:8080")
 
-    # --- Pricing (grosze = smallest PLN unit, matches Stripe's integer amounts) ---
+    # --- Pricing (cents = smallest USD unit, matches Stripe's integer
+    # amounts - the actual charged amount always comes from the Stripe
+    # Price objects themselves (STRIPE_PRICE_EXPORT/PASS below), these
+    # two are only used for display text that has to exist before ever
+    # talking to Stripe, e.g. the 402 paywall message in main.py) ---
     FREE_EXPORT_LIMIT: int = int(os.getenv("FREE_EXPORT_LIMIT", "2"))
-    EXPORT_PRICE_GROSZE: int = int(os.getenv("EXPORT_PRICE_GROSZE", "500"))   # 5.00 zl
-    PASS_PRICE_GROSZE: int = int(os.getenv("PASS_PRICE_GROSZE", "3000"))     # 30.00 zl
+    EXPORT_PRICE_CENTS: int = int(os.getenv("EXPORT_PRICE_CENTS", "200"))   # $2.00
+    PASS_PRICE_CENTS: int = int(os.getenv("PASS_PRICE_CENTS", "999"))      # $9.99
     PASS_DURATION_DAYS: int = int(os.getenv("PASS_DURATION_DAYS", "30"))
 
     # --- Abuse mitigation: per-IP cap on the FREE bucket only ---
