@@ -1815,12 +1815,17 @@ async function supabaseAuthFetch(path, body) {
 }
 
 async function authSignUp(email, password) {
-  const json = await supabaseAuthFetch('/signup', { email, password });
+  // Without redirect_to, Supabase falls back to the project's default
+  // Site URL setting for the confirmation link - which is Supabase's own
+  // placeholder unless someone has configured it, so the email link goes
+  // nowhere real. Same fix as authRequestPasswordReset below.
+  const redirectTo = window.location.origin + window.location.pathname;
+  const json = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, { email, password });
   // If email confirmation is required (Supabase project setting), signup
   // succeeds but returns no session yet - the caller needs to know that
   // rather than treating it as a normal logged-in state.
   if (!json.access_token) {
-    throw new Error('Check your inbox to confirm your email, then log in.');
+    throw new Error('Account created - check your inbox for a confirmation link, then log in.');
   }
   return saveAuthSession(json);
 }
@@ -1982,18 +1987,27 @@ authSubmitBtn.addEventListener('click', async () => {
     return;
   }
 
+  const originalLabel = authSubmitBtn.textContent;
   authSubmitBtn.disabled = true;
+  authSubmitBtn.textContent = 'Working...';
   authError.classList.add('hidden');
   try {
     if (authMode === 'login') {
       await authSignIn(email, password);
       renderAuthStatus();
       hideAuthOverlay();
+      showToast(`Logged in as ${email}.`);
       if (authOnSuccess) authOnSuccess();
     } else if (authMode === 'signup') {
-      await authSignUp(email, password);
+      const session = await authSignUp(email, password);
+      // authSignUp only resolves (rather than throwing) when Supabase
+      // handed back a real session immediately - i.e. this project has
+      // email confirmation turned off. If it's on, the catch block below
+      // shows the "check your inbox" message instead and the modal
+      // stays open, since there's no session yet to log in with.
       renderAuthStatus();
       hideAuthOverlay();
+      showToast(`Account created - logged in as ${session.user.email}.`);
       if (authOnSuccess) authOnSuccess();
     } else {
       await authRequestPasswordReset(email);
@@ -2004,6 +2018,7 @@ authSubmitBtn.addEventListener('click', async () => {
     authError.textContent = err.message;
     authError.classList.remove('hidden');
   } finally {
+    authSubmitBtn.textContent = originalLabel;
     authSubmitBtn.disabled = false;
   }
 });

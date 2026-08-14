@@ -37,7 +37,22 @@ def _get_pool() -> ConnectionPool:
                 "DATABASE_URL is not set - billing features need a Supabase "
                 "Postgres connection string. See .env.example."
             )
-        _pool = ConnectionPool(conninfo=settings.DATABASE_URL, min_size=1, max_size=10, open=True)
+        _pool = ConnectionPool(
+            conninfo=settings.DATABASE_URL,
+            min_size=1,
+            max_size=10,
+            open=True,
+            # DATABASE_URL is Supabase's Transaction-mode pooler (PgBouncer,
+            # port 6543) - it hands out a different real server connection
+            # per transaction, but psycopg's server-side prepared-statement
+            # cache assumes a stable connection. Left on, this produces
+            # exactly the kind of sporadic, hard-to-reproduce query
+            # failures seen in production (intermittent 500s on
+            # /api/billing/status that didn't reproduce in careful
+            # sequential testing) - disabling it is Supabase's own
+            # documented fix for this pooler mode.
+            kwargs={"prepare_threshold": None},
+        )
     return _pool
 
 
