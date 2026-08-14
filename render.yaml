@@ -16,6 +16,7 @@ services:
     name: algopuzzle-api
     env: python
     plan: free
+    region: frankfurt # matches the Supabase project's region (West EU/Ireland) - was defaulting to Oregon, which caused sporadic 500s/timeouts talking to the database across that much distance
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:

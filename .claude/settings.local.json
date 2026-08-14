@@ -84,7 +84,9 @@
       "WebFetch(domain:render.discourse.group)",
       "WebFetch(domain:community.render.com)",
       "WebFetch(domain:community.cloudflare.com)",
-      "WebFetch(domain:developers.cloudflare.com)"
+      "WebFetch(domain:developers.cloudflare.com)",
+      "Bash(curl -s https://algopuzzle.com/index_1.html)",
+      "Bash(curl -s https://algopuzzle-api.onrender.com/api/billing/status)"
     ]
   }
 }
