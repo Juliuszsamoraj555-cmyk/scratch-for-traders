@@ -25,7 +25,7 @@
 <body class="bg-gray-900 text-gray-100 flex flex-col h-screen overflow-hidden">
 
   <!-- Top bar -->
-  <header class="flex items-center justify-between px-6 py-3 bg-gray-950 border-b border-gray-800 shadow-sm z-10">
+  <header class="flex flex-wrap items-center justify-between gap-y-2 px-3 sm:px-6 py-2 sm:py-3 bg-gray-950 border-b border-gray-800 shadow-sm z-10">
     <div class="flex items-center gap-2">
       <!-- Same wordmark as the landing page (index.html) / blog pages -
            ascending block-bars doubling as a rising price chart, with a
@@ -44,35 +44,35 @@
         </g>
       </svg>
       <h1 class="text-lg font-semibold tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></h1>
-      <span class="ml-2 text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">MVP</span>
+      <span class="hidden sm:inline-block ml-2 text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">MVP</span>
     </div>
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-2 pr-3 mr-1 border-r border-gray-800">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
         <button id="newStrategyBtn" title="Start a new, blank strategy"
-          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-3 py-2 rounded-md transition flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          New
+          <span class="hidden sm:inline">New</span>
         </button>
         <button id="openStrategiesBtn" title="My Strategies"
-          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-3 py-2 rounded-md transition flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          My Strategies
+          <span class="hidden sm:inline">My Strategies</span>
         </button>
         <button id="saveStrategyBtn" title="Save this strategy"
-          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-3 py-2 rounded-md transition flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 4h11l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M8 4v5h8V4" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M8 20v-6h8v6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Save
+          <span class="hidden sm:inline">Save</span>
         </button>
       </div>
-      <span id="statusMsg" class="text-sm text-gray-400"></span>
+      <span id="statusMsg" class="hidden sm:inline text-sm text-gray-400"></span>
       <span id="billingIndicator" class="hidden text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
       <!-- Only shown once actually logged in (30-day pass account - see
            supabase_auth.py). Free tier / single export never need this. -->
@@ -85,27 +85,27 @@
       <span id="authStatusLoggedOut" class="items-center text-xs text-gray-400">
         <button id="authHeaderLoginBtn" class="underline hover:text-gray-200">Log in</button>
       </span>
-      <span id="authStatusLoggedIn" class="hidden items-center gap-2 text-xs text-gray-400">
-        <span id="authStatusEmail"></span>
-        <button id="authSignOutBtn" class="underline hover:text-gray-200">Log out</button>
+      <span id="authStatusLoggedIn" class="hidden items-center gap-2 text-xs text-gray-400 max-w-[45vw] sm:max-w-none">
+        <span id="authStatusEmail" class="truncate max-w-[28vw] sm:max-w-none"></span>
+        <button id="authSignOutBtn" class="shrink-0 underline hover:text-gray-200">Log out</button>
       </span>
-      <button id="exportMt5Btn"
-        class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+      <button id="exportMt5Btn" aria-label="Export to MT5"
+        class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
         <img src="assets/mt5_icon.png"
-          alt="MT5" class="w-5 h-5 object-contain" />
-        Export to MT5
+          alt="MT5" class="w-5 h-5 object-contain shrink-0" />
+        <span class="hidden sm:inline">Export to MT5</span>
       </button>
-      <button id="exportMt4Btn"
-        class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+      <button id="exportMt4Btn" aria-label="Export to MT4"
+        class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
         <img src="assets/mt4_icon.png"
-          alt="MT4" class="w-5 h-5 object-contain" />
-        Export to MT4
+          alt="MT4" class="w-5 h-5 object-contain shrink-0" />
+        <span class="hidden sm:inline">Export to MT4</span>
       </button>
-      <button id="exportCtraderBtn"
-        class="bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+      <button id="exportCtraderBtn" aria-label="Export to cTrader"
+        class="bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
         <img src="assets/ctrader_icon.png"
-          alt="cTrader" class="w-5 h-5 object-contain" />
-        Export to cTrader
+          alt="cTrader" class="w-5 h-5 object-contain shrink-0" />
+        <span class="hidden sm:inline">Export to cTrader</span>
       </button>
     </div>
   </header>
