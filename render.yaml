@@ -13,7 +13,7 @@
 
 services:
   - type: web
-    name: scratch-for-traders-api
+    name: algopuzzle-api
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
@@ -39,7 +39,7 @@ services:
         sync: false # e.g. https://app.yourdomain.pl - used for Stripe redirect URLs
 
   - type: web
-    name: scratch-for-traders-frontend
+    name: algopuzzle-frontend
     env: static
     buildCommand: ""
     staticPublishPath: "."

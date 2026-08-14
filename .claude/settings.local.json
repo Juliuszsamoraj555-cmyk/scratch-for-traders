@@ -39,7 +39,23 @@
       "Bash(/c/Users/juliu/AppData/Local/Temp/claude/C--Users-juliu-Desktop-traders-scratch/56a5d292-93f0-4bce-8f59-e165eacb74e1/scratchpad/node-portable/node-v22.14.0-win-x64/node.exe --version)",
       "Bash(/c/Users/juliu/AppData/Local/Temp/claude/C--Users-juliu-Desktop-traders-scratch/56a5d292-93f0-4bce-8f59-e165eacb74e1/scratchpad/node-portable/node-v22.14.0-win-x64/npm --version)",
       "Bash(sed -i 's|<script src=\"assets/vendor/tailwind/tailwind-3.4.17.js\"></script>|<link rel=\"stylesheet\" href=\"assets/vendor/tailwind/tailwind-compiled.css\" />|' index.html index_1.html)",
-      "Bash(sed -i 's|<script src=\"../assets/vendor/tailwind/tailwind-3.4.17.js\"></script>|<link rel=\"stylesheet\" href=\"../assets/vendor/tailwind/tailwind-compiled.css\" />|' blog/index.html blog/stop-loss-take-profit-guide.html blog/trading-indicators-explained.html blog/what-is-algorithmic-trading.html)"
+      "Bash(sed -i 's|<script src=\"../assets/vendor/tailwind/tailwind-3.4.17.js\"></script>|<link rel=\"stylesheet\" href=\"../assets/vendor/tailwind/tailwind-compiled.css\" />|' blog/index.html blog/stop-loss-take-profit-guide.html blog/trading-indicators-explained.html blog/what-is-algorithmic-trading.html)",
+      "WebSearch",
+      "Bash(python -c \"import cairosvg\")",
+      "Bash(pip show *)",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(mkdir -p /tmp/tf_check)",
+      "Bash(sed 's/PERIOD_M1/PERIOD_MN1/' tests/fixtures/simple_single.json)",
+      "Read(//tmp/tf_check/**)",
+      "Bash(python tools/verify_ctrader_build.py --file /tmp/tf_check/mn1_check.json)",
+      "Bash(sed 's/PERIOD_M1/PERIOD_W1/' tests/fixtures/simple_single.json)",
+      "Bash(python tools/verify_ctrader_build.py --file /tmp/tf_check/w1_check.json)",
+      "Bash(python tools/verify_mt5_compile.py --file /tmp/tf_check/mn1_check.json)",
+      "Bash(python tools/verify_mt5_compile.py --file /tmp/tf_check/w1_check.json)",
+      "Bash(python tools/verify_mt4_compile.py --file /tmp/tf_check/mn1_check.json)",
+      "Bash(python tools/verify_mt4_compile.py --file /tmp/tf_check/w1_check.json)",
+      "Bash(curl -s -i -X POST http://localhost:8000/api/generate -H 'Content-Type: application/json' --data @tests/fixtures/simple_single.json)"
     ]
   }
 }

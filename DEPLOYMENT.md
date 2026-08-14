@@ -80,8 +80,8 @@ git push -u origin main
 
 **Option A (recommended): Blueprint.** Render dashboard → **New +** →
 **Blueprint** → point it at your GitHub repo → it reads
-[`render.yaml`](render.yaml) and creates both services (`scratch-for-traders-api`
-web service + `scratch-for-traders-frontend` static site) in one go. It
+[`render.yaml`](render.yaml) and creates both services (`algopuzzle-api`
+web service + `algopuzzle-frontend` static site) in one go. It
 will prompt you for the `sync: false` env vars listed there
 (`DATABASE_URL`, `STRIPE_SECRET_KEY`, etc.) during setup.
 
@@ -95,8 +95,8 @@ will prompt you for the `sync: false` env vars listed there
   [`.env.example`](.env.example) (real values, not the placeholders).
 
 Either way, once deployed you'll have two URLs, e.g.:
-- API: `https://scratch-for-traders-api.onrender.com`
-- Frontend: `https://scratch-for-traders-frontend.onrender.com`
+- API: `https://algopuzzle-api.onrender.com`
+- Frontend: `https://algopuzzle-frontend.onrender.com`
 
 **Two follow-up edits now that these URLs exist:**
 1. In `index_1.html`, set `PRODUCTION_API_BASE` (search for it) to the
@@ -108,7 +108,7 @@ Either way, once deployed you'll have two URLs, e.g.:
 
 1. Stripe dashboard (still Test mode) → **Developers → Webhooks → Add
    endpoint**.
-2. Endpoint URL: `https://scratch-for-traders-api.onrender.com/api/billing/webhook`
+2. Endpoint URL: `https://algopuzzle-api.onrender.com/api/billing/webhook`
 3. Events to send: `checkout.session.completed` (that's the only one
    `billing.py` currently acts on).
 4. Copy the **Signing secret** (`whsec_...`) shown after creating it →

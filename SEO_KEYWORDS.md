@@ -16,7 +16,7 @@ ignores it - not used here.)
 **On the brand name specifically:** "Scratch" alone will never rank for
 us — MIT's Scratch (scratch.mit.edu, the children's visual-programming
 tool) owns that word completely, for good reason (huge, decades-old,
-massively linked site). The exact phrase **"Scratch for Traders"**
+massively linked site). The exact phrase **"AlgoPuzzle"**
 however has essentially zero competition — nobody else uses that exact
 name — so brand-name searches for the full name are easy to win and
 already covered (title tag, every page's `<title>`).

@@ -53,8 +53,8 @@ from tools.strategy_matrix import generate_matrix  # noqa: E402
 FIXTURES_DIR = Path(__file__).parent.parent / "tests" / "fixtures"
 FAILURES_DIR = FIXTURES_DIR / "failures"
 PROJECT_DIR = Path(__file__).parent.parent / "ctrader_build_check"
-CS_FILE = PROJECT_DIR / "ScratchForTradersBot.cs"
-CSPROJ_FILE = PROJECT_DIR / "ScratchForTradersBot.csproj"
+CS_FILE = PROJECT_DIR / "AlgoPuzzleBot.cs"
+CSPROJ_FILE = PROJECT_DIR / "AlgoPuzzleBot.csproj"
 
 
 def ensure_project():
@@ -65,7 +65,7 @@ def ensure_project():
         return
     PROJECT_DIR.mkdir(exist_ok=True)
     subprocess.run(
-        ["dotnet", "new", "classlib", "--name", "ScratchForTradersBot", "-o", str(PROJECT_DIR), "--force"],
+        ["dotnet", "new", "classlib", "--name", "AlgoPuzzleBot", "-o", str(PROJECT_DIR), "--force"],
         check=True, capture_output=True, env=_DOTNET_ENV,
     )
     stub = PROJECT_DIR / "Class1.cs"

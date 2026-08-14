@@ -23,9 +23,12 @@ _serializer = URLSafeSerializer(settings.COOKIE_SIGNING_SECRET, salt="device-id"
 _TWO_YEARS_SECONDS = 60 * 60 * 24 * 365 * 2
 
 
-def _client_ip(request: Request) -> str:
-    # Render (and most PaaS) sit behind a reverse proxy that sets
-    # X-Forwarded-For; fall back to the direct connection for local dev.
+def get_client_ip(request: Request) -> str:
+    """Public (not just for get_device_id below) - also used by main.py's
+    entitlement check to compute the same IP hash db.get_or_create_device
+    stored the device under, so the two stay consistent. Render (and most
+    PaaS) sit behind a reverse proxy that sets X-Forwarded-For; fall back
+    to the direct connection for local dev."""
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip()
@@ -54,7 +57,7 @@ async def get_device_id(request: Request, response: Response) -> str:
     if settings.DATABASE_URL:
         import db  # local import: avoids a circular import at module load time
 
-        device_id = await db.get_or_create_device(candidate_id, _client_ip(request))
+        device_id = await db.get_or_create_device(candidate_id, get_client_ip(request))
     else:
         import uuid
 

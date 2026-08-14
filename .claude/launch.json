@@ -2,13 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "scratch-for-traders-backend",
+      "name": "algopuzzle-backend",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "uvicorn", "main:app", "--port", "8000"],
       "port": 8000
     },
     {
-      "name": "scratch-for-traders-frontend",
+      "name": "algopuzzle-frontend",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8080"],
       "port": 8080

@@ -1,5 +1,5 @@
 {
-  "name": "scratch-for-traders-frontend",
+  "name": "algopuzzle-frontend",
   "private": true,
   "description": "Build step for the precompiled Tailwind CSS used by index.html, index_1.html, and blog/*.html - see assets/vendor/tailwind/input.css and tailwind.config.js. Nothing here runs at request time; the backend (main.py) has no Node dependency.",
   "scripts": {

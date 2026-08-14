@@ -78,7 +78,7 @@ def test_csharp_output_is_syntactically_sane(name):
     assert cs.count("(") == cs.count(")")
     assert "<<" not in cs and ">>" not in cs
     assert "namespace cAlgo.Robots" in cs
-    assert "class ScratchForTradersBot" in cs
+    assert "class AlgoPuzzleBot" in cs
 
     # README should also render without error and mention every rule's asset.
     readme = generate_readme_csharp(ir)

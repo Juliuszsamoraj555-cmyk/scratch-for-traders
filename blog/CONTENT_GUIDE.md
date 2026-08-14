@@ -34,7 +34,7 @@ footer are identical boilerplate across every article on purpose.
 Everything in this list is copy-pasteable from an existing article,
 just needs updating with the new content:
 
-- [ ] `<title>` — under ~60 characters, format: `<Headline> - Scratch for Traders`
+- [ ] `<title>` — under ~60 characters, format: `<Headline> - AlgoPuzzle`
 - [ ] `<meta name="description">` — under ~155 characters, states what the reader gets
 - [ ] `<link rel="canonical">` — matches the final URL once a domain exists
 - [ ] `og:type`, `og:title`, `og:description`, `og:url`

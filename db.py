@@ -143,21 +143,34 @@ async def get_entitlement_status(device_id: str) -> dict:
 # the atomic, row-locked logic)
 # --------------------------------------------------------------------------
 
-def _consume_export_sync(device_id: str, platform: str) -> tuple[bool, str]:
+def _consume_export_sync(device_id: str, platform: str, ip: Optional[str]) -> tuple[bool, str]:
+    # Same salted hash as get_or_create_device used when it stored this
+    # device's ip_hash - has to match or the IP-level free-export count
+    # in consume_export_entitlement() would never find this device's rows.
+    ip_hash = hash_ip(ip) if ip else None
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "select granted, consumed_from from consume_export_entitlement(%s, %s, %s)",
-            (device_id, platform, settings.FREE_EXPORT_LIMIT),
+            "select granted, consumed_from from consume_export_entitlement(%s, %s, %s, %s, %s, %s)",
+            (
+                device_id,
+                platform,
+                settings.FREE_EXPORT_LIMIT,
+                ip_hash,
+                settings.IP_FREE_EXPORT_LIMIT,
+                settings.IP_FREE_EXPORT_WINDOW_HOURS,
+            ),
         )
         granted, consumed_from = cur.fetchone()
         return bool(granted), consumed_from
 
 
-async def consume_export(device_id: str, platform: str) -> tuple[bool, str]:
+async def consume_export(device_id: str, platform: str, ip: Optional[str] = None) -> tuple[bool, str]:
     """Returns (granted, consumed_from). consumed_from is 'free' | 'credit'
     | 'pass' when granted=True, or 'none' when granted=False (caller
-    should respond 402 Payment Required)."""
-    return await run_in_threadpool(_consume_export_sync, device_id, platform)
+    should respond 402 Payment Required). ip is optional only so old call
+    sites don't break - omitting it just disables the per-IP free-export
+    cap for that call (see consume_export_entitlement() in schema.sql)."""
+    return await run_in_threadpool(_consume_export_sync, device_id, platform, ip)
 
 
 # --------------------------------------------------------------------------

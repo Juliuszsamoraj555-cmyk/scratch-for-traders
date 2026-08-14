@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Scratch for Traders</title>
+<title>AlgoPuzzle</title>
 <!-- Self-hosted, version-pinned (Tailwind 3.4.17 / Blockly 13.2.1) instead
      of loading from unpkg/cdn.tailwindcss.com at runtime - avoids the app
      going down (or silently breaking on an unannounced upstream update)
@@ -32,12 +32,18 @@
            trend arrow across the tops. Keep these three in sync if the
            mark changes again. -->
       <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
-        <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
-        <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
-        <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <g transform="translate(1,1) scale(0.175)">
+          <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+          <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+          <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+          <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+          <path d="M94,62 L112,42 L104,48 L138,14 L126,18 M138,14 L138,26" stroke="#f9fafb" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="18" y="126" width="10" height="20" rx="2" fill="#f9fafb"/>
+          <rect x="34" y="110" width="10" height="36" rx="2" fill="#f9fafb"/>
+          <rect x="50" y="118" width="10" height="28" rx="2" fill="#f9fafb"/>
+        </g>
       </svg>
-      <h1 class="text-lg font-semibold tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></h1>
+      <h1 class="text-lg font-semibold tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></h1>
       <span class="ml-2 text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">MVP</span>
     </div>
     <div class="flex items-center gap-3">
@@ -96,10 +102,6 @@
 
   <!-- Toolbox -->
   <xml id="toolbox" style="display: none">
-    <category name="Setup" colour="#2563eb">
-      <block type="asset_block"></block>
-      <block type="timeframe_block"></block>
-    </category>
     <category name="Conditions" colour="#d97706">
       <block type="comparison_block"></block>
       <block type="logical_operator"></block>
@@ -116,14 +118,31 @@
       <block type="indicator_atr"></block>
       <block type="indicator_stoch"></block>
     </category>
-    <category name="Strategy" colour="#059669">
-      <block type="trade_if"></block>
+    <category name="THEN" colour="#059669">
       <block type="action_block"></block>
     </category>
     <category name="Risk &amp; Sizing" colour="#0d9488">
       <block type="risk_value_block"></block>
       <block type="math_multiply_block"></block>
       <block type="math_number"></block>
+    </category>
+    <sep></sep>
+    <!-- Separated from the rest on purpose: this is for adding an extra
+         top-level rule to an existing strategy (multi-rule), not
+         something a trader reaches for while building out one rule's
+         conditions/actions. The shadow blocks pre-fill Asset (EUR/USD)
+         and Timeframe (M1) the moment it's dragged in - a trader only
+         ever changes a value here, never hunts for what plugs in where.
+         Shadows can't be dragged out on their own, only replaced. -->
+    <category name="Add Rule" colour="#059669">
+      <block type="trade_if">
+        <value name="ASSET">
+          <shadow type="asset_block"></shadow>
+        </value>
+        <value name="TIMEFRAME">
+          <shadow type="timeframe_block"></shadow>
+        </value>
+      </block>
     </category>
   </xml>
 
@@ -468,6 +487,8 @@ Blockly.Blocks['timeframe_block'] = {
         ['1 Hour (H1)', 'PERIOD_H1'],
         ['4 Hours (H4)', 'PERIOD_H4'],
         ['1 Day (D1)', 'PERIOD_D1'],
+        ['1 Week (W1)', 'PERIOD_W1'],
+        ['1 Month (MN1)', 'PERIOD_MN1'],
       ]), 'TIMEFRAME');
     this.setOutput(true, 'Timeframe');
     this.setColour('#2563eb');
@@ -834,13 +855,46 @@ Blockly.Blocks['trade_if'] = {
   }
 };
 
+// Creates a fresh trade_if rule with a default Asset (first option,
+// EUR/USD) and Timeframe (first option, M1) already plugged into its
+// ASSET/TIMEFRAME inputs - a trader only ever needs to change a value,
+// never hunt through the toolbox for which block goes in which slot.
+// Used for the very first block on a blank canvas, "New", and "Add Rule".
+function createDefaultRuleBlock(x, y) {
+  const ifBlock = workspace.newBlock('trade_if');
+  ifBlock.initSvg();
+
+  // setShadow(true) matches the "Add Rule" toolbox entry (see toolbox
+  // XML) - these can be edited (change the dropdown) but not dragged
+  // out on their own, so a trader can't accidentally end up with an
+  // empty Asset/Timeframe slot again.
+  const assetBlock = workspace.newBlock('asset_block');
+  assetBlock.setShadow(true);
+  assetBlock.initSvg();
+  ifBlock.getInput('ASSET').connection.connect(assetBlock.outputConnection);
+
+  const timeframeBlock = workspace.newBlock('timeframe_block');
+  timeframeBlock.setShadow(true);
+  timeframeBlock.initSvg();
+  ifBlock.getInput('TIMEFRAME').connection.connect(timeframeBlock.outputConnection);
+
+  ifBlock.render();
+  // moveBy is relative to wherever Blockly happened to spawn the block,
+  // which isn't reliably (0,0) once the workspace already has content -
+  // read the actual spawn position back and move by the delta to land
+  // on the real target (x, y) in workspace coordinates.
+  const spawnXY = ifBlock.getRelativeToSurfaceXY();
+  ifBlock.moveBy(x - spawnXY.x, y - spawnXY.y);
+  return ifBlock;
+}
+
 /* ============================================================
    2. WORKSPACE INITIALIZATION
    ============================================================ */
 
 const workspace = Blockly.inject('blocklyDiv', {
   toolbox: document.getElementById('toolbox'),
-  theme: Blockly.Theme.defineTheme('scratchDark', {
+  theme: Blockly.Theme.defineTheme('algoPuzzleDark', {
     base: Blockly.Themes.Classic,
     componentStyles: {
       workspaceBackgroundColour: '#0f172a',
@@ -878,8 +932,21 @@ const workspace = Blockly.inject('blocklyDiv', {
    and before section 2b) so nothing here ever runs into a
    temporal-dead-zone ordering issue. */
 
-const AUTOSAVE_KEY = 'scratchForTraders.workspace.v1';
+const AUTOSAVE_KEY = 'algoPuzzle.workspace.v1';
 const AUTOSAVE_DEBOUNCE_MS = 500;
+
+// One-time migration from the old "Scratch for Traders" localStorage key -
+// carries forward any draft saved before the rename instead of silently
+// losing it. Safe to remove once we're confident nobody has the old key
+// left in their browser anymore.
+(function migrateLegacyAutosaveKey() {
+  try {
+    const legacy = localStorage.getItem('scratchForTraders.workspace.v1');
+    if (legacy && !localStorage.getItem(AUTOSAVE_KEY)) {
+      localStorage.setItem(AUTOSAVE_KEY, legacy);
+    }
+  } catch (err) { /* best-effort - auto-save migration isn't critical */ }
+})();
 
 // Which saved strategy (see section 2d) is currently open, if any - null
 // means the canvas holds a fresh/unsaved draft with no library entry yet.
@@ -926,7 +993,7 @@ function saveWorkspaceToLocalStorage() {
     // Storage full, private-browsing restrictions, a serialization
     // hiccup, etc. - auto-save is a convenience, not a requirement, so
     // fail silently rather than interrupt the trader's work.
-    console.warn('Scratch for Traders: auto-save failed.', err);
+    console.warn('AlgoPuzzle: auto-save failed.', err);
   }
 }
 
@@ -950,7 +1017,7 @@ function loadWorkspaceFromLocalStorage() {
     currentStrategyId = saved.currentStrategyId || null;
     return true;
   } catch (err) {
-    console.warn('Scratch for Traders: could not restore the saved draft, starting fresh.', err);
+    console.warn('AlgoPuzzle: could not restore the saved draft, starting fresh.', err);
     localStorage.removeItem(AUTOSAVE_KEY);
     return false;
   }
@@ -986,10 +1053,7 @@ if (loadWorkspaceFromLocalStorage()) {
   // appears - avoids the status text flashing before anything is visible.
   setTimeout(() => flashStatus('Restored your last draft'), 0);
 } else {
-  const ifBlock = workspace.newBlock('trade_if');
-  ifBlock.initSvg();
-  ifBlock.render();
-  ifBlock.moveBy(40, 40);
+  createDefaultRuleBlock(40, 40);
   markSynced();
 }
 
@@ -1001,7 +1065,18 @@ if (loadWorkspaceFromLocalStorage()) {
    nothing we host), just keyed by name instead of a single slot. Lets a
    trader keep more than one strategy around and switch between them. */
 
-const STRATEGIES_KEY = 'scratchForTraders.strategies.v1';
+const STRATEGIES_KEY = 'algoPuzzle.strategies.v1';
+
+// Same one-time migration as the autosave key above, for the named
+// strategies library.
+(function migrateLegacyStrategiesKey() {
+  try {
+    const legacy = localStorage.getItem('scratchForTraders.strategies.v1');
+    if (legacy && !localStorage.getItem(STRATEGIES_KEY)) {
+      localStorage.setItem(STRATEGIES_KEY, legacy);
+    }
+  } catch (err) { /* best-effort - auto-save migration isn't critical */ }
+})();
 
 function loadStrategiesLibrary() {
   try {
@@ -1009,7 +1084,7 @@ function loadStrategiesLibrary() {
     const parsed = raw ? JSON.parse(raw) : {};
     return (parsed && typeof parsed === 'object') ? parsed : {};
   } catch (err) {
-    console.warn('Scratch for Traders: could not read the strategies library, starting empty.', err);
+    console.warn('AlgoPuzzle: could not read the strategies library, starting empty.', err);
     return {};
   }
 }
@@ -1020,7 +1095,7 @@ function persistStrategiesLibrary() {
   try {
     localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategiesLibrary));
   } catch (err) {
-    console.warn('Scratch for Traders: could not save the strategies library.', err);
+    console.warn('AlgoPuzzle: could not save the strategies library.', err);
     showToast('Could not save - your browser storage may be full.', true);
   }
 }
@@ -1158,10 +1233,7 @@ async function handleNewClick() {
   // its own children, so also disposing children separately here would
   // hit already-removed blocks and throw.
   workspace.getTopBlocks(false).forEach(b => b.dispose(false));
-  const ifBlock = workspace.newBlock('trade_if');
-  ifBlock.initSvg();
-  ifBlock.render();
-  ifBlock.moveBy(40, 40);
+  createDefaultRuleBlock(40, 40);
   currentStrategyId = null;
   markSynced();
   saveWorkspaceToLocalStorage();
@@ -1635,7 +1707,7 @@ function serializeWorkspace(ws) {
    ============================================================ */
 
 // PRODUCTION_API_BASE: set this to the deployed backend's real URL
-// (e.g. "https://scratch-for-traders-api.onrender.com") the moment the
+// (e.g. "https://algopuzzle-api.onrender.com") the moment the
 // backend is deployed - leave it null for local dev, where the
 // port-guessing fallback below (same host, backend on :8000) is correct.
 // This can't be auto-detected once frontend and backend live on
@@ -1843,21 +1915,21 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
 
 exportMt5Btn.addEventListener('click', () => exportStrategy({
   endpoint: '/api/generate',
-  filenamePrefix: 'scratch_for_traders',
+  filenamePrefix: 'algopuzzle',
   button: exportMt5Btn,
   busyLabel: 'Generating EA...',
 }));
 
 exportCtraderBtn.addEventListener('click', () => exportStrategy({
   endpoint: '/api/generate/ctrader',
-  filenamePrefix: 'scratch_for_traders_ctrader',
+  filenamePrefix: 'algopuzzle_ctrader',
   button: exportCtraderBtn,
   busyLabel: 'Generating cBot...',
 }));
 
 exportMt4Btn.addEventListener('click', () => exportStrategy({
   endpoint: '/api/generate/mt4',
-  filenamePrefix: 'scratch_for_traders_mt4',
+  filenamePrefix: 'algopuzzle_mt4',
   button: exportMt4Btn,
   busyLabel: 'Generating EA...',
 }));

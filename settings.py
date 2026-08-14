@@ -70,5 +70,20 @@ class Settings:
     PASS_PRICE_GROSZE: int = int(os.getenv("PASS_PRICE_GROSZE", "3000"))     # 30.00 zl
     PASS_DURATION_DAYS: int = int(os.getenv("PASS_DURATION_DAYS", "30"))
 
+    # --- Abuse mitigation: per-IP cap on the FREE bucket only ---
+    # A device_id cookie alone resets to a fresh 2 free exports the moment
+    # it's cleared (incognito, "clear site data", a different browser) -
+    # this doesn't stop that, but it stops the same network from doing it
+    # in a loop: once this many FREE exports have come from one hashed IP
+    # within the window, further devices on that IP fall straight through
+    # to "buy a credit / pass" instead of getting more free ones. Paid
+    # credits and an active pass are real payments, so they're never
+    # capped by this. Deliberately generous (not "2 per IP") so a shared
+    # office/campus/CGNAT connection with several genuine traders doesn't
+    # get blocked - this only catches someone actually looping the
+    # cookie-reset trick many times in a row.
+    IP_FREE_EXPORT_LIMIT: int = int(os.getenv("IP_FREE_EXPORT_LIMIT", "15"))
+    IP_FREE_EXPORT_WINDOW_HOURS: int = int(os.getenv("IP_FREE_EXPORT_WINDOW_HOURS", "24"))
+
 
 settings = Settings()

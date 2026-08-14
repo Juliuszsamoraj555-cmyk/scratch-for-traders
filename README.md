@@ -1,4 +1,4 @@
-# Scratch for Traders — MVP
+# AlgoPuzzle — MVP
 
 A no-code visual builder that compiles drag-and-drop trading blocks into a deployable MetaTrader 5 Expert Advisor (.mq5).
 

@@ -10,21 +10,21 @@
      URLs below use a placeholder. Search-and-replace
      "https://REPLACE-WITH-REAL-DOMAIN" once a domain is live.
      ============================================================ -->
-<title>Scratch for Traders - No-Code MT5, MT4 & cTrader Strategy Builder</title>
+<title>AlgoPuzzle - No-Code MT5, MT4 & cTrader Strategy Builder</title>
 <meta name="description" content="Build algorithmic trading strategies for MetaTrader 5, MetaTrader 4 and cTrader by connecting blocks - no-code, no programming required. Export a ready-to-run Expert Advisor or cBot in seconds, free to start." />
 <meta name="robots" content="index, follow" />
 <meta name="theme-color" content="#030712" />
 <link rel="canonical" href="https://REPLACE-WITH-REAL-DOMAIN/" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Scratch for Traders - No-Code MT5, MT4 & cTrader Strategy Builder" />
+<meta property="og:title" content="AlgoPuzzle - No-Code MT5, MT4 & cTrader Strategy Builder" />
 <meta property="og:description" content="Drag, drop, and connect blocks to define entry conditions, risk, and position sizing. Export a ready-to-run EA or cBot in seconds." />
 <meta property="og:url" content="https://REPLACE-WITH-REAL-DOMAIN/" />
 <meta property="og:image" content="https://REPLACE-WITH-REAL-DOMAIN/assets/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Scratch for Traders - No-Code MT5, MT4 & cTrader Strategy Builder" />
+<meta name="twitter:title" content="AlgoPuzzle - No-Code MT5, MT4 & cTrader Strategy Builder" />
 <meta name="twitter:description" content="Build automated trading strategies by connecting blocks - no code required." />
 <meta name="twitter:image" content="https://REPLACE-WITH-REAL-DOMAIN/assets/og-image.png" />
 
@@ -32,7 +32,7 @@
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Scratch for Traders",
+  "name": "AlgoPuzzle",
   "applicationCategory": "FinanceApplication",
   "operatingSystem": "Web",
   "description": "No-code visual builder for MetaTrader 5, MetaTrader 4 and cTrader trading strategies. Connect blocks to define conditions and risk, then export a ready-to-run Expert Advisor or cBot.",
@@ -52,7 +52,7 @@
 {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Scratch for Traders",
+  "name": "AlgoPuzzle",
   "url": "https://REPLACE-WITH-REAL-DOMAIN/",
   "logo": "https://REPLACE-WITH-REAL-DOMAIN/assets/favicon.svg"
 }
@@ -61,7 +61,7 @@
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "Scratch for Traders",
+  "name": "AlgoPuzzle",
   "url": "https://REPLACE-WITH-REAL-DOMAIN/"
 }
 </script>
@@ -182,82 +182,40 @@
      open regardless of the details element's actual open state. */
   details:not([open]) .faq-a { display: none; }
 
-  /* Hero mark: ascending "block" bars (the same rounded-rect shape as
-     every Blockly piece in the app) dropping in from above and
-     snapping into place one at a time - like blocks being connected,
-     not a bar chart filling up - while their staircase arrangement plus
-     the trend line still reads as a rising price chart. */
-  /* Entrances are staggered (baked into each bar's own keyframe
-     percentages, one drops in after another), but all three share the
-     exact same 80% -> 92% exit window so they always land and leave
-     together - no animation-delay here, since delaying a shared
-     keyframe set shifts BOTH the entrance and the exit, which is what
-     caused blocks to disappear one-by-one instead of as a group. */
-  .block-anim rect {
+  /* Hero mark: the 2x2 jigsaw badge (same piece shapes as the nav logo)
+     replays its chart on a 2.8s loop - candles grow in one at a time,
+     then the trend arrow draws itself across the top-right piece, holds
+     for a beat, then resets for the next cycle. transform-box/origin
+     makes each candle grow up from its own base instead of the SVG's
+     origin. animation-delay staggers each candle's own infinite loop,
+     which is enough for 4 elements this close together in time - no
+     need for the shared-keyframe-with-percentage-offsets trick used
+     for the old bar-drop animation. */
+  .puzzle-hero-wrap .chart-arrow {
+    stroke-dasharray: 140;
+    animation: arrowDraw 2.8s ease infinite;
+  }
+  @keyframes arrowDraw {
+    0%, 45%  { stroke-dashoffset: 140; opacity: 0; }
+    50%  { opacity: 1; }
+    70%  { stroke-dashoffset: 0; opacity: 1; }
+    85%  { stroke-dashoffset: 0; opacity: 1; }
+    95%, 100% { stroke-dashoffset: 140; opacity: 0; }
+  }
+  .puzzle-hero-wrap .candle-unit {
     transform-box: fill-box;
-    transform-origin: center;
+    transform-origin: bottom;
+    animation: candleGrow 2.8s ease infinite;
   }
-  .block-anim rect:nth-of-type(1) { animation: snapDown1 3.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
-  .block-anim rect:nth-of-type(2) { animation: snapDown2 3.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
-  .block-anim rect:nth-of-type(3) { animation: snapDown3 3.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
-  @keyframes snapDown1 {
-    0%   { transform: translateY(-55px); opacity: 0; }
-    8%   { opacity: 1; }
-    14%  { transform: translateY(0); }
-    18%  { transform: translateY(-7px); }
-    23%  { transform: translateY(0); }
-    80%  { transform: translateY(0); opacity: 1; }
-    92%  { transform: translateY(-55px); opacity: 0; }
-    100% { transform: translateY(-55px); opacity: 0; }
-  }
-  @keyframes snapDown2 {
-    0%, 16%  { transform: translateY(-55px); opacity: 0; }
-    24%  { opacity: 1; }
-    30%  { transform: translateY(0); }
-    34%  { transform: translateY(-7px); }
-    39%  { transform: translateY(0); }
-    80%  { transform: translateY(0); opacity: 1; }
-    92%  { transform: translateY(-55px); opacity: 0; }
-    100% { transform: translateY(-55px); opacity: 0; }
-  }
-  @keyframes snapDown3 {
-    0%, 32%  { transform: translateY(-55px); opacity: 0; }
-    40%  { opacity: 1; }
-    46%  { transform: translateY(0); }
-    50%  { transform: translateY(-7px); }
-    55%  { transform: translateY(0); }
-    80%  { transform: translateY(0); opacity: 1; }
-    92%  { transform: translateY(-55px); opacity: 0; }
-    100% { transform: translateY(-55px); opacity: 0; }
-  }
-  .block-anim .trend-line-sm {
-    stroke-dasharray: 45;
-    stroke-dashoffset: 45;
-    animation: drawLineSm 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-    animation-delay: 0.5s;
-  }
-  @keyframes drawLineSm {
-    0%   { stroke-dashoffset: 45; opacity: 0; }
-    12%  { opacity: 1; }
-    45%  { stroke-dashoffset: 0; opacity: 1; }
-    80%  { stroke-dashoffset: 0; opacity: 1; }
-    100% { stroke-dashoffset: 0; opacity: 0; }
-  }
-  /* Same 3.2s cycle and the same 80% -> 92% exit window as the blocks
-     above, so the trend line always leaves together with them - it only
-     starts drawing once block 3 (the last one) has landed, around 55%. */
-  .block-anim .trend-line-lg {
-    stroke-dasharray: 280;
-    stroke-dashoffset: 280;
-    animation: drawLineLg 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-  }
-  @keyframes drawLineLg {
-    0%, 58%  { stroke-dashoffset: 280; opacity: 0; }
-    64%  { opacity: 1; }
-    72%  { stroke-dashoffset: 0; opacity: 1; }
-    80%  { stroke-dashoffset: 0; opacity: 1; }
-    92%  { opacity: 0; }
-    100% { stroke-dashoffset: 0; opacity: 0; }
+  .puzzle-hero-wrap .candle-unit:nth-of-type(1) { animation-delay: 0s; }
+  .puzzle-hero-wrap .candle-unit:nth-of-type(2) { animation-delay: 0.12s; }
+  .puzzle-hero-wrap .candle-unit:nth-of-type(3) { animation-delay: 0.24s; }
+  .puzzle-hero-wrap .candle-unit:nth-of-type(4) { animation-delay: 0.36s; }
+  @keyframes candleGrow {
+    0%, 8%   { transform: scaleY(0); opacity: 0; }
+    28%  { transform: scaleY(1); opacity: 1; }
+    78%  { transform: scaleY(1); opacity: 1; }
+    92%, 100% { transform: scaleY(0); opacity: 0; }
   }
 </style>
 </head>
@@ -276,14 +234,18 @@
              across the tops - standing in for a real logo until one
              exists (see project memory). -->
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="17" width="6" height="9" rx="1.5" fill="#059669"/>
-          <rect x="12" y="11" width="6" height="15" rx="1.5" fill="#10b981"/>
-          <rect x="22" y="4" width="6" height="22" rx="1.5" fill="#34d399"/>
-          <!-- static (no loop animation) - this mark is in the sticky
-               nav and always on screen, unlike the hero version below. -->
-          <path d="M4 15 L15 8 L26 2 L19 2 M26 2 L26 9" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M94,62 L112,42 L104,48 L138,14 L126,18 M138,14 L138,26" stroke="#f9fafb" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="18" y="126" width="10" height="20" rx="2" fill="#f9fafb"/>
+            <rect x="34" y="110" width="10" height="36" rx="2" fill="#f9fafb"/>
+            <rect x="50" y="118" width="10" height="28" rx="2" fill="#f9fafb"/>
+          </g>
         </svg>
-        <span class="font-semibold text-gray-100 tracking-tight">Scratch <span class="text-emerald-400">for Traders</span></span>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
       </a>
       <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400">
         <a href="#how-it-works" class="hover:text-gray-100 transition">How it works</a>
@@ -325,18 +287,40 @@
       </div>
     </div>
 
-    <!-- Decorative animated mark, no real screenshot yet: the same
-         ascending block-bars as the nav logo, scaled up and animated -
-         bars grow in from the baseline like a rising chart, then a
-         trend line draws itself across the tops, on a loop. -->
+    <!-- Decorative mark, no real screenshot yet: the same 2x2 jigsaw
+         badge as the nav logo, scaled up - static until hovered, then
+         the candlesticks grow in and the trend arrow draws itself, as a
+         small reward for exploring rather than an always-on loop. -->
     <div class="hidden md:flex justify-center">
-      <svg class="block-anim" width="260" height="140" viewBox="0 0 260 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="20" y="80" width="45" height="40" rx="6" fill="#059669"/>
-        <rect x="95" y="55" width="45" height="65" rx="6" fill="#10b981"/>
-        <rect x="170" y="25" width="45" height="95" rx="6" fill="#34d399"/>
-        <path class="trend-line-lg" d="M42 74 L117 50 L222 14 L200 14 M222 14 L222 36"
-          stroke="#d1fae5" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <div class="puzzle-hero-wrap">
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(12,12) scale(1.1)">
+            <g class="puzzle-mark-inner">
+              <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+              <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+              <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+              <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+              <path class="chart-arrow" d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <g class="candle-unit">
+                <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+                <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+              </g>
+              <g class="candle-unit">
+                <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+                <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+              </g>
+              <g class="candle-unit">
+                <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+                <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+              </g>
+              <g class="candle-unit">
+                <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+                <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
     </div>
   </section>
 
@@ -667,7 +651,7 @@
        ============================================================ -->
   <footer class="border-t border-gray-800">
     <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-      <span>&copy; <span id="year"></span> Scratch for Traders</span>
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
       <span>Built for traders, by traders.</span>
     </div>
   </footer>

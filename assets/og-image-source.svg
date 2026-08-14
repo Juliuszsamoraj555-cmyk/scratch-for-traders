@@ -7,15 +7,24 @@
   <rect width="1200" height="630" fill="#030712"/>
   <rect width="1200" height="630" fill="url(#dots)"/>
 
-  <g transform="translate(570, 180)">
-    <rect x="0" y="38" width="15" height="22" rx="3.5" fill="#059669"/>
-    <rect x="24" y="24" width="15" height="36" rx="3.5" fill="#10b981"/>
-    <rect x="48" y="8" width="15" height="52" rx="3.5" fill="#34d399"/>
-    <path d="M4 34 L32 18 L60 2" stroke="#d1fae5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(535, 150) scale(0.8125)">
+    <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+    <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+    <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+    <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+    <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+    <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+    <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+    <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+    <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+    <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+    <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+    <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
   </g>
 
   <text x="600" y="300" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="700" text-anchor="middle">
-    <tspan fill="#f9fafb">Scratch </tspan><tspan fill="#34d399">for Traders</tspan>
+    <tspan fill="#f9fafb">Algo</tspan><tspan fill="#34d399">Puzzle</tspan>
   </text>
 
   <text x="600" y="355" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="26" fill="#9ca3af" text-anchor="middle">

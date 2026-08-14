@@ -1,4 +1,4 @@
--- Scratch for Traders — billing schema
+-- AlgoPuzzle — billing schema
 -- ============================================================
 -- No Supabase Auth here on purpose. Users are identified by a signed,
 -- httpOnly `device_id` cookie the backend issues on first contact (see
@@ -70,6 +70,18 @@ create index if not exists idx_export_log_device on export_log (device_id, creat
 -- Row-locked (FOR UPDATE) so two near-simultaneous clicks from the same
 -- device can't both slip through on the last free export.
 --
+-- p_ip_hash / p_ip_free_limit / p_ip_window_hours gate the FREE bucket
+-- only (see IP_FREE_EXPORT_LIMIT in settings.py for why): a device_id
+-- cookie alone resets to a fresh free allowance the moment it's cleared,
+-- so this additionally counts how many FREE exports (across ANY
+-- device_id) have come from the same hashed IP recently, and stops
+-- handing out more free ones once that's hit - paid credits and an
+-- active pass are unaffected, since those are real payments. Passing
+-- p_ip_hash as null (or omitting it) disables this check entirely -
+-- every "= p_ip_hash" comparison is simply unknown/false against null,
+-- so v_ip_free_count comes back 0 and behaviour is identical to before
+-- this was added.
+--
 -- Returns a single row: (granted boolean, consumed_from text).
 -- consumed_from is 'free' | 'credit' | 'pass' when granted, or
 -- 'none' when not granted (out of everything - app should 402).
@@ -77,12 +89,16 @@ create index if not exists idx_export_log_device on export_log (device_id, creat
 create or replace function consume_export_entitlement(
     p_device_id uuid,
     p_platform text,
-    p_free_limit integer default 2
+    p_free_limit integer default 2,
+    p_ip_hash text default null,
+    p_ip_free_limit integer default 15,
+    p_ip_window_hours integer default 24
 ) returns table(granted boolean, consumed_from text) as $$
 declare
-    v_free_used integer;
-    v_credits   integer;
-    v_pass_exp  timestamptz;
+    v_free_used     integer;
+    v_credits       integer;
+    v_pass_exp      timestamptz;
+    v_ip_free_count integer;
 begin
     select free_exports_used, paid_export_credits, pass_expires_at
       into v_free_used, v_credits, v_pass_exp
@@ -104,16 +120,30 @@ begin
         return;
     end if;
 
-    -- 2) Free allowance.
+    -- 2) Free allowance - gated by both the device's own count AND the
+    -- shared-IP count, so clearing cookies alone can't loop past this.
     if v_free_used < p_free_limit then
-        update devices
-           set free_exports_used = free_exports_used + 1,
-               last_seen_at = now()
-         where device_id = p_device_id;
-        insert into export_log (device_id, platform, consumed_from)
-        values (p_device_id, p_platform, 'free');
-        return query select true, 'free'::text;
-        return;
+        select count(*) into v_ip_free_count
+          from export_log el
+          join devices d on d.device_id = el.device_id
+         where p_ip_hash is not null
+           and d.ip_hash = p_ip_hash
+           and el.consumed_from = 'free'
+           and el.created_at > now() - (p_ip_window_hours || ' hours')::interval;
+
+        if v_ip_free_count < p_ip_free_limit then
+            update devices
+               set free_exports_used = free_exports_used + 1,
+                   last_seen_at = now()
+             where device_id = p_device_id;
+            insert into export_log (device_id, platform, consumed_from)
+            values (p_device_id, p_platform, 'free');
+            return query select true, 'free'::text;
+            return;
+        end if;
+        -- IP cap hit: fall through to credits/pass/none below instead of
+        -- granting another free export, same as if v_free_used had
+        -- already reached p_free_limit.
     end if;
 
     -- 3) Paid per-export credits.
