@@ -20,6 +20,20 @@
   html, body { height: 100%; margin: 0; }
   #blocklyDiv { height: 100%; width: 100%; }
   .blocklyToolboxDiv { background-color: #111827 !important; }
+  /* Blockly's category toolbox is a permanent ~150px-wide panel that's
+     fine on desktop but eats close to 40% of a phone screen since it
+     never collapses on its own. It's already absolutely positioned on
+     top of the (always full-width) workspace SVG, not laid out beside
+     it - see the toolboxToggleBtn handler below - so hiding it here
+     doesn't need any Blockly resize call, the canvas underneath is
+     already the right size. Below sm, it starts hidden and only shows
+     while body has .toolbox-open (toggled by toolboxToggleBtn).
+     !important because Blockly injects its own <style> for this class
+     later in <head>, at the same specificity - without it, source
+     order would make Blockly's rule win instead of this one. */
+  @media (max-width: 639px) {
+    body:not(.toolbox-open) .blocklyToolbox { display: none !important; }
+  }
 </style>
 </head>
 <body class="bg-gray-900 text-gray-100 flex flex-col h-screen overflow-hidden">
@@ -50,21 +64,21 @@
       <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
         <button id="newStrategyBtn" title="Start a new, blank strategy"
           class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span class="hidden sm:inline">New</span>
         </button>
         <button id="openStrategiesBtn" title="My Strategies"
           class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span class="hidden sm:inline">My Strategies</span>
         </button>
         <button id="saveStrategyBtn" title="Save this strategy"
           class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 4h11l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M8 4v5h8V4" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M8 20v-6h8v6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -82,13 +96,35 @@
            hidden until a session existed, with no equivalent "Log in"
            control shown in its place - so a logged-out trader had no
            persistent sign of the login feature at all. -->
-      <span id="authStatusLoggedOut" class="items-center text-xs text-gray-400">
-        <button id="authHeaderLoginBtn" class="underline hover:text-gray-200">Log in</button>
-      </span>
-      <span id="authStatusLoggedIn" class="hidden items-center gap-2 text-xs text-gray-400 max-w-[45vw] sm:max-w-none">
-        <span id="authStatusEmail" class="truncate max-w-[28vw] sm:max-w-none"></span>
-        <button id="authSignOutBtn" class="shrink-0 underline hover:text-gray-200">Log out</button>
-      </span>
+      <!-- Each state renders TWO buttons sharing a class (not an id -
+           see the .js-authLoginBtn/.js-authSignOutBtn listeners below):
+           a plain underlined text link, exactly as this always looked,
+           shown sm and up; and an icon-only button matching the other
+           header buttons' boxed style, shown below sm. Two elements
+           instead of one responsive one so the desktop version stays
+           byte-for-byte the original - a lone unboxed text link looked
+           out of place wedged between icon-only buttons on mobile. -->
+      <div class="flex items-center gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
+        <span id="authStatusLoggedOut" class="flex items-center text-xs text-gray-400">
+          <button class="js-authLoginBtn hidden sm:inline underline hover:text-gray-200">Log in</button>
+          <button class="js-authLoginBtn sm:hidden bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 rounded-md p-2 flex items-center transition"
+            title="Log in" aria-label="Log in">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </span>
+        <span id="authStatusLoggedIn" class="hidden items-center gap-2 text-xs text-gray-400 max-w-[45vw] sm:max-w-none">
+          <span id="authStatusEmail" class="truncate max-w-[28vw] sm:max-w-none"></span>
+          <button class="js-authSignOutBtn hidden sm:inline shrink-0 underline hover:text-gray-200">Log out</button>
+          <button class="js-authSignOutBtn sm:hidden shrink-0 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 rounded-md p-2 flex items-center transition"
+            title="Log out" aria-label="Log out">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </span>
+      </div>
       <button id="exportMt5Btn" aria-label="Export to MT5"
         class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
         <img src="assets/mt5_icon.png"
@@ -113,6 +149,20 @@
   <!-- Blockly workspace -->
   <main class="flex-1 relative">
     <div id="blocklyDiv" class="absolute inset-0"></div>
+    <!-- Mobile-only: the block category panel (.blocklyToolbox) starts
+         collapsed below sm (see the <style> block) to leave the phone
+         screen usable - this toggles it back open. Hidden on sm+ where
+         the toolbox is always visible and there's room for it. -->
+    <button id="toolboxToggleBtn" class="sm:hidden absolute top-3 left-3 z-20 bg-gray-800/95 hover:bg-gray-700 active:bg-gray-600 text-gray-200 rounded-md p-2 shadow-lg flex items-center gap-1.5 transition"
+      title="Show block categories" aria-label="Show block categories" aria-expanded="false">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      <span class="text-xs font-medium">Blocks</span>
+    </button>
   </main>
 
   <!-- Toolbox -->
@@ -997,6 +1047,19 @@ const workspace = Blockly.inject('blocklyDiv', {
   grid: { spacing: 25, length: 3, colour: '#1f2937', snap: true },
   zoom: { controls: true, wheel: true, startScale: 0.9 },
   trashcan: true,
+});
+
+/* Mobile block-category drawer (see toolboxToggleBtn + the .toolbox-open
+   CSS rule in <head>) - tapping it just flips a class, the CSS handles
+   showing/hiding the already-full-width-underneath toolbox panel. When
+   opening, also collapse the trashcan/zoom controls' popup state isn't
+   relevant here, but closing on a second tap (rather than only having
+   an "open" affordance) is - so this toggles, it doesn't just open. */
+const toolboxToggleBtn = document.getElementById('toolboxToggleBtn');
+toolboxToggleBtn.addEventListener('click', () => {
+  const isOpen = document.body.classList.toggle('toolbox-open');
+  toolboxToggleBtn.setAttribute('aria-expanded', String(isOpen));
+  toolboxToggleBtn.querySelector('span').textContent = isOpen ? 'Close' : 'Blocks';
 });
 
 /* ============================================================
@@ -1927,18 +1990,21 @@ function renderAuthStatus() {
 }
 renderAuthStatus();
 
-document.getElementById('authHeaderLoginBtn').addEventListener('click', () => {
+// Two buttons share this class (desktop text link + mobile icon button -
+// see the header markup comment above authStatusLoggedOut) so both need
+// the same click handler; querySelectorAll instead of getElementById.
+document.querySelectorAll('.js-authLoginBtn').forEach(btn => btn.addEventListener('click', () => {
   showAuthOverlay(() => {
     refreshBillingIndicator(); // picks up pass_active if this account already has one
   });
-});
+}));
 
-document.getElementById('authSignOutBtn').addEventListener('click', async () => {
+document.querySelectorAll('.js-authSignOutBtn').forEach(btn => btn.addEventListener('click', async () => {
   await authSignOut();
   renderAuthStatus();
   refreshBillingIndicator();
   showToast('Logged out.', false);
-});
+}));
 
 /* --- Auth modal: login / signup / forgot-password, three modes of the
    same form. onSuccess is called once actually logged in - startCheckout
