@@ -74,6 +74,12 @@
       </div>
       <span id="statusMsg" class="text-sm text-gray-400"></span>
       <span id="billingIndicator" class="hidden text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
+      <!-- Only shown once actually logged in (30-day pass account - see
+           supabase_auth.py). Free tier / single export never need this. -->
+      <span id="authStatus" class="hidden items-center gap-2 text-xs text-gray-400">
+        <span id="authStatusEmail"></span>
+        <button id="authSignOutBtn" class="underline hover:text-gray-200">Log out</button>
+      </span>
       <button id="exportMt5Btn"
         class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
         <img src="assets/mt5_icon.png"
@@ -150,10 +156,13 @@
   <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 text-sm px-4 py-3 rounded-lg shadow-lg max-w-md z-50"></div>
 
   <!-- Paywall - shown when a device is out of free exports (backend
-       returns 402). No account/login involved: paying just unlocks the
-       anonymous device cookie that's already been issued (see
-       device_identity.py) - "Pay" below hands off to Stripe's own
-       hosted Checkout page, this app never touches a card number. -->
+       returns 402). Single export stays anonymous - paying just unlocks
+       the device cookie already issued (see device_identity.py). The
+       30-day pass now needs a quick login first (see the AUTH section
+       further down) since it's meant to follow the trader across
+       devices, not just this browser. Either way, "Pay" hands off to
+       Stripe's own hosted Checkout page - this app never touches a card
+       number. -->
   <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center px-4">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md p-6">
       <h2 class="text-lg font-semibold text-gray-100 mb-1">Free exports used up</h2>
@@ -173,12 +182,65 @@
             <span class="font-medium text-gray-100">30-day unlimited pass</span>
             <span class="font-semibold text-emerald-400">30 zł</span>
           </div>
-          <p class="text-xs text-gray-400 mt-0.5">Unlimited exports on this browser for 30 days.</p>
+          <p class="text-xs text-gray-400 mt-0.5">Unlimited exports on any of your devices for 30 days. Needs a quick login.</p>
         </button>
       </div>
       <div class="flex justify-end mt-5">
         <button id="paywallCancelBtn" class="text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded-md">Not now</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Login / sign up / reset password - only ever shown when buying the
+       30-day pass (see billing.py's LoginRequired). Three modes toggled
+       by JS: 'login', 'signup', 'reset'. Talks directly to Supabase
+       Auth's REST API (see the AUTH section in the script below) - our
+       own backend never sees a password, only the resulting token. -->
+  <div id="authOverlay" class="hidden fixed inset-0 bg-black/60 z-[70] flex items-center justify-center px-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
+      <h2 id="authTitle" class="text-lg font-semibold text-gray-100 mb-1">Log in</h2>
+      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">The 30-day pass works across every device once you're logged in.</p>
+      <p id="authError" class="hidden text-sm text-red-400 mb-3"></p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1" for="authEmail">Email</label>
+          <input id="authEmail" type="email" autocomplete="email"
+            class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-100" />
+        </div>
+        <div id="authPasswordRow">
+          <label class="block text-xs text-gray-400 mb-1" for="authPassword">Password</label>
+          <input id="authPassword" type="password" autocomplete="current-password"
+            class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-100" />
+        </div>
+      </div>
+      <button id="authSubmitBtn"
+        class="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed">
+        Log in
+      </button>
+      <div class="flex items-center justify-between mt-4 text-xs text-gray-400">
+        <button id="authToggleModeBtn" class="underline hover:text-gray-200">Need an account? Sign up</button>
+        <button id="authForgotBtn" class="underline hover:text-gray-200">Forgot password?</button>
+      </div>
+      <button id="authCancelBtn" class="text-sm font-medium text-gray-400 hover:text-gray-200 mt-4">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Landing state for the link Supabase emails on password reset -
+       hidden unless the URL actually carries a recovery token (see the
+       AUTH section in the script below). Sits above everything else,
+       including authOverlay, since it replaces the whole login flow for
+       this one visit rather than being another mode of it. -->
+  <div id="authResetOverlay" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center px-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
+      <h2 class="text-lg font-semibold text-gray-100 mb-1">Set a new password</h2>
+      <p id="authResetError" class="hidden text-sm text-red-400 mb-3"></p>
+      <label class="block text-xs text-gray-400 mb-1" for="authNewPassword">New password</label>
+      <input id="authNewPassword" type="password" autocomplete="new-password"
+        class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-100" />
+      <button id="authResetSubmitBtn"
+        class="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed">
+        Save new password
+      </button>
     </div>
   </div>
 
@@ -1703,6 +1765,288 @@ function serializeWorkspace(ws) {
 }
 
 /* ============================================================
+   3z. AUTH (login for the 30-day pass only)
+   ============================================================
+   Talks directly to Supabase Auth's REST API - no SDK vendored for
+   this (would pull in realtime/storage clients we don't use), just
+   plain fetch calls with the project's public anon key. The backend
+   (supabase_auth.py) only ever verifies the resulting access token; it
+   never sees an email or password. Session (access + refresh token) is
+   kept in localStorage - each new device/browser needs one login, then
+   stays logged in via the refresh token until it's revoked/expires. */
+
+const SUPABASE_URL = 'https://qlwaysrcmxoqesplcrfc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsd2F5c3JjbXhvcWVzcGxjcmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MDU1NzYsImV4cCI6MjEwMjI4MTU3Nn0.bvn1AJXF6Xn9AMa4G4Wg2eDyJol5oeDpF-bbBha0jv0';
+const AUTH_SESSION_KEY = 'algoPuzzle.auth.v1';
+
+function getAuthSession() {
+  try {
+    const raw = localStorage.getItem(AUTH_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+function saveAuthSession(session) {
+  // Supabase's token response includes expires_in (seconds) - store an
+  // absolute expiry so getValidAccessToken() below doesn't need to
+  // remember when the request was made.
+  const withExpiry = { ...session, expires_at_ms: Date.now() + (session.expires_in || 3600) * 1000 };
+  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(withExpiry));
+  return withExpiry;
+}
+function clearAuthSession() {
+  localStorage.removeItem(AUTH_SESSION_KEY);
+}
+
+async function supabaseAuthFetch(path, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // Supabase error bodies use either `error_description` or `msg`
+    // depending on the endpoint - fall back to something readable.
+    throw new Error(json.error_description || json.msg || 'Authentication request failed.');
+  }
+  return json;
+}
+
+async function authSignUp(email, password) {
+  const json = await supabaseAuthFetch('/signup', { email, password });
+  // If email confirmation is required (Supabase project setting), signup
+  // succeeds but returns no session yet - the caller needs to know that
+  // rather than treating it as a normal logged-in state.
+  if (!json.access_token) {
+    throw new Error('Check your inbox to confirm your email, then log in.');
+  }
+  return saveAuthSession(json);
+}
+
+async function authSignIn(email, password) {
+  const json = await supabaseAuthFetch('/token?grant_type=password', { email, password });
+  return saveAuthSession(json);
+}
+
+async function authRequestPasswordReset(email) {
+  // redirect_to brings the trader back to this exact page with a
+  // recovery token in the URL fragment - see the DOMContentLoaded
+  // handler below for how that's picked up.
+  await supabaseAuthFetch(`/recover?redirect_to=${encodeURIComponent(window.location.origin + window.location.pathname)}`, { email });
+}
+
+async function authSetNewPassword(newPassword, recoveryAccessToken) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${recoveryAccessToken}`,
+    },
+    body: JSON.stringify({ password: newPassword }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error_description || json.msg || 'Could not set the new password.');
+}
+
+async function authSignOut() {
+  const session = getAuthSession();
+  clearAuthSession();
+  if (session && session.access_token) {
+    // Best-effort - the local session is already cleared either way,
+    // this just also revokes the refresh token server-side.
+    fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
+    }).catch(() => {});
+  }
+}
+
+// Returns a valid access token, refreshing it first if it's expired or
+// about to be (60s buffer) - or null if never logged in / refresh
+// itself fails (e.g. the refresh token was revoked), in which case the
+// stale session is also cleared so the UI doesn't keep claiming to be
+// logged in.
+async function getValidAccessToken() {
+  const session = getAuthSession();
+  if (!session) return null;
+  if (session.expires_at_ms - Date.now() > 60_000) return session.access_token;
+
+  try {
+    const refreshed = await supabaseAuthFetch('/token?grant_type=refresh_token', {
+      refresh_token: session.refresh_token,
+    });
+    return saveAuthSession(refreshed).access_token;
+  } catch (_) {
+    clearAuthSession();
+    return null;
+  }
+}
+
+const authStatus = document.getElementById('authStatus');
+const authStatusEmail = document.getElementById('authStatusEmail');
+
+function renderAuthStatus() {
+  const session = getAuthSession();
+  if (session && session.user && session.user.email) {
+    authStatusEmail.textContent = session.user.email;
+    authStatus.classList.remove('hidden');
+    authStatus.classList.add('flex');
+  } else {
+    authStatus.classList.add('hidden');
+    authStatus.classList.remove('flex');
+  }
+}
+renderAuthStatus();
+
+document.getElementById('authSignOutBtn').addEventListener('click', async () => {
+  await authSignOut();
+  renderAuthStatus();
+  refreshBillingIndicator();
+  showToast('Logged out.');
+});
+
+/* --- Auth modal: login / signup / forgot-password, three modes of the
+   same form. onSuccess is called once actually logged in - startCheckout
+   uses this to resume straight into buying the pass. --- */
+const authOverlay = document.getElementById('authOverlay');
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
+const authError = document.getElementById('authError');
+const authEmailInput = document.getElementById('authEmail');
+const authPasswordInput = document.getElementById('authPassword');
+const authPasswordRow = document.getElementById('authPasswordRow');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authToggleModeBtn = document.getElementById('authToggleModeBtn');
+const authForgotBtn = document.getElementById('authForgotBtn');
+
+let authMode = 'login'; // 'login' | 'signup' | 'reset'
+let authOnSuccess = null;
+
+function setAuthMode(mode) {
+  authMode = mode;
+  authError.classList.add('hidden');
+  if (mode === 'login') {
+    authTitle.textContent = 'Log in';
+    authSubtitle.textContent = "The 30-day pass works across every device once you're logged in.";
+    authPasswordRow.classList.remove('hidden');
+    authSubmitBtn.textContent = 'Log in';
+    authToggleModeBtn.textContent = 'Need an account? Sign up';
+    authForgotBtn.classList.remove('hidden');
+  } else if (mode === 'signup') {
+    authTitle.textContent = 'Sign up';
+    authSubtitle.textContent = 'Create an account to buy the 30-day pass.';
+    authPasswordRow.classList.remove('hidden');
+    authSubmitBtn.textContent = 'Sign up';
+    authToggleModeBtn.textContent = 'Already have an account? Log in';
+    authForgotBtn.classList.remove('hidden');
+  } else {
+    authTitle.textContent = 'Reset password';
+    authSubtitle.textContent = "We'll email you a link to set a new password.";
+    authPasswordRow.classList.add('hidden');
+    authSubmitBtn.textContent = 'Send reset link';
+    authToggleModeBtn.textContent = 'Back to log in';
+    authForgotBtn.classList.add('hidden');
+  }
+}
+
+function showAuthOverlay(onSuccess) {
+  authOnSuccess = onSuccess || null;
+  setAuthMode('login');
+  authEmailInput.value = '';
+  authPasswordInput.value = '';
+  authOverlay.classList.remove('hidden');
+}
+function hideAuthOverlay() {
+  authOverlay.classList.add('hidden');
+}
+
+document.getElementById('authCancelBtn').addEventListener('click', hideAuthOverlay);
+authOverlay.addEventListener('click', (e) => { if (e.target === authOverlay) hideAuthOverlay(); });
+authToggleModeBtn.addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
+authForgotBtn.addEventListener('click', () => setAuthMode('reset'));
+
+authSubmitBtn.addEventListener('click', async () => {
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  if (!email) {
+    authError.textContent = 'Enter your email first.';
+    authError.classList.remove('hidden');
+    return;
+  }
+  if (authMode !== 'reset' && !password) {
+    authError.textContent = 'Enter your password first.';
+    authError.classList.remove('hidden');
+    return;
+  }
+
+  authSubmitBtn.disabled = true;
+  authError.classList.add('hidden');
+  try {
+    if (authMode === 'login') {
+      await authSignIn(email, password);
+      renderAuthStatus();
+      hideAuthOverlay();
+      if (authOnSuccess) authOnSuccess();
+    } else if (authMode === 'signup') {
+      await authSignUp(email, password);
+      renderAuthStatus();
+      hideAuthOverlay();
+      if (authOnSuccess) authOnSuccess();
+    } else {
+      await authRequestPasswordReset(email);
+      showToast('Check your email for a reset link.');
+      setAuthMode('login');
+    }
+  } catch (err) {
+    authError.textContent = err.message;
+    authError.classList.remove('hidden');
+  } finally {
+    authSubmitBtn.disabled = false;
+  }
+});
+
+/* --- Password-reset landing: Supabase's reset email links back here
+   with #access_token=...&type=recovery in the URL - if present, this
+   IS a password-reset visit, show that form instead of anything else. --- */
+(function handlePasswordRecoveryLanding() {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  if (hash.get('type') !== 'recovery' || !hash.get('access_token')) return;
+
+  const recoveryToken = hash.get('access_token');
+  const overlay = document.getElementById('authResetOverlay');
+  const errorEl = document.getElementById('authResetError');
+  const input = document.getElementById('authNewPassword');
+  const submitBtn = document.getElementById('authResetSubmitBtn');
+  overlay.classList.remove('hidden');
+
+  submitBtn.addEventListener('click', async () => {
+    if (!input.value) {
+      errorEl.textContent = 'Enter a new password first.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    submitBtn.disabled = true;
+    errorEl.classList.add('hidden');
+    try {
+      await authSetNewPassword(input.value, recoveryToken);
+      overlay.classList.add('hidden');
+      // Clean the token out of the URL - it's single-use and shouldn't
+      // linger in browser history / be re-submitted on a page refresh.
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      showToast('Password updated - log in with your new password.');
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+})();
+
+/* ============================================================
    4. EXPORT FLOW
    ============================================================ */
 
@@ -1738,7 +2082,9 @@ const billingIndicator = document.getElementById('billingIndicator');
 
 async function fetchBillingStatus() {
   try {
-    const res = await fetch(`${API_BASE}/api/billing/status`, { credentials: 'include' });
+    const token = await getValidAccessToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch(`${API_BASE}/api/billing/status`, { credentials: 'include', headers });
     if (!res.ok) return null;
     return await res.json();
   } catch (_) {
@@ -1780,12 +2126,24 @@ function hidePaywall() {
 }
 
 async function startCheckout(kind) {
+  // The 30-day pass is the one purchase that needs login (see
+  // billing.LoginRequired) - if there's no valid session yet, collect
+  // one first, then resume straight into checkout on success rather
+  // than making the trader click "buy" a second time.
+  if (kind === 'pass' && !(await getValidAccessToken())) {
+    hidePaywall();
+    showAuthOverlay(() => startCheckout('pass'));
+    return;
+  }
+
   const endpoint = kind === 'pass' ? '/api/billing/checkout/pass' : '/api/billing/checkout/export';
   try {
-    const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', credentials: 'include' });
+    const token = await getValidAccessToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', credentials: 'include', headers });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.detail || 'Could not start checkout.');
+      throw new Error((errJson.detail && errJson.detail.message) || errJson.detail || 'Could not start checkout.');
     }
     const { url } = await res.json();
     window.location.href = url; // hands off to Stripe's own hosted Checkout page
@@ -1864,9 +2222,16 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
   statusMsg.textContent = busyLabel;
 
   try {
+    // Authorization is only added if actually logged in - lets the
+    // backend grant via an active 30-day pass first (see
+    // _require_export_entitlement in main.py) before ever falling back
+    // to the anonymous device_id cookie's free/credit balance.
+    const token = await getValidAccessToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       credentials: 'include', // sends the anonymous device cookie - see device_identity.py
       body: JSON.stringify(payload),
     });

@@ -2,8 +2,12 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.9.2
 
-# Billing / entitlements (Stripe + Supabase Postgres, no Supabase Auth)
+# Billing / entitlements (Stripe + Supabase Postgres)
 stripe==11.1.1
 psycopg[binary,pool]==3.3.4
 itsdangerous==2.2.0
 python-dotenv==1.2.2
+
+# Supabase Auth token verification (login, 30-day pass only - see
+# settings.py's SUPABASE_JWT_SECRET)
+PyJWT==2.9.0

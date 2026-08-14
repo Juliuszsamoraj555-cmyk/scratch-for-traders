@@ -227,7 +227,7 @@ async def grant_export_credits(
 
 
 def _grant_day_pass_sync(
-    device_id: str,
+    user_id: str,
     days: int,
     stripe_event_id: str,
     session_id: str,
@@ -238,28 +238,32 @@ def _grant_day_pass_sync(
     with _conn() as conn, conn.cursor() as cur:
         if _event_already_applied(cur, stripe_event_id):
             return False
-        # Extends from the later of "now" or the current expiry, so
-        # buying a pass while one is still active stacks the days instead
-        # of wasting whatever time was left.
+        # Upsert: first-ever pass for this user_id inserts a row, buying
+        # another one while active extends from the later of "now" or
+        # the current expiry (stacks the days instead of wasting whatever
+        # time was left) - same logic the old device-based version used,
+        # just keyed by user_id/user_entitlements now.
         cur.execute(
-            "update devices set "
-            "pass_expires_at = greatest(coalesce(pass_expires_at, now()), now()) + (%s || ' days')::interval, "
-            "billing_email = coalesce(%s, billing_email) "
-            "where device_id = %s",
-            (days, email, device_id),
+            "insert into user_entitlements (user_id, pass_expires_at, billing_email) "
+            "values (%s, now() + (%s || ' days')::interval, %s) "
+            "on conflict (user_id) do update set "
+            "pass_expires_at = greatest(coalesce(user_entitlements.pass_expires_at, now()), now()) "
+            "  + (%s || ' days')::interval, "
+            "billing_email = coalesce(excluded.billing_email, user_entitlements.billing_email)",
+            (user_id, days, email, days),
         )
         cur.execute(
             "insert into billing_events "
-            "(stripe_event_id, device_id, event_type, stripe_checkout_session_id, "
+            "(stripe_event_id, user_id, event_type, stripe_checkout_session_id, "
             " amount_total_grosze, currency) "
             "values (%s, %s, 'day_pass_purchase', %s, %s, %s)",
-            (stripe_event_id, device_id, session_id, amount_grosze, currency),
+            (stripe_event_id, user_id, session_id, amount_grosze, currency),
         )
         return True
 
 
 async def grant_day_pass(
-    device_id: str,
+    user_id: str,
     days: int,
     stripe_event_id: str,
     session_id: str,
@@ -267,6 +271,41 @@ async def grant_day_pass(
     currency: str,
     email: Optional[str] = None,
 ) -> bool:
+    """user_id is a Supabase Auth user id (auth.users.id), not a
+    device_id - the 30-day pass is the one entitlement that requires
+    login, see schema.sql's header comment for why."""
     return await run_in_threadpool(
-        _grant_day_pass_sync, device_id, days, stripe_event_id, session_id, amount_grosze, currency, email
+        _grant_day_pass_sync, user_id, days, stripe_event_id, session_id, amount_grosze, currency, email
     )
+
+
+# --------------------------------------------------------------------------
+# Checking/consuming pass entitlement for a logged-in user - see
+# has_active_pass() in schema.sql. Called first, before ever touching
+# device_id-based entitlement (see main.py's _require_export_entitlement).
+# --------------------------------------------------------------------------
+
+def _has_active_pass_sync(user_id: str) -> bool:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute("select has_active_pass(%s)", (user_id,))
+        return bool(cur.fetchone()[0])
+
+
+async def has_active_pass(user_id: str) -> bool:
+    return await run_in_threadpool(_has_active_pass_sync, user_id)
+
+
+def _log_user_pass_export_sync(user_id: str, device_id: str, platform: str) -> None:
+    # No row-locking/counter here on purpose - an active pass is
+    # unlimited-while-active, this is just a delivery log, not a
+    # resource being deducted (unlike consume_export_entitlement).
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into export_log (device_id, user_id, platform, consumed_from) "
+            "values (%s, %s, %s, 'pass')",
+            (device_id, user_id, platform),
+        )
+
+
+async def log_user_pass_export(user_id: str, device_id: str, platform: str) -> None:
+    return await run_in_threadpool(_log_user_pass_export_sync, user_id, device_id, platform)

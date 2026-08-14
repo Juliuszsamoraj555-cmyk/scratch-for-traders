@@ -36,6 +36,7 @@ from pydantic import BaseModel, Field, field_validator
 import billing
 import db
 from device_identity import get_client_ip, get_device_id
+from supabase_auth import get_current_user
 from settings import settings
 
 # --------------------------------------------------------------------------
@@ -2757,12 +2758,23 @@ async def _require_export_entitlement(request: Request, device_id: str, platform
     settings.py for why a cleared cookie alone isn't enough to loop past
     this anymore.
 
+    If the request carries a valid login token AND that user has an
+    active 30-day pass, it wins immediately - checked before device_id
+    entitlement at all, since it's meant to work from any of the
+    trader's devices, not just this one (see schema.sql's header
+    comment).
+
     If DATABASE_URL isn't configured at all, billing is treated as not
     wired up yet (e.g. local dev without a Supabase project) and every
     export is allowed through - loudly logged so this can never be
     silently true in production by accident."""
     if not settings.DATABASE_URL:
         print(f"[billing] WARNING: DATABASE_URL not set - allowing '{platform}' export with no entitlement check.")
+        return
+
+    user_id = get_current_user(request)
+    if user_id and await db.has_active_pass(user_id):
+        await db.log_user_pass_export(user_id, device_id, platform)
         return
 
     granted, _consumed_from = await db.consume_export(device_id, platform, get_client_ip(request))
@@ -2894,10 +2906,13 @@ async def health():
 # ~30 zl); /api/generate* above is what actually spends that entitlement.
 
 @app.get("/api/billing/status")
-async def billing_status(device_id: str = Depends(get_device_id)):
+async def billing_status(request: Request, device_id: str = Depends(get_device_id)):
     """Entitlement snapshot for the current browser - the frontend uses
     this to show 'N free exports left' / paywall state without needing
-    to attempt (and fail) an export first."""
+    to attempt (and fail) an export first. If the request is also logged
+    in, pass_active reflects that user's account-wide pass (which can be
+    true even on a brand new device that's never bought anything)."""
+    user_id = get_current_user(request)
     if not settings.DATABASE_URL:
         return {
             "free_exports_used": 0,
@@ -2906,16 +2921,21 @@ async def billing_status(device_id: str = Depends(get_device_id)):
             "pass_active": False,
             "pass_expires_at": None,
             "billing_configured": False,
+            "logged_in": bool(user_id),
         }
     status = await db.get_entitlement_status(device_id)
     status["billing_configured"] = True
+    status["logged_in"] = bool(user_id)
+    if user_id and await db.has_active_pass(user_id):
+        status["pass_active"] = True
     return status
 
 
 @app.post("/api/billing/checkout/export")
 async def billing_checkout_export(device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for a single export credit and
-    returns its hosted URL for the frontend to redirect to."""
+    returns its hosted URL for the frontend to redirect to. Anonymous -
+    no login involved, same as the free tier."""
     try:
         url = billing.create_checkout_session(device_id, "export_credit")
     except billing.BillingNotConfigured as e:
@@ -2924,11 +2944,15 @@ async def billing_checkout_export(device_id: str = Depends(get_device_id)):
 
 
 @app.post("/api/billing/checkout/pass")
-async def billing_checkout_pass(device_id: str = Depends(get_device_id)):
+async def billing_checkout_pass(request: Request, device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for the 30-day unlimited pass
-    and returns its hosted URL for the frontend to redirect to."""
+    and returns its hosted URL for the frontend to redirect to. Requires
+    login (401 if not) - see billing.LoginRequired."""
+    user_id = get_current_user(request)
     try:
-        url = billing.create_checkout_session(device_id, "day_pass")
+        url = billing.create_checkout_session(device_id, "day_pass", user_id=user_id)
+    except billing.LoginRequired as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except billing.BillingNotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"url": url}

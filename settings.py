@@ -42,6 +42,22 @@ class Settings:
     STRIPE_PRICE_EXPORT: str | None = os.getenv("STRIPE_PRICE_EXPORT")
     STRIPE_PRICE_PASS: str | None = os.getenv("STRIPE_PRICE_PASS")
 
+    # --- Supabase Auth (email+password login, for the 30-day pass only -
+    # the free tier and single-export purchases stay anonymous/device_id
+    # based, see device_identity.py) ---
+    # Project Settings -> API -> Project URL.
+    SUPABASE_URL: str | None = os.getenv("SUPABASE_URL")
+    # Project Settings -> API -> Project API keys -> "anon" / "public".
+    # Safe to be non-secret (it's the same key the frontend embeds
+    # directly) - stored here mainly so the backend can validate it's
+    # configured, not because it needs to stay hidden.
+    SUPABASE_ANON_KEY: str | None = os.getenv("SUPABASE_ANON_KEY")
+    # Project Settings -> API -> JWT Settings -> JWT Secret. Backend-only,
+    # real secret - used to verify (not issue) the access tokens Supabase
+    # Auth hands the frontend after login, via HS256. Never expose this
+    # one to the frontend.
+    SUPABASE_JWT_SECRET: str | None = os.getenv("SUPABASE_JWT_SECRET")
+
     # --- Anonymous device identity (signed cookie, no login) ---
     # MUST be set to a long random value in production - anyone who knows
     # this can forge a device_id cookie and claim someone else's credits.
