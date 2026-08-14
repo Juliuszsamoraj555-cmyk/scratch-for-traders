@@ -199,5 +199,65 @@ User asked to trace the trader's real path from downloading the export to a conf
 
 - User (Juliusz) is on Windows + PowerShell, moderate technical comfort, MT5 client is in Polish (Kompiluj = Compile, Dziennik = Journal, Historyczna weryfikacja = backtest stats tab).
 - Full manual test cycle after any backend change: restart uvicorn → hard refresh browser → rebuild/re-export from Blockly → replace `strategy.mq5` in `MQL5\Experts` → recompile in MetaEditor (F7) → rerun backtest. Skipping steps (especially the backend restart) has caused wasted debugging rounds before.
-- Only the first top-level `trade_if` block on the canvas is exported; multiple independent strategies on one canvas still isn't supported.
+- ~~Only the first top-level `trade_if` block on the canvas is exported~~ **NO LONGER TRUE** - multi-rule export shipped, see "Session 3" section below.
 - Conversation language: Polish (per explicit user request partway through the prior session).
+
+---
+
+# Session 3 update (through 2026-08-12) — commercialization + SEO
+
+**Everything above this line predates a major pivot: the project went from "get the export pipeline correct" to "make this a real, monetized, discoverable product."** Read the TL;DR below first; the numbered items above are still accurate technical history for the MT5/MT4/cTrader renderers, just no longer the current *state* of the repo (e.g. the "Open items" list above is about Strategy Tester verification, which is still genuinely open, but it's no longer the top priority).
+
+## TL;DR — start here (supersedes "Current live state" above)
+
+- **Multi-rule export shipped.** Multiple independent `trade_if` blocks on the canvas (even different assets, even the same asset twice) now export as ONE combined EA/cBot across all 3 platforms. Magic numbers (MT5/MT4: `100000 + i`) / labels (cTrader: `ScratchForTraders_Rule{i}`) keep rules from confusing each other. One genuine platform constraint (not an editor restriction): on **netting accounts**, two same-symbol rules merge into one platform position - documented in the generated README, not blocked. See [[scratch-for-traders-multi-rule-export]] memory / git log around commit range before `595e9d8`.
+- **Billing layer is code-complete but UNCONFIGURED.** Anonymous, no-login entitlement: 2 free exports per browser (tracked via a signed httpOnly `device_id` cookie, not an account), then pay-per-export (~5 zł) or a 30-day unlimited pass (~30 zł), both one-time Stripe Checkout payments (not subscriptions). Files: `settings.py` (env config), `db.py` (Postgres/Supabase access, psycopg **v3** not v2 - see gotcha below), `device_identity.py` (the cookie), `billing.py` (Stripe). Gracefully no-ops (logs a loud warning, allows unlimited exports) when `DATABASE_URL` is unset - **which it currently is** (no `.env` file exists yet). **Nobody has supplied real Supabase/Stripe keys yet** - this has never been tested against a real Postgres or a real Stripe payment, only the "not configured" fallback path. `DEPLOYMENT.md` is the full step-by-step (Supabase → Stripe → Render → domain) for whenever real keys show up.
+- **SEO landing page + blog shipped**, separate from the Blockly canvas (`index_1.html`) which has nothing for Google to index. `index.html` is now the real front door: hero, how-it-works (3 illustrated steps), features (4-card zigzag layout), platforms, **Blog section (latest 3 + "view all" link once there were >3 articles)**, FAQ (7 Q&As, native `<details>`, matching `FAQPage` JSON-LD), final CTA, footer. `blog/` has **6 articles now** (not 3 - three more were written since the last time this doc was touched): `what-is-algorithmic-trading.html`, `stop-loss-take-profit-guide.html`, `trading-indicators-explained.html`, `how-to-build-a-trading-bot-without-coding.html`, `mt4-vs-mt5-vs-ctrader-automation.html`, `position-sizing-how-much-to-risk.html` (verified via `ls blog/*.html` on 2026-08-12 - recount before trusting this if it's been a while, cross-check `blog/index.html` + `SEO_KEYWORDS.md`'s coverage table). `blog/CONTENT_GUIDE.md` documents the repeatable process for adding more. `SEO_KEYWORDS.md` is the target-keyword tracking doc (coverage table + next-3-candidates list) - **read this first** before writing another article so you don't duplicate a topic.
+- **Tailwind is now precompiled, not the runtime Play CDN script.** `assets/vendor/tailwind/tailwind-compiled.css` is a real static stylesheet built via `npm run build:css` (see `package.json`, `tailwind.config.js`, `assets/vendor/tailwind/input.css`). Every HTML page (`index.html`, `index_1.html`, all of `blog/*.html`) now has `<link rel="stylesheet" href=".../tailwind-compiled.css">` instead of the old `<script src=".../tailwind-3.4.17.js">` JIT compiler. **This fixed a real, cited Core Web Vitals concern** (Tailwind's own docs say the Play CDN script is unsuitable for production).
+- **Design/copy feedback that's now a standing rule, not a one-off** (see [[juliusz-samoraj-no-vibecoded-ui]] memory): no emoji-as-icon, no pill/badge-shaped eyebrow text, no equal-size text-only card grids as the default listing pattern, **no em dashes anywhere in visible copy** (use a plain hyphen `-`) - the user explicitly called this out as an LLM tell to scrub proactively, not just when asked.
+
+## Node.js/npm gotcha - READ BEFORE running `npm run build:css`
+
+**No Node.js is installed system-wide on this machine**, and `winget install` for it **fails** - the MSI installer demands an admin UAC elevation prompt that a non-interactive session can't approve (confirmed, exit code 1602, "you cancelled the installation"). What actually worked: a **portable, no-installer** Node.js build:
+
+```bash
+curl -sSL -o node.zip "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip"
+# unzip it (PowerShell Expand-Archive works), then just call node.exe/npm directly
+# by full path, or prepend its folder to PATH for the session:
+export PATH="/path/to/node-v22.14.0-win-x64:$PATH"
+```
+
+**This portable install lived in the session-scoped scratchpad temp directory**, which is almost certainly gone in a fresh session (a new session gets a new scratchpad path). If `npm`/`node` aren't found, **don't waste time on `winget`/`choco` again** - just re-run the curl+unzip above into the new session's scratchpad, `cd` into the project root, and `PATH`-prepend it for that shell before running `npm run build:css`. `node_modules/` itself IS still on disk in the project (gitignored, not committed) with `tailwindcss@3.4.17` already installed, so **only `node`/`npm` themselves need re-fetching**, not the whole `npm install` - unless `node_modules/` has also been cleaned up, in which case redo `npm install -D tailwindcss@3.4.17` too.
+
+**Whenever HTML/JSX class names change** (new component, new utility class used anywhere in `index.html`/`index_1.html`/`blog/*.html`), **`npm run build:css` must be re-run** or the new classes simply won't have any CSS - this is easy to forget since nothing errors, styling just silently doesn't apply. Consider `npm run watch:css` while doing a batch of frontend styling changes.
+
+## psycopg gotcha (db.py)
+
+`psycopg2-binary` has **no prebuilt wheel for this machine's Python (3.14)** and building from source needs `pg_config`/Postgres dev headers that aren't installed. `db.py` uses **`psycopg` v3** (`pip install "psycopg[binary,pool]"`) instead - which does ship a `cp314` wheel. Query syntax (`%s` placeholders) is identical between v2/v3, so this was a drop-in swap, but if you ever see an import error for `psycopg2` specifically, that's why - the code intentionally imports `psycopg`/`psycopg_pool`, not `psycopg2`.
+
+## Server restart / stale-cache gotcha (bit the user multiple times this session)
+
+Two separate `preview_start` servers, **neither with hot-reload**:
+- Backend: `scratch-for-traders-backend` (port 8000, `uvicorn main:app`, no `--reload`) - restart after ANY `main.py`/`billing.py`/`db.py`/`device_identity.py`/`settings.py` edit.
+- Frontend: `scratch-for-traders-frontend` (port 8080, plain `python -m http.server`) - serves static files live, but **the browser aggressively caches** `index.html`/`index_1.html`/etc. across `navigate` calls in the same tab. If a change doesn't appear to have taken effect, before assuming the edit is wrong: hard-reload with a cache-busting query string (`?v=<timestamp>`) or open a fresh tab, and re-verify with a direct JS check (`document.getElementById(...)`, `document.title`) rather than trusting a screenshot alone - screenshots have shown stale frames more than once this session even after a real navigation succeeded underneath.
+
+## Files that exist now and didn't in the pre-Session-3 handoff
+
+- `settings.py`, `db.py`, `billing.py`, `device_identity.py` — billing layer, see TL;DR above.
+- `supabase/schema.sql` — Postgres schema (devices/billing_events/export_log tables + `consume_export_entitlement()` atomic function). Never run against a real Supabase project yet.
+- `.env.example` — every env var the app can use, with comments on where to find each real value. Copy to `.env` for local dev once real keys exist (`.env` itself is gitignored).
+- `render.yaml`, `DEPLOYMENT.md` — Render Blueprint + full manual walkthrough (Supabase → Stripe → Render → domain → go-live), written but never executed against real infra.
+- `index.html` — the real SEO landing page (was previously just `index_1.html` for everything).
+- `blog/` — article pages + `index.html` hub + `CONTENT_GUIDE.md`.
+- `robots.txt`, `sitemap.xml` — disallows `/index_1.html` (nothing for Google there), lists the landing page + every blog post. **Still has `https://REPLACE-WITH-REAL-DOMAIN` placeholders everywhere** (canonical tags, OG tags, sitemap URLs, Organization/WebSite JSON-LD) - a real domain needs a project-wide search-and-replace of that exact string before going live.
+- `SEO_KEYWORDS.md` — target-keyword coverage tracking, read before writing new content.
+- `assets/favicon.svg`, `assets/og-image.png` (+ its editable `assets/og-image-source.svg`) — real favicon and social-share image, replacing a previously blank `data:,` favicon and a missing OG image. The PNG was generated by rendering the SVG onto an HTML canvas in-browser and extracting the data URL (no image-generation tooling was installed) - if it ever needs regenerating (e.g. brand tweak), edit the `.svg` source and repeat that canvas-render trick, or use a real design tool if one's available by then.
+- `package.json`, `package-lock.json`, `node_modules/`, `tailwind.config.js` — the Tailwind build step, see gotcha above.
+
+## Open items specific to Session 3 (in addition to the Strategy Tester items above, which are still open)
+
+1. **Real Stripe/Supabase keys have never been supplied.** The entire billing layer is unverified beyond its own "not configured" fallback path and unit-level checks. First real test needs: a Supabase project + `supabase/schema.sql` run against it, 2 Stripe test-mode Prices created, and a walk through `DEPLOYMENT.md` step 6.
+2. **No real domain yet** - every `REPLACE-WITH-REAL-DOMAIN` placeholder (canonical/OG tags across `index.html` + every `blog/*.html`, `sitemap.xml`, `robots.txt`, JSON-LD) needs a real find-and-replace once one exists, plus `PRODUCTION_API_BASE` in `index_1.html` needs hand-setting to the deployed backend's real URL (see `DEPLOYMENT.md` step 4).
+3. Git repo is **local only** - never pushed to GitHub. Needed before Render can deploy from it (`DEPLOYMENT.md` step 1).
+4. `SEO_KEYWORDS.md`'s "Next 3 candidates" list has concrete next article topics queued (backtesting basics, ATR-based stop sizing, visual-builder-focused piece) - ask the user before writing more, since content volume/cadence is their call per `CONTENT_GUIDE.md`'s "publish steadily, not in bursts" guidance.
+5. The homepage Blog section now shows only the latest 3 articles + a "view all" link (per `CONTENT_GUIDE.md`'s documented threshold) - if that switch-over logic is ever questioned, it's intentional, not a bug.
