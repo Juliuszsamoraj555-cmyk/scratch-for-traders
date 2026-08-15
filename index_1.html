@@ -1049,6 +1049,12 @@ const workspace = Blockly.inject('blocklyDiv', {
   trashcan: true,
 });
 
+// trackEvent isn't declared until further down the script, but function
+// declarations are hoisted - by the time this actually runs (top-to-
+// bottom execution of this same inline <script>), the whole file has
+// already been parsed, so the call below resolves fine.
+trackEvent('builder_opened');
+
 /* Mobile block-category drawer (see toolboxToggleBtn + the .toolbox-open
    CSS rule in <head>) - tapping it just flips a class, the CSS handles
    showing/hiding the already-full-width-underneath toolbox panel. When
@@ -1360,6 +1366,7 @@ async function handleSaveClick() {
   saveWorkspaceToLocalStorage();
   showToast(`Saved as "${trimmed}".`, false);
   renderStrategiesList();
+  trackEvent('strategy_saved', { rule_count: workspace.getBlocksByType('trade_if', false).length });
 }
 
 // Guards New/Load against silently discarding in-progress edits that
@@ -1381,6 +1388,7 @@ async function handleNewClick() {
   currentStrategyId = null;
   markSynced();
   saveWorkspaceToLocalStorage();
+  trackEvent('new_strategy_started');
 }
 
 async function handleLoadStrategy(id) {
@@ -2056,6 +2064,7 @@ function showAuthOverlay(onSuccess) {
   authEmailInput.value = '';
   authPasswordInput.value = '';
   authOverlay.classList.remove('hidden');
+  trackEvent('auth_modal_shown');
 }
 function hideAuthOverlay() {
   authOverlay.classList.add('hidden');
@@ -2094,9 +2103,11 @@ authSubmitBtn.addEventListener('click', async () => {
       renderAuthStatus();
       hideAuthOverlay();
       showToast(`Logged in as ${email}.`, false);
+      trackEvent('login_completed');
       if (authOnSuccess) authOnSuccess();
     } else if (authMode === 'signup') {
       const result = await authSignUp(email, password);
+      trackEvent('signup_completed', { needs_confirmation: !!result.needsConfirmation });
       if (result.needsConfirmation) {
         // Real success (the account was created) with an extra step
         // needed, not a failure - shown via the green toast, same as
@@ -2192,6 +2203,32 @@ const API_BASE = IS_LOCAL_DEV
       : window.location.origin.replace(/:\d+$/, ':8000'))
   : PRODUCTION_API_BASE;
 
+// Fire-and-forget site-behavior event logging (2026-08-15 addition) - see
+// ALLOWED_ANALYTICS_EVENTS in main.py for the fixed set of event_type
+// values the backend actually accepts (anything else is silently
+// dropped server-side, not an error). Deliberately never awaited by
+// callers and never throws - losing an analytics ping is never worth
+// blocking or breaking the actual feature it's attached to. Sends the
+// same anonymous device cookie as billing (credentials: 'include'), plus
+// the login bearer token when there is one, so events can be tied to a
+// logged-in user the same way exports already are.
+async function trackEvent(eventType, metadata) {
+  try {
+    const token = await getValidAccessToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    await fetch(`${API_BASE}/api/analytics/event`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ event_type: eventType, metadata: metadata || null, path: window.location.pathname }),
+    });
+  } catch (_) {
+    // Analytics is best-effort - a network hiccup here should never be
+    // visible to the trader or interrupt whatever they were doing.
+  }
+}
+
 const exportMt5Btn = document.getElementById('exportMt5Btn');
 const exportCtraderBtn = document.getElementById('exportCtraderBtn');
 const exportMt4Btn = document.getElementById('exportMt4Btn');
@@ -2247,12 +2284,14 @@ const paywallMessage = document.getElementById('paywallMessage');
 function showPaywall(message) {
   if (message) paywallMessage.textContent = message;
   paywallOverlay.classList.remove('hidden');
+  trackEvent('paywall_shown');
 }
 function hidePaywall() {
   paywallOverlay.classList.add('hidden');
 }
 
 async function startCheckout(kind) {
+  trackEvent('checkout_started', { kind });
   // The 30-day pass is the one purchase that needs login (see
   // billing.LoginRequired) - if there's no valid session yet, collect
   // one first, then resume straight into checkout on success rather

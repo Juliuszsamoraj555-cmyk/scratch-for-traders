@@ -23,6 +23,7 @@ Run locally:
 
 import io
 import itertools
+import json
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -416,6 +417,86 @@ def parse_strategy(config: WorkspaceConfig) -> StrategyIR:
         ))
 
     return StrategyIR(rules=rules)
+
+
+# Indicator-shaped operand kinds, as opposed to plain values (NUMBER,
+# RISK_VALUE) or structural ones (MULTIPLY, CANDLE, VOLUME) - what
+# _summarize_strategy() below reports as "indicator_kinds" is restricted
+# to this set, since "does anyone actually use Stochastic" is a much
+# more useful analytics question than "does anyone compare against a
+# raw number" (every strategy does, trivially).
+_INDICATOR_OPERAND_KINDS = {"MA", "RSI", "MACD", "BANDS", "ATR", "STOCH"}
+
+
+def _collect_operand_kinds(op: Optional[OperandIR], kinds: set) -> None:
+    if op is None:
+        return
+    kinds.add(op.kind)
+    _collect_operand_kinds(op.left, kinds)
+    _collect_operand_kinds(op.right, kinds)
+
+
+def _collect_condition_kinds(node: ConditionIR, kinds: set) -> None:
+    if isinstance(node, ComparisonIR):
+        _collect_operand_kinds(node.left, kinds)
+        _collect_operand_kinds(node.right, kinds)
+    else:
+        _collect_condition_kinds(node.left, kinds)
+        _collect_condition_kinds(node.right, kinds)
+
+
+def _summarize_strategy(ir: StrategyIR) -> dict:
+    """Export analytics metadata (see export_log.strategy_meta in
+    schema.sql, and export_asset_popularity for the view that reads it) -
+    derived directly from the already-parsed, already-validated
+    StrategyIR, NEVER from the raw client request body. That's
+    deliberate: it means this can't be spoofed by editing the request
+    JSON, and can never drift from what the export actually contained,
+    since it's the exact same object the renderer itself consumes.
+    Called once per successful export (see the generate_* endpoints
+    below), right after parse_strategy() succeeds."""
+    assets: List[str] = []
+    timeframes: List[str] = []
+    indicator_kinds: set = set()
+    directions: set = set()
+    max_positions: set = set()
+    uses_sl = False
+    uses_tp = False
+
+    for rule in ir.rules:
+        if rule.asset not in assets:
+            assets.append(rule.asset)
+        if rule.timeframe not in timeframes:
+            timeframes.append(rule.timeframe)
+        max_positions.add(rule.max_positions)
+
+        condition_kinds: set = set()
+        _collect_condition_kinds(rule.condition, condition_kinds)
+        indicator_kinds |= condition_kinds & _INDICATOR_OPERAND_KINDS
+
+        for action in rule.actions:
+            directions.add(action.direction)
+            if action.sl is not None:
+                uses_sl = True
+                sl_kinds: set = set()
+                _collect_operand_kinds(action.sl, sl_kinds)
+                indicator_kinds |= sl_kinds & _INDICATOR_OPERAND_KINDS
+            if action.tp is not None:
+                uses_tp = True
+                tp_kinds: set = set()
+                _collect_operand_kinds(action.tp, tp_kinds)
+                indicator_kinds |= tp_kinds & _INDICATOR_OPERAND_KINDS
+
+    return {
+        "assets": assets,
+        "timeframes": timeframes,
+        "rule_count": len(ir.rules),
+        "indicator_kinds": sorted(indicator_kinds),
+        "directions": sorted(directions),
+        "uses_sl": uses_sl,
+        "uses_tp": uses_tp,
+        "max_positions": sorted(max_positions),
+    }
 
 
 def _describe_operand(op: Optional[OperandIR]) -> str:
@@ -2746,11 +2827,18 @@ def _asset_slug_for_filename(config: WorkspaceConfig) -> str:
     return f"multi_{len(config.rules)}rules"
 
 
-async def _require_export_entitlement(request: Request, device_id: str, platform: str) -> None:
+async def _require_export_entitlement(
+    request: Request, device_id: str, platform: str, strategy_meta: Optional[dict] = None
+) -> None:
     """Consumes one unit of export entitlement (free allowance -> paid
     credit -> active day-pass, checked in that order - see
     consume_export_entitlement() in supabase/schema.sql) or raises 402
     Payment Required.
+
+    strategy_meta (see _summarize_strategy() above) is only ever attached
+    to the export_log row once the export is actually granted - a 402
+    here means nothing was exported, so nothing about the attempted
+    strategy is recorded either.
 
     The client IP is passed through (hashed inside db.py, same as
     get_device_id already does) so the free bucket is also capped per-IP,
@@ -2774,10 +2862,10 @@ async def _require_export_entitlement(request: Request, device_id: str, platform
 
     user_id = get_current_user(request)
     if user_id and await db.has_active_pass(user_id):
-        await db.log_user_pass_export(user_id, device_id, platform)
+        await db.log_user_pass_export(user_id, device_id, platform, strategy_meta)
         return
 
-    granted, _consumed_from = await db.consume_export(device_id, platform, get_client_ip(request))
+    granted, _consumed_from = await db.consume_export(device_id, platform, get_client_ip(request), strategy_meta)
     if not granted:
         raise HTTPException(
             status_code=402,
@@ -2808,7 +2896,7 @@ async def generate_expert_advisor(config: WorkspaceConfig, request: Request, dev
 
     # Entitlement is only consumed once we know the strategy is actually
     # valid - a broken/invalid config never costs the user anything.
-    await _require_export_entitlement(request, device_id, "mt5")
+    await _require_export_entitlement(request, device_id, "mt5", _summarize_strategy(ir))
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2842,7 +2930,7 @@ async def generate_cbot(config: WorkspaceConfig, request: Request, device_id: st
     except StrategyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    await _require_export_entitlement(request, device_id, "ctrader")
+    await _require_export_entitlement(request, device_id, "ctrader", _summarize_strategy(ir))
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2876,7 +2964,7 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig, request: Request,
     except StrategyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    await _require_export_entitlement(request, device_id, "mt4")
+    await _require_export_entitlement(request, device_id, "mt4", _summarize_strategy(ir))
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2891,6 +2979,63 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig, request: Request,
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# --------------------------------------------------------------------------
+# Site-behavior analytics (2026-08-15 addition) - see analytics_events in
+# schema.sql. A fixed, reviewed allowlist of event names - the endpoint
+# below silently drops anything not in this set (never a 400) rather than
+# letting a client dictate what ends up in the table, so this can't
+# accumulate arbitrary junk event names from a buggy or malicious client.
+# Add a new event here (and instrument it in index_1.html) rather than
+# accepting free-form event_type from the frontend.
+# --------------------------------------------------------------------------
+ALLOWED_ANALYTICS_EVENTS = {
+    "builder_opened",
+    "new_strategy_started",
+    "strategy_saved",
+    "paywall_shown",
+    "checkout_started",
+    "auth_modal_shown",
+    "login_completed",
+    "signup_completed",
+}
+
+# Generous but bounded - this is lightweight product instrumentation
+# (e.g. {"kind": "pass"} or {"platform": "mt5"}), never meant to carry a
+# whole strategy or anything large; anything past this is almost
+# certainly a bug or abuse, not a legitimate event, so it's replaced
+# rather than stored as-is.
+_ANALYTICS_METADATA_MAX_CHARS = 2000
+
+
+class AnalyticsEventIn(BaseModel):
+    event_type: str
+    metadata: Optional[dict] = None
+    path: Optional[str] = None
+
+
+@app.post("/api/analytics/event", status_code=204)
+async def track_event(body: AnalyticsEventIn, request: Request, device_id: str = Depends(get_device_id)):
+    """Fire-and-forget site-behavior event logging - see trackEvent() in
+    index_1.html for the frontend side. Deliberately tolerant of almost
+    anything going wrong here (unknown event_type, oversized metadata, no
+    DATABASE_URL configured, even a DB error) - this is instrumentation,
+    never a feature anything else depends on, so a bug in it should never
+    surface as a visible error to a real trader trying to use the app."""
+    if not settings.DATABASE_URL or body.event_type not in ALLOWED_ANALYTICS_EVENTS:
+        return
+
+    user_id = get_current_user(request)
+    metadata = body.metadata
+    if metadata is not None and len(json.dumps(metadata)) > _ANALYTICS_METADATA_MAX_CHARS:
+        metadata = {"_truncated": True}
+    path = (body.path or "").strip()[:200] or None
+
+    try:
+        await db.log_analytics_event(device_id, user_id, body.event_type, metadata, path)
+    except Exception as e:
+        print(f"[analytics] failed to log event '{body.event_type}': {e}")
 
 
 @app.get("/api/health")

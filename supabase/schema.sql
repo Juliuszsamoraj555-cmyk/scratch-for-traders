@@ -105,10 +105,104 @@ create table if not exists export_log (
     user_id       uuid references auth.users (id),
     platform      text not null, -- 'mt5' | 'mt4' | 'ctrader'
     consumed_from text not null, -- 'free' | 'credit' | 'pass'
+    -- What the exported strategy actually contained (2026-08-15 addition -
+    -- see main.py's _summarize_strategy()) - assets/timeframes/indicators
+    -- used, rule count, whether SL/TP were set, etc. Always derived
+    -- SERVER-SIDE from the already-parsed, already-validated StrategyIR,
+    -- never taken as-is from the client, so this can't be spoofed by
+    -- editing the request body. Nullable only so old rows from before
+    -- this column existed don't need backfilling. Only takes effect on a
+    -- FRESH database via this CREATE TABLE - export_log already existed
+    -- in production, so the explicit ALTER TABLE further down is what
+    -- actually adds it there; this definition just keeps a from-scratch
+    -- install matching the live schema in one place.
+    -- Shape (all keys always present once populated):
+    --   {"assets": ["EURUSD", ...], "timeframes": ["PERIOD_M15", ...],
+    --    "rule_count": 2, "indicator_kinds": ["RSI", "MA", ...],
+    --    "directions": ["BUY", "SELL"], "uses_sl": true, "uses_tp": true,
+    --    "max_positions": [1, 3]}
+    strategy_meta jsonb,
     created_at    timestamptz not null default now()
 );
 
+-- export_log already existed in production before strategy_meta was added
+-- (2026-08-15) - `create table if not exists` above is a no-op against an
+-- existing table, it does NOT add missing columns to it, so this table
+-- being on either a fresh database or the live one both need this
+-- explicit, idempotent ADD COLUMN (same reasoning as the rename above).
+-- Without it, the very first export after deploying the code that writes
+-- to this column would fail outright with "column does not exist".
+alter table export_log add column if not exists strategy_meta jsonb;
+
 create index if not exists idx_export_log_device on export_log (device_id, created_at desc);
+-- Powers "which assets do exports actually target" without a jsonb scan
+-- of the whole table every time - see the export_asset_popularity view
+-- below, which is what actually reads this.
+create index if not exists idx_export_log_strategy_meta on export_log using gin (strategy_meta);
+
+-- ============================================================
+-- General site-behavior event log (2026-08-15 addition) - a single
+-- append-only table for product/conversion questions beyond exports
+-- alone: did the paywall get shown before checkout started, how often
+-- is a strategy actually saved, where does signup drop off. NOT a full
+-- session-replay/heatmap tool - just enough structured events for real
+-- product decisions, cheap to query.
+--
+-- Identity follows the same model as the rest of this schema: anonymous
+-- device_id everywhere (every visitor gets one, see device_identity.py),
+-- user_id only once actually logged in. Nothing new invented here.
+--
+-- event_type is a free-text column in the table itself, but the API
+-- layer (see ALLOWED_ANALYTICS_EVENTS in main.py) only ever inserts one
+-- of a fixed, reviewed allowlist - so this can't silently fill up with
+-- arbitrary junk event names from a buggy or malicious client. metadata
+-- is a small jsonb blob whose shape depends on event_type (see that same
+-- allowlist for what each one is expected to carry).
+-- ============================================================
+create table if not exists analytics_events (
+    id          bigserial primary key,
+    device_id   uuid references devices (device_id),
+    user_id     uuid references auth.users (id),
+    event_type  text not null,
+    metadata    jsonb,
+    path        text, -- which page fired this, e.g. '/index_1.html' - useful once landing-page events are added too, not just the builder
+    created_at  timestamptz not null default now()
+);
+
+create index if not exists idx_analytics_events_type_time on analytics_events (event_type, created_at desc);
+create index if not exists idx_analytics_events_device on analytics_events (device_id, created_at desc);
+
+-- ============================================================
+-- Convenience views - the two questions this was actually requested for
+-- ("what asset did the user pick", "full visibility into on-site
+-- behaviour") answered directly in the Supabase Table Editor / SQL
+-- Editor with no query-writing needed.
+-- ============================================================
+
+-- One row per (asset, day) - unnests strategy_meta->'assets' since a
+-- single export can name more than one (multi-rule strategies). Ordered
+-- for "what are people actually building" at a glance.
+create or replace view export_asset_popularity as
+select
+    asset,
+    count(*) as export_count,
+    max(created_at) as last_exported_at
+from export_log, jsonb_array_elements_text(coalesce(strategy_meta -> 'assets', '[]'::jsonb)) as asset
+group by asset
+order by export_count desc;
+
+-- One row per (event_type, day) - the fastest way to eyeball a funnel
+-- (e.g. paywall_shown vs. checkout_started vs. export_succeeded on the
+-- same day) without hand-writing the group-by every time.
+create or replace view analytics_daily_summary as
+select
+    date_trunc('day', created_at) as day,
+    event_type,
+    count(*) as event_count,
+    count(distinct device_id) as distinct_devices
+from analytics_events
+group by 1, 2
+order by 1 desc, 3 desc;
 
 -- ============================================================
 -- has_active_pass: does this logged-in user currently have a paid,
@@ -157,7 +251,8 @@ create or replace function consume_export_entitlement(
     p_free_limit integer default 2,
     p_ip_hash text default null,
     p_ip_free_limit integer default 15,
-    p_ip_window_hours integer default 24
+    p_ip_window_hours integer default 24,
+    p_strategy_meta jsonb default null
 ) returns table(granted boolean, consumed_from text) as $$
 declare
     v_free_used     integer;
@@ -191,8 +286,8 @@ begin
                set free_exports_used = free_exports_used + 1,
                    last_seen_at = now()
              where device_id = p_device_id;
-            insert into export_log (device_id, platform, consumed_from)
-            values (p_device_id, p_platform, 'free');
+            insert into export_log (device_id, platform, consumed_from, strategy_meta)
+            values (p_device_id, p_platform, 'free', p_strategy_meta);
             return query select true, 'free'::text;
             return;
         end if;
@@ -207,8 +302,8 @@ begin
            set paid_export_credits = paid_export_credits - 1,
                last_seen_at = now()
          where device_id = p_device_id;
-        insert into export_log (device_id, platform, consumed_from)
-        values (p_device_id, p_platform, 'credit');
+        insert into export_log (device_id, platform, consumed_from, strategy_meta)
+        values (p_device_id, p_platform, 'credit', p_strategy_meta);
         return query select true, 'credit'::text;
         return;
     end if;

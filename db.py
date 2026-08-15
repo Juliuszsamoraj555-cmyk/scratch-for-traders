@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from typing import Optional
 
 from fastapi.concurrency import run_in_threadpool
+from psycopg.types.json import Json
 from psycopg_pool import ConnectionPool
 
 from settings import settings
@@ -158,14 +159,16 @@ async def get_entitlement_status(device_id: str) -> dict:
 # the atomic, row-locked logic)
 # --------------------------------------------------------------------------
 
-def _consume_export_sync(device_id: str, platform: str, ip: Optional[str]) -> tuple[bool, str]:
+def _consume_export_sync(
+    device_id: str, platform: str, ip: Optional[str], strategy_meta: Optional[dict]
+) -> tuple[bool, str]:
     # Same salted hash as get_or_create_device used when it stored this
     # device's ip_hash - has to match or the IP-level free-export count
     # in consume_export_entitlement() would never find this device's rows.
     ip_hash = hash_ip(ip) if ip else None
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "select granted, consumed_from from consume_export_entitlement(%s, %s, %s, %s, %s, %s)",
+            "select granted, consumed_from from consume_export_entitlement(%s, %s, %s, %s, %s, %s, %s)",
             (
                 device_id,
                 platform,
@@ -173,19 +176,26 @@ def _consume_export_sync(device_id: str, platform: str, ip: Optional[str]) -> tu
                 ip_hash,
                 settings.IP_FREE_EXPORT_LIMIT,
                 settings.IP_FREE_EXPORT_WINDOW_HOURS,
+                Json(strategy_meta) if strategy_meta is not None else None,
             ),
         )
         granted, consumed_from = cur.fetchone()
         return bool(granted), consumed_from
 
 
-async def consume_export(device_id: str, platform: str, ip: Optional[str] = None) -> tuple[bool, str]:
+async def consume_export(
+    device_id: str, platform: str, ip: Optional[str] = None, strategy_meta: Optional[dict] = None
+) -> tuple[bool, str]:
     """Returns (granted, consumed_from). consumed_from is 'free' | 'credit'
     | 'pass' when granted=True, or 'none' when granted=False (caller
     should respond 402 Payment Required). ip is optional only so old call
     sites don't break - omitting it just disables the per-IP free-export
-    cap for that call (see consume_export_entitlement() in schema.sql)."""
-    return await run_in_threadpool(_consume_export_sync, device_id, platform, ip)
+    cap for that call (see consume_export_entitlement() in schema.sql).
+    strategy_meta (see _summarize_strategy() in main.py) is stored
+    alongside the export_log row consume_export_entitlement() inserts,
+    when one actually gets granted - omitted (None) it's simply not
+    recorded, same as before this existed."""
+    return await run_in_threadpool(_consume_export_sync, device_id, platform, ip, strategy_meta)
 
 
 # --------------------------------------------------------------------------
@@ -310,17 +320,46 @@ async def has_active_pass(user_id: str) -> bool:
     return await run_in_threadpool(_has_active_pass_sync, user_id)
 
 
-def _log_user_pass_export_sync(user_id: str, device_id: str, platform: str) -> None:
+def _log_user_pass_export_sync(user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict]) -> None:
     # No row-locking/counter here on purpose - an active pass is
     # unlimited-while-active, this is just a delivery log, not a
     # resource being deducted (unlike consume_export_entitlement).
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "insert into export_log (device_id, user_id, platform, consumed_from) "
-            "values (%s, %s, %s, 'pass')",
-            (device_id, user_id, platform),
+            "insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta) "
+            "values (%s, %s, %s, 'pass', %s)",
+            (device_id, user_id, platform, Json(strategy_meta) if strategy_meta is not None else None),
         )
 
 
-async def log_user_pass_export(user_id: str, device_id: str, platform: str) -> None:
-    return await run_in_threadpool(_log_user_pass_export_sync, user_id, device_id, platform)
+async def log_user_pass_export(
+    user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict] = None
+) -> None:
+    return await run_in_threadpool(_log_user_pass_export_sync, user_id, device_id, platform, strategy_meta)
+
+
+# --------------------------------------------------------------------------
+# General site-behavior events (2026-08-15 addition) - see analytics_events
+# in schema.sql for the table and the two convenience views, and
+# ALLOWED_ANALYTICS_EVENTS in main.py for the fixed event_type allowlist
+# the API layer enforces before anything reaches this function. Deliberately
+# just an insert, no row-locking or read-back - this is a write-mostly log,
+# never a value anything else in the app depends on reading back.
+# --------------------------------------------------------------------------
+
+def _log_analytics_event_sync(
+    device_id: Optional[str], user_id: Optional[str], event_type: str, metadata: Optional[dict], path: Optional[str]
+) -> None:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into analytics_events (device_id, user_id, event_type, metadata, path) "
+            "values (%s, %s, %s, %s, %s)",
+            (device_id, user_id, event_type, Json(metadata) if metadata is not None else None, path),
+        )
+
+
+async def log_analytics_event(
+    device_id: Optional[str], user_id: Optional[str], event_type: str,
+    metadata: Optional[dict] = None, path: Optional[str] = None,
+) -> None:
+    return await run_in_threadpool(_log_analytics_event_sync, device_id, user_id, event_type, metadata, path)
