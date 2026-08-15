@@ -3,7 +3,7 @@ Real cTrader Automate build check for generated cBots.
 
 Runs every strategy in tests/fixtures/ (or one given file) through
 render_csharp(), drops the result into a scratch .NET class-library
-project (ctrader_build_check/) that references the real `cTrader.Automate`
+project (tools/ctrader_build_check/) that references the real `cTrader.Automate`
 NuGet package, and runs `dotnet build` against it - the same .NET SDK
 compiler cTrader Automate's own Ctrl+B uses under the hood (cTrader
 Desktop 4.2+ builds cBots via the .NET SDK, and officially supports
@@ -52,14 +52,18 @@ from tools.strategy_matrix import generate_matrix  # noqa: E402
 
 FIXTURES_DIR = Path(__file__).parent.parent / "tests" / "fixtures"
 FAILURES_DIR = FIXTURES_DIR / "failures"
-PROJECT_DIR = Path(__file__).parent.parent / "ctrader_build_check"
+# Sibling of this script (tools/ctrader_build_check/), not repo-root level -
+# it's scratch tooling used only by this verification script, not something
+# the deployed app or any other tool depends on, so it lives alongside the
+# tool that owns it rather than cluttering the repo root.
+PROJECT_DIR = Path(__file__).parent / "ctrader_build_check"
 CS_FILE = PROJECT_DIR / "AlgoPuzzleBot.cs"
 CSPROJ_FILE = PROJECT_DIR / "AlgoPuzzleBot.csproj"
 
 
 def ensure_project():
     """Scaffold the scratch build project once if it doesn't exist yet -
-    see HANDOFF.md for why this shape (a plain classlib referencing
+    see docs/HANDOFF.md for why this shape (a plain classlib referencing
     cTrader.Automate) is the right one."""
     if CSPROJ_FILE.exists():
         return

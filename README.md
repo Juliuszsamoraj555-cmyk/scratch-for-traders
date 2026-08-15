@@ -23,3 +23,10 @@ A no-code visual builder that compiles drag-and-drop trading blocks into a deplo
 - One top-level strategy rule (`IF` block) is exported; the first one found on the canvas is used.
 - Backtesting is intentionally out of scope — review the generated code and run it through MT5's Strategy Tester before trading it.
 - `==` comparisons compile to a small-tolerance `MathAbs()` check, since MQL5 doubles shouldn't be compared with strict equality.
+
+## More documentation
+
+- [`docs/HANDOFF.md`](docs/HANDOFF.md) — full project handoff: architecture, design decisions, current state, open items.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — step-by-step production deploy checklist (Supabase → Stripe → Render → domain).
+- [`docs/SEO_KEYWORDS.md`](docs/SEO_KEYWORDS.md) — target-keyword tracking for the landing page and blog.
+- [`blog/CONTENT_GUIDE.md`](blog/CONTENT_GUIDE.md) — process for writing a new blog article.

@@ -1,6 +1,6 @@
 """
 Regression tests for the StrategyIR refactor (parse_strategy / render_mql5 /
-render_csharp) - see HANDOFF.md for why this shape exists.
+render_csharp) - see docs/HANDOFF.md for why this shape exists.
 
 `tests/fixtures/*.json` are Blockly-serialized workspace payloads captured
 BEFORE the IR refactor (generate_mql5(WorkspaceConfig) directly). The
@@ -67,7 +67,7 @@ def test_readme_output_unchanged_by_ir_refactor(name):
 @pytest.mark.parametrize("name", FIXTURE_NAMES)
 def test_csharp_output_is_syntactically_sane(name):
     """Not a real compile (no cTrader Automate available here - see
-    HANDOFF.md) - just the cheap structural checks that would catch a
+    docs/HANDOFF.md) - just the cheap structural checks that would catch a
     broken template: balanced braces/parens, and no leftover <<TOKEN>>
     placeholders from the .replace()-based substitution."""
     config = _load_fixture(name)

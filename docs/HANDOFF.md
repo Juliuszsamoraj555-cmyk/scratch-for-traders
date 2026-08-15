@@ -21,7 +21,7 @@ This picks up from the original handoff doc (same project, same stack: FastAPI +
 - `tests/test_regression.py` — pytest suite covering the fixtures above (`pytest tests/test_regression.py -v`). First automated test coverage this project has had.
 - `tools/verify_mt5_compile.py` / `tools/verify_ctrader_build.py` / `tools/verify_mt4_compile.py` — real, repeatable compiler checks for all three export targets, see items 8 and 10. Not part of `pytest tests/` (need real local MT5/MT4 installs / `dotnet`+network) - run explicitly.
 - `tools/strategy_matrix.py` — combinatorial strategy generator (46 strategies, each-choice coverage of every operand/timeframe/operator/etc.), see item 9. `--matrix` flag on all three verify_*.py scripts uses it.
-- `ctrader_build_check/` — scratch `dotnet new classlib` project referencing the real `cTrader.Automate` NuGet package, used by `verify_ctrader_build.py`. `bin/`/`obj/` inside it are normal build output, safe to ignore/delete and regenerate.
+- `tools/ctrader_build_check/` — scratch `dotnet new classlib` project referencing the real `cTrader.Automate` NuGet package, used by `verify_ctrader_build.py`. `bin/`/`obj/` inside it are normal build output, safe to ignore/delete and regenerate.
 
 ## What changed this session (in order)
 
@@ -100,7 +100,7 @@ This directly earlier note in item 7 that cTrader-headless-build was "explicitly
 
 **New, reusable, repeatable tooling (this is the actual answer to "how do we avoid doing this by hand forever"):**
 - `tools/verify_mt5_compile.py` — auto-discovers MetaEditor + Data Folder, compiles every `tests/fixtures/*.json` (or `--fixture name` / `--file path.json`) for real, reports PASS/FAIL per strategy, exits non-zero on any failure.
-- `tools/verify_ctrader_build.py` — same shape, targets the `ctrader_build_check/` scratch project + `dotnet build`.
+- `tools/verify_ctrader_build.py` — same shape, targets the `tools/ctrader_build_check/` scratch project + `dotnet build`.
 - Both are plain `python tools/verify_*.py` - no flags needed for the common case (checks all 3 fixtures), a few seconds each, safe to re-run anytime (e.g. after touching `render_mql5`/`render_csharp` again).
 - **Not wired into `pytest tests/`** on purpose - they need a real local MT5 install / `dotnet` + network access respectively, which a plain unit-test run shouldn't depend on. Run them explicitly, ideally after any change to either renderer.
 
@@ -157,7 +157,7 @@ python tools/verify_mt4_compile.py --matrix
 | MT5 (OANDA TMS) | `C:\Program Files\OANDA TMS MT5 Terminal\MetaEditor64.exe` | `...\AppData\Roaming\MetaQuotes\Terminal\47AEB69EDDAD4D73097816C71FB25856\` |
 | MT5 (generic) | `C:\Program Files\MetaTrader 5\MetaEditor64.exe` | same underlying account, same Data Folder as above |
 | MT4 (FTMO) | `C:\Program Files (x86)\FTMO MetaTrader 4\metaeditor.exe` | `...\AppData\Roaming\MetaQuotes\Terminal\2C68BEE3A904BDCEE3EEF5A5A77EC162\` |
-| cTrader | n/a (no desktop install found/needed) | `ctrader_build_check/` scratch `dotnet` project instead |
+| cTrader | n/a (no desktop install found/needed) | `tools/ctrader_build_check/` scratch `dotnet` project instead |
 
 All of `tools/verify_*.py` auto-discover these; this table is just so a future session doesn't have to re-run the discovery commands from scratch.
 
