@@ -22,7 +22,16 @@ from contextlib import contextmanager
 from typing import Optional
 
 from fastapi.concurrency import run_in_threadpool
-from psycopg.types.json import Json
+# Jsonb, not Json - psycopg3 has two separate wrapper classes, one per
+# Postgres type (json vs jsonb). Every jsonb-typed column/function
+# parameter in schema.sql (export_log.strategy_meta, analytics_events.
+# metadata, consume_export_entitlement's p_strategy_meta, ...) needs the
+# argument adapted as an actual `jsonb`-typed value - Json here adapts as
+# plain `json` instead, which Postgres does NOT implicitly cast to jsonb
+# for function-overload resolution, so every call using it failed
+# outright with "function ... does not exist" (confirmed against a real
+# production traceback, psycopg.errors.UndefinedFunction, 2026-08-15).
+from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from settings import settings
@@ -176,7 +185,7 @@ def _consume_export_sync(
                 ip_hash,
                 settings.IP_FREE_EXPORT_LIMIT,
                 settings.IP_FREE_EXPORT_WINDOW_HOURS,
-                Json(strategy_meta) if strategy_meta is not None else None,
+                Jsonb(strategy_meta) if strategy_meta is not None else None,
             ),
         )
         granted, consumed_from = cur.fetchone()
@@ -328,7 +337,7 @@ def _log_user_pass_export_sync(user_id: str, device_id: str, platform: str, stra
         cur.execute(
             "insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta) "
             "values (%s, %s, %s, 'pass', %s)",
-            (device_id, user_id, platform, Json(strategy_meta) if strategy_meta is not None else None),
+            (device_id, user_id, platform, Jsonb(strategy_meta) if strategy_meta is not None else None),
         )
 
 
@@ -354,7 +363,7 @@ def _log_analytics_event_sync(
         cur.execute(
             "insert into analytics_events (device_id, user_id, event_type, metadata, path) "
             "values (%s, %s, %s, %s, %s)",
-            (device_id, user_id, event_type, Json(metadata) if metadata is not None else None, path),
+            (device_id, user_id, event_type, Jsonb(metadata) if metadata is not None else None, path),
         )
 
 
