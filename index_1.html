@@ -230,28 +230,68 @@
        Stripe's own hosted Checkout page - this app never touches a card
        number. -->
   <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center px-4">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md p-6">
-      <h2 class="text-lg font-semibold text-gray-100 mb-1">Free exports used up</h2>
-      <p id="paywallMessage" class="text-sm text-gray-400 mb-5">Choose how you'd like to keep exporting.</p>
-      <div class="space-y-3">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-2xl p-6 sm:p-8">
+      <!-- paywallMessage carries the backend's own count (e.g. "You've
+           used your 2 free exports") - kept server-driven rather than
+           hardcoded here so it never drifts if FREE_EXPORT_LIMIT in
+           settings.py ever changes. The line below it is fixed marketing
+           copy, not tied to any dynamic value, so it's never overwritten. -->
+      <p id="paywallMessage" class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Free exports used up</p>
+      <h2 class="text-2xl font-semibold text-gray-100 mb-2">Keep exporting your strategies</h2>
+      <p class="text-sm text-gray-400 mb-6">Every export is a ready-to-run EA or cBot, verified against real MT5/MT4/cTrader compilers - pick whichever fits how you work.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button id="paywallExportBtn"
-          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-4 py-3 transition">
-          <div class="flex items-center justify-between">
-            <span class="font-medium text-gray-100">Single export</span>
-            <span class="font-semibold text-emerald-400">$2.00</span>
+          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-5 transition flex flex-col">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-semibold text-gray-100">Single export</span>
+            <span class="font-semibold text-emerald-400 text-lg">$2.00</span>
           </div>
-          <p class="text-xs text-gray-400 mt-0.5">One-time payment, unlocks exactly one export.</p>
+          <p class="text-xs text-gray-500 mb-4">One-time payment - no account, no subscription.</p>
+          <ul class="text-sm text-gray-300 space-y-2 mt-auto">
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>One finished strategy, exported once</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Ready-to-run .zip in seconds</span>
+            </li>
+          </ul>
         </button>
         <button id="paywallPassBtn"
-          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-emerald-700 rounded-lg px-4 py-3 transition">
-          <div class="flex items-center justify-between">
-            <span class="font-medium text-gray-100">30-day unlimited pass</span>
-            <span class="font-semibold text-emerald-400">$9.99</span>
+          class="w-full text-left bg-gray-800 hover:bg-gray-700 border-2 border-emerald-600 rounded-lg p-5 transition flex flex-col">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-semibold text-gray-100">30-day unlimited</span>
+            <span class="font-semibold text-emerald-400 text-lg">$9.99</span>
           </div>
-          <p class="text-xs text-gray-400 mt-0.5">Unlimited exports on any of your devices for 30 days. Needs a quick login.</p>
+          <p class="text-xs text-emerald-500 font-medium mb-4">Pays for itself after 5 exports</p>
+          <ul class="text-sm text-gray-300 space-y-2 mt-auto">
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Unlimited exports across MT5, MT4 and cTrader</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Keep tweaking the same strategy without paying again</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Works from any device once you're logged in</span>
+            </li>
+          </ul>
         </button>
       </div>
-      <div class="flex justify-end mt-5">
+      <div class="flex justify-end mt-6">
         <button id="paywallCancelBtn" class="text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded-md">Not now</button>
       </div>
     </div>

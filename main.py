@@ -2871,10 +2871,13 @@ async def _require_export_entitlement(
             status_code=402,
             detail={
                 "error": "payment_required",
-                "message": (
-                    "You've used your free exports. Buy a single export "
-                    "($2.00) or the unlimited 30-day pass ($9.99) to keep going."
-                ),
+                # Short on purpose - the paywall modal (see showPaywall()
+                # in index_1.html) shows this as a small label above its
+                # own heading, with pricing already spelled out on each
+                # plan's card, so repeating "$2.00 / $9.99" here as well
+                # would just be redundant on top of what the trader is
+                # about to read a few lines down.
+                "message": f"You've used your {settings.FREE_EXPORT_LIMIT} free exports",
             },
         )
 
