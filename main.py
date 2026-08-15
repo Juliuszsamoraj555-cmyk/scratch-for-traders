@@ -3061,12 +3061,6 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
     in, pass_active reflects that user's account-wide pass (which can be
     true even on a brand new device that's never bought anything)."""
     user_id = get_current_user(request)
-    # Lets the paywall show/hide its "Pay in PLN (BLIK, Przelewy24)" links
-    # (see paywallExportPlnBtn/paywallPassPlnBtn in index_1.html) based on
-    # whether PLN Prices actually exist, rather than showing them
-    # unconditionally and only failing once clicked - see
-    # STRIPE_PRICE_EXPORT_PLN/STRIPE_PRICE_PASS_PLN in settings.py.
-    pln_checkout_available = bool(settings.STRIPE_PRICE_EXPORT_PLN and settings.STRIPE_PRICE_PASS_PLN)
     if not settings.DATABASE_URL:
         return {
             "free_exports_used": 0,
@@ -3076,49 +3070,39 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
             "pass_expires_at": None,
             "billing_configured": False,
             "logged_in": bool(user_id),
-            "pln_checkout_available": pln_checkout_available,
         }
     status = await db.get_entitlement_status(device_id)
     status["billing_configured"] = True
     status["logged_in"] = bool(user_id)
-    status["pln_checkout_available"] = pln_checkout_available
     if user_id and await db.has_active_pass(user_id):
         status["pass_active"] = True
     return status
 
 
 @app.post("/api/billing/checkout/export")
-async def billing_checkout_export(device_id: str = Depends(get_device_id), currency: str = "usd"):
+async def billing_checkout_export(device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for a single export credit and
     returns its hosted URL for the frontend to redirect to. Anonymous -
-    no login involved, same as the free tier.
-
-    currency=pln (see billing.create_checkout_session) switches to the
-    PLN Price so Stripe can offer BLIK/Przelewy24 - see paywallPlnBtn in
-    index_1.html for the frontend side."""
+    no login involved, same as the free tier."""
     try:
-        url = billing.create_checkout_session(device_id, "export_credit", currency=currency)
+        url = billing.create_checkout_session(device_id, "export_credit")
     except billing.BillingNotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     return {"url": url}
 
 
 @app.post("/api/billing/checkout/pass")
-async def billing_checkout_pass(request: Request, device_id: str = Depends(get_device_id), currency: str = "usd"):
+async def billing_checkout_pass(request: Request, device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for the 30-day unlimited pass
     and returns its hosted URL for the frontend to redirect to. Requires
     login (401 if not) - see billing.LoginRequired."""
     user_id = get_current_user(request)
     try:
-        url = billing.create_checkout_session(device_id, "day_pass", user_id=user_id, currency=currency)
+        url = billing.create_checkout_session(device_id, "day_pass", user_id=user_id)
     except billing.LoginRequired as e:
         raise HTTPException(status_code=401, detail=str(e))
     except billing.BillingNotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     return {"url": url}
 
 

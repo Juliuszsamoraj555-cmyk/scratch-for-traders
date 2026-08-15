@@ -32,10 +32,6 @@ services:
         sync: false
       - key: STRIPE_PRICE_PASS
         sync: false
-      - key: STRIPE_PRICE_EXPORT_PLN
-        sync: false # optional - only needed for BLIK/Przelewy24, see .env.example. Leave blank in the Render dashboard to skip PLN checkout entirely.
-      - key: STRIPE_PRICE_PASS_PLN
-        sync: false # optional - same as above
       - key: SUPABASE_URL
         sync: false # Project Settings -> API - login for the 30-day pass only
       - key: SUPABASE_ANON_KEY
