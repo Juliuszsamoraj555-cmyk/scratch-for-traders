@@ -41,6 +41,19 @@ class Settings:
     # Subscription Prices - these are one-time-purchase Price IDs.
     STRIPE_PRICE_EXPORT: str | None = os.getenv("STRIPE_PRICE_EXPORT")
     STRIPE_PRICE_PASS: str | None = os.getenv("STRIPE_PRICE_PASS")
+    # Optional second Price per product, in PLN (2026-08-15 addition) -
+    # lets create_checkout_session() offer a PLN-denominated Checkout
+    # Session instead of the default USD one. This exists specifically for
+    # BLIK and Przelewy24 (Polish bank-transfer methods): Stripe only
+    # offers either of those on a Checkout Session whose currency is PLN -
+    # it does not auto-convert, so the USD Prices above can never surface
+    # them no matter what's toggled on in the Dashboard. Same product in
+    # Stripe, just a second Price under it (Product -> Add another price) -
+    # no new Product needed. Left unset, PLN checkout simply isn't offered
+    # (create_checkout_session raises BillingNotConfigured for that one
+    # path only - USD checkout is completely unaffected).
+    STRIPE_PRICE_EXPORT_PLN: str | None = os.getenv("STRIPE_PRICE_EXPORT_PLN")
+    STRIPE_PRICE_PASS_PLN: str | None = os.getenv("STRIPE_PRICE_PASS_PLN")
 
     # --- Supabase Auth (email+password login, for the 30-day pass only -
     # the free tier and single-export purchases stay anonymous/device_id

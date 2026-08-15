@@ -60,7 +60,9 @@ def _require_configured() -> None:
     stripe.api_version = "2025-03-31.basil"
 
 
-def create_checkout_session(device_id: str, kind: Kind, user_id: Optional[str] = None) -> str:
+def create_checkout_session(
+    device_id: str, kind: Kind, user_id: Optional[str] = None, currency: str = "usd"
+) -> str:
     """Creates a Stripe Checkout Session for the given product and
     returns its hosted URL - the caller (main.py) redirects/returns this
     to the frontend, which sends the browser there.
@@ -69,12 +71,34 @@ def create_checkout_session(device_id: str, kind: Kind, user_id: Optional[str] =
     see main.py's get_current_user): the pass is granted to the account,
     not the device, so it works across every device the trader logs
     into. kind="export_credit" ignores user_id entirely and stays on
-    device_id, same as always - single exports don't need an account."""
+    device_id, same as always - single exports don't need an account.
+
+    currency="usd" (default) uses the normal STRIPE_PRICE_*; currency=
+    "pln" uses the separate STRIPE_PRICE_*_PLN Price instead - this is
+    the ONLY thing that determines whether Stripe can offer BLIK/
+    Przelewy24 on this session (both require a PLN-denominated session,
+    Stripe does not convert). Any other value is rejected outright
+    rather than silently falling back to USD, so a frontend bug sending
+    a typo'd currency fails loudly instead of quietly charging the wrong
+    amount in the wrong currency."""
     _require_configured()
     if kind == "day_pass" and not user_id:
         raise LoginRequired("Log in to buy the 30-day pass - it needs to work across your devices.")
 
-    price_id = settings.STRIPE_PRICE_EXPORT if kind == "export_credit" else settings.STRIPE_PRICE_PASS
+    currency = currency.lower()
+    if currency not in ("usd", "pln"):
+        raise ValueError(f"Unsupported checkout currency: {currency!r}")
+
+    if currency == "pln":
+        price_id = settings.STRIPE_PRICE_EXPORT_PLN if kind == "export_credit" else settings.STRIPE_PRICE_PASS_PLN
+        if not price_id:
+            raise BillingNotConfigured(
+                "PLN checkout isn't set up yet - missing STRIPE_PRICE_EXPORT_PLN / "
+                "STRIPE_PRICE_PASS_PLN. See .env.example."
+            )
+    else:
+        price_id = settings.STRIPE_PRICE_EXPORT if kind == "export_credit" else settings.STRIPE_PRICE_PASS
+
     metadata = {"device_id": device_id, "kind": kind}
     if kind == "day_pass":
         metadata["user_id"] = user_id

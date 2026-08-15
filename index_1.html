@@ -238,54 +238,66 @@
            copy, not tied to any dynamic value, so it's never overwritten. -->
       <p id="paywallMessage" class="text-lg font-semibold text-gray-100 mb-6">Free exports used up</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button id="paywallExportBtn"
-          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-5 transition flex flex-col">
-          <div class="flex items-center justify-between mb-3">
-            <span class="font-semibold text-gray-100">Single export</span>
-            <span class="font-semibold text-emerald-400 text-lg">$2.00</span>
-          </div>
-          <ul class="text-sm text-gray-300 space-y-2">
-            <li class="flex items-start gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>One finished strategy, exported once</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>Ready-to-run .zip in seconds</span>
-            </li>
-          </ul>
-        </button>
-        <button id="paywallPassBtn"
-          class="w-full text-left bg-gray-800 hover:bg-gray-700 border-2 border-emerald-600 rounded-lg p-5 transition flex flex-col">
-          <div class="flex items-center justify-between mb-3">
-            <span class="font-semibold text-gray-100">30-day unlimited</span>
-            <span class="font-semibold text-emerald-400 text-lg">$9.99</span>
-          </div>
-          <ul class="text-sm text-gray-300 space-y-2">
-            <li class="flex items-start gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>Unlimited exports across MT5, MT4 and cTrader</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>Keep tweaking the same strategy without paying again</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>Works from any device once you're logged in</span>
-            </li>
-          </ul>
-        </button>
+        <div class="flex flex-col">
+          <button id="paywallExportBtn"
+            class="w-full flex-1 text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-5 transition flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-semibold text-gray-100">Single export</span>
+              <span class="font-semibold text-emerald-400 text-lg">$2.00</span>
+            </div>
+            <ul class="text-sm text-gray-300 space-y-2">
+              <li class="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>One finished strategy, exported once</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Ready-to-run .zip in seconds</span>
+              </li>
+            </ul>
+          </button>
+          <!-- Separate sibling control, not nested inside paywallExportBtn -
+               a <button> can't contain another interactive element. Only
+               offered when the backend actually has a PLN Price configured
+               (see STRIPE_PRICE_EXPORT_PLN) - startCheckout() below hides
+               this automatically if billing/status reports it's unavailable,
+               so a trader never sees a payment option that then fails. -->
+          <button id="paywallExportPlnBtn" class="hidden mt-2 text-xs text-gray-500 hover:text-gray-300 underline self-start">Zapłać w PLN (BLIK, Przelewy24)</button>
+        </div>
+        <div class="flex flex-col">
+          <button id="paywallPassBtn"
+            class="w-full flex-1 text-left bg-gray-800 hover:bg-gray-700 border-2 border-emerald-600 rounded-lg p-5 transition flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-semibold text-gray-100">30-day unlimited</span>
+              <span class="font-semibold text-emerald-400 text-lg">$9.99</span>
+            </div>
+            <ul class="text-sm text-gray-300 space-y-2">
+              <li class="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Unlimited exports across MT5, MT4 and cTrader</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Keep tweaking the same strategy without paying again</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Works from any device once you're logged in</span>
+              </li>
+            </ul>
+          </button>
+          <button id="paywallPassPlnBtn" class="hidden mt-2 text-xs text-gray-500 hover:text-gray-300 underline self-start">Zapłać w PLN (BLIK, Przelewy24)</button>
+        </div>
       </div>
       <div class="flex justify-end mt-6">
         <button id="paywallCancelBtn" class="text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded-md">Not now</button>
@@ -2292,7 +2304,19 @@ async function fetchBillingStatus() {
   }
 }
 
+const paywallExportPlnBtn = document.getElementById('paywallExportPlnBtn');
+const paywallPassPlnBtn = document.getElementById('paywallPassPlnBtn');
+
 function renderBillingIndicator(status) {
+  // PLN checkout (BLIK/Przelewy24 - see STRIPE_PRICE_EXPORT_PLN in
+  // settings.py) only shows once the backend confirms it's actually
+  // configured, so a trader never sees a payment option that would then
+  // fail. Not user-specific, so this only needs setting once billing
+  // status has loaded at all, whether or not the paywall is even open yet.
+  const plnAvailable = !!(status && status.pln_checkout_available);
+  paywallExportPlnBtn.classList.toggle('hidden', !plnAvailable);
+  paywallPassPlnBtn.classList.toggle('hidden', !plnAvailable);
+
   if (!status || !status.billing_configured) {
     billingIndicator.classList.add('hidden');
     return;
@@ -2326,15 +2350,15 @@ function hidePaywall() {
   paywallOverlay.classList.add('hidden');
 }
 
-async function startCheckout(kind) {
-  trackEvent('checkout_started', { kind });
+async function startCheckout(kind, currency = 'usd') {
+  trackEvent('checkout_started', { kind, currency });
   // The 30-day pass is the one purchase that needs login (see
   // billing.LoginRequired) - if there's no valid session yet, collect
   // one first, then resume straight into checkout on success rather
   // than making the trader click "buy" a second time.
   if (kind === 'pass' && !(await getValidAccessToken())) {
     hidePaywall();
-    showAuthOverlay(() => startCheckout('pass'));
+    showAuthOverlay(() => startCheckout('pass', currency));
     return;
   }
 
@@ -2342,7 +2366,7 @@ async function startCheckout(kind) {
   try {
     const token = await getValidAccessToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', credentials: 'include', headers });
+    const res = await fetch(`${API_BASE}${endpoint}?currency=${encodeURIComponent(currency)}`, { method: 'POST', credentials: 'include', headers });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
       throw new Error((errJson.detail && errJson.detail.message) || errJson.detail || 'Could not start checkout.');
@@ -2357,6 +2381,8 @@ async function startCheckout(kind) {
 
 document.getElementById('paywallExportBtn').addEventListener('click', () => startCheckout('export'));
 document.getElementById('paywallPassBtn').addEventListener('click', () => startCheckout('pass'));
+paywallExportPlnBtn.addEventListener('click', () => startCheckout('export', 'pln'));
+paywallPassPlnBtn.addEventListener('click', () => startCheckout('pass', 'pln'));
 document.getElementById('paywallCancelBtn').addEventListener('click', hidePaywall);
 paywallOverlay.addEventListener('click', (e) => { if (e.target === paywallOverlay) hidePaywall(); });
 
