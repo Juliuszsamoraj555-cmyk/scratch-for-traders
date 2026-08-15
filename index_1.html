@@ -236,8 +236,7 @@
            hardcoded here so it never drifts if FREE_EXPORT_LIMIT in
            settings.py ever changes. The line below it is fixed marketing
            copy, not tied to any dynamic value, so it's never overwritten. -->
-      <p id="paywallMessage" class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Free exports used up</p>
-      <h2 class="text-2xl font-semibold text-gray-100 mb-6">Keep exporting your strategies</h2>
+      <p id="paywallMessage" class="text-lg font-semibold text-gray-100 mb-6">Free exports used up</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button id="paywallExportBtn"
           class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-5 transition flex flex-col">
@@ -2431,6 +2430,20 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
 
   exportButtons.forEach(b => { b.disabled = true; });
   statusMsg.textContent = busyLabel;
+  // Force-visible regardless of the mobile icon-only header (statusMsg is
+  // normally `hidden` below sm - see the header markup) - an export in
+  // flight is exactly the moment a trader most needs SOME feedback that
+  // something is happening, on every screen size.
+  statusMsg.style.display = 'inline';
+  // The backend (Render free plan) spins down after ~15 minutes idle and
+  // can take up to a minute to wake back up on the next request - a real
+  // trader hitting that cold start with no explanation just sees
+  // "Generating EA..." sit there and reasonably assumes it's broken. This
+  // doesn't change how long it actually takes, just stops the silence
+  // partway through from reading as a hang.
+  const slowHintTimer = setTimeout(() => {
+    statusMsg.textContent = `${busyLabel} (this can take up to a minute if the server's waking up)`;
+  }, 6000);
 
   try {
     // Authorization is only added if actually logged in - lets the
@@ -2484,8 +2497,10 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
   } catch (err) {
     showToast('Export failed: ' + err.message, true);
   } finally {
+    clearTimeout(slowHintTimer);
     exportButtons.forEach(b => { b.disabled = false; });
     statusMsg.textContent = '';
+    statusMsg.style.display = '';
   }
 }
 
