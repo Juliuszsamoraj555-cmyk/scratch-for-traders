@@ -33,6 +33,22 @@
      order would make Blockly's rule win instead of this one. */
   @media (max-width: 639px) {
     body:not(.toolbox-open) .blocklyToolbox { display: none !important; }
+    /* A selected category's flyout (the actual block list/preview) is
+       offset by Blockly to start right after the toolbox rail and drawn
+       underneath it (toolbox z-index 70 vs flyout 20) - fine on desktop,
+       but on a phone that left only ~200px of a ~375px screen for block
+       content, and category flyouts have no horizontal scrollbar, so
+       anything wider (several blocks, worst case the "IF (Strategy
+       Rule)" card) ran off the right edge with no way to reach it - the
+       reported "variables in tabs only show a fragment". Forcing the
+       flyout to the full screen width instead fixes every category
+       except that one worst-case block, which is wider than any phone
+       screen regardless of offset. !important for the same reason as
+       above: overriding Blockly's own inline/stylesheet values. */
+    body.toolbox-open .blocklyFlyout {
+      transform: translate(0px, 0px) !important;
+      z-index: 75 !important;
+    }
   }
 </style>
 </head>
@@ -51,10 +67,15 @@
           <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
           <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
           <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
-          <path d="M94,62 L112,42 L104,48 L138,14 L126,18 M138,14 L138,26" stroke="#f9fafb" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="18" y="126" width="10" height="20" rx="2" fill="#f9fafb"/>
-          <rect x="34" y="110" width="10" height="36" rx="2" fill="#f9fafb"/>
-          <rect x="50" y="118" width="10" height="28" rx="2" fill="#f9fafb"/>
+          <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+          <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+          <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+          <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+          <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+          <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+          <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+          <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
         </g>
       </svg>
       <h1 class="text-lg font-semibold tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></h1>
@@ -153,7 +174,17 @@
          collapsed below sm (see the <style> block) to leave the phone
          screen usable - this toggles it back open. Hidden on sm+ where
          the toolbox is always visible and there's room for it. -->
-    <button id="toolboxToggleBtn" class="sm:hidden absolute top-3 left-3 z-20 bg-gray-800/95 hover:bg-gray-700 active:bg-gray-600 text-gray-200 rounded-md p-2 shadow-lg flex items-center gap-1.5 transition"
+    <!-- z-index:80 via inline style (not a Tailwind z-[80] class - the
+         precompiled stylesheet only ships z-10/20/40/50, see the build-step
+         note at the top of <head>, and a class the build never generated
+         would silently do nothing at runtime). Needed because Blockly's own
+         .blocklyToolbox panel renders at z-index:70 (baked into its
+         vendored stylesheet, not ours to edit), so once the drawer is open
+         it sits on top of anything below z-70 - including this button at
+         its usual top-3/left-3 spot, which is exactly where the toolbox
+         panel starts. At the old z-20 the button became unclickable (and so
+         unclosable) the moment the drawer opened. -->
+    <button id="toolboxToggleBtn" class="sm:hidden absolute top-3 left-3 bg-gray-800/95 hover:bg-gray-700 active:bg-gray-600 text-gray-200 rounded-md p-2 shadow-lg flex items-center gap-1.5 transition" style="z-index: 80;"
       title="Show block categories" aria-label="Show block categories" aria-expanded="false">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="7" height="7" rx="1.5"/>
@@ -1096,12 +1127,41 @@ trackEvent('builder_opened');
    showing/hiding the already-full-width-underneath toolbox panel. When
    opening, also collapse the trashcan/zoom controls' popup state isn't
    relevant here, but closing on a second tap (rather than only having
-   an "open" affordance) is - so this toggles, it doesn't just open. */
+   an "open" affordance) is - so this toggles, it doesn't just open.
+
+   Flipping the CSS class is invisible to Blockly itself though: on
+   mobile the toolbox starts under `display:none`, and Blockly measured
+   (and cached) its width as 0 at that point. A category's flyout is
+   positioned/sized using that cached toolbox width, so with a stale 0 it
+   could render off to the side, clipped, or effectively not shown at all
+   - "some tabs' contents don't appear" and "fields only show a
+   fragment" both traced back to this. workspace.resize() forces Blockly
+   to re-measure the toolbox's real (now on-screen) width and reposition
+   the flyout to match, every time the drawer's visibility changes. */
 const toolboxToggleBtn = document.getElementById('toolboxToggleBtn');
 toolboxToggleBtn.addEventListener('click', () => {
   const isOpen = document.body.classList.toggle('toolbox-open');
   toolboxToggleBtn.setAttribute('aria-expanded', String(isOpen));
   toolboxToggleBtn.querySelector('span').textContent = isOpen ? 'Close' : 'Blocks';
+  if (!isOpen) {
+    // Closing the drawer hides the category list via CSS, but a flyout
+    // that was open (a tab's blocks) lives in its own DOM node outside
+    // the toolbox and wouldn't be hidden by that rule - it'd be left
+    // floating over the workspace with no toolbox visible behind it.
+    // Deselecting the category closes that flyout too.
+    workspace.getToolbox()?.clearSelection();
+  }
+  // Deferred, not called inline: calling workspace.resize() synchronously
+  // right after the classList.toggle() above still measures the
+  // toolbox's old (pre-toggle) width most of the time - some part of
+  // Blockly's own resize/metrics plumbing hasn't caught up to the class
+  // change within the same tick yet, even though the class and the
+  // toolbox's actual layout have already flipped by then. A 0ms timeout
+  // (not requestAnimationFrame - rAF gets throttled/paused on a
+  // backgrounded tab, e.g. while switching to MetaTrader to check the
+  // export) pushes the call to the next tick, after the browser has
+  // fully applied the new layout, and gets the real width reliably.
+  setTimeout(() => workspace.resize(), 0);
 });
 
 /* ============================================================
