@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AlgoPuzzle</title>
+<!-- The builder has no indexable content of its own (it's a canvas app,
+     not an article) - the landing page and blog are what should show up
+     in search results. See robots.txt for why this is a meta tag and not
+     a robots.txt Disallow. -->
+<meta name="robots" content="noindex, nofollow" />
 <!-- Self-hosted, version-pinned (Tailwind 3.4.17 / Blockly 13.2.1) instead
      of loading from unpkg/cdn.tailwindcss.com at runtime - avoids the app
      going down (or silently breaking on an unannounced upstream update)
@@ -13,9 +18,6 @@
      JIT script. Adding a new Tailwind class anywhere requires
      `npm run build:css` or it silently won't be styled. -->
 <link rel="stylesheet" href="assets/vendor/tailwind/tailwind-compiled.css" />
-<script src="assets/vendor/blockly/blockly_compressed.js"></script>
-<script src="assets/vendor/blockly/blocks_compressed.js"></script>
-<script src="assets/vendor/blockly/msg/en.js"></script>
 <style>
   html, body { height: 100%; margin: 0; }
   #blocklyDiv { height: 100%; width: 100%; }
@@ -33,22 +35,23 @@
      order would make Blockly's rule win instead of this one. */
   @media (max-width: 639px) {
     body:not(.toolbox-open) .blocklyToolbox { display: none !important; }
-    /* A selected category's flyout (the actual block list/preview) is
-       offset by Blockly to start right after the toolbox rail and drawn
-       underneath it (toolbox z-index 70 vs flyout 20) - fine on desktop,
-       but on a phone that left only ~200px of a ~375px screen for block
-       content, and category flyouts have no horizontal scrollbar, so
-       anything wider (several blocks, worst case the "IF (Strategy
-       Rule)" card) ran off the right edge with no way to reach it - the
-       reported "variables in tabs only show a fragment". Forcing the
-       flyout to the full screen width instead fixes every category
-       except that one worst-case block, which is wider than any phone
-       screen regardless of offset. !important for the same reason as
-       above: overriding Blockly's own inline/stylesheet values. */
-    body.toolbox-open .blocklyFlyout {
-      transform: translate(0px, 0px) !important;
-      z-index: 75 !important;
-    }
+    /* A selected category's flyout (the block list/preview) is offset by
+       Blockly to start right after the toolbox rail, which on a phone
+       left only ~200px of a ~375px screen for block content - most
+       categories' blocks ran off the right edge with no way to reach
+       them (category flyouts have no horizontal scrollbar).
+       An earlier version of this fix forced the flyout's CSS transform
+       to translate(0,0) directly, which looked right but broke
+       drag-and-drop: Blockly's own drop-target math still used the
+       toolbox's real (147px) width to convert a drag's screen position
+       into workspace coordinates, so every block dragged out of the
+       flyout landed ~147px to the right of wherever it was actually
+       dropped. Hiding the toolbox itself instead (see
+       .category-flyout-open below, toggled by the MutationObserver near
+       toolboxToggleBtn) makes Blockly measure its own width as 0 and
+       compute the flyout's offset - and the drag math that depends on
+       it - correctly on its own, no fighting its layout needed. */
+    body.toolbox-open.category-flyout-open .blocklyToolbox { display: none !important; }
   }
 </style>
 </head>
@@ -407,6 +410,17 @@
     </div>
   </div>
 
+<!-- Blockly's library scripts (~700KB combined) used to sit in <head>,
+     which blocked the browser from painting anything - even the static
+     header/toolbar markup above - until all three had downloaded and
+     run. They don't need to be that early: nothing above this point
+     depends on Blockly, and the one thing that does (Blockly.inject()
+     below) only runs once these three have executed anyway, so moving
+     them down here doesn't change execution order - it just lets the
+     page shell render first instead of blocking on them. -->
+<script src="assets/vendor/blockly/blockly_compressed.js"></script>
+<script src="assets/vendor/blockly/blocks_compressed.js"></script>
+<script src="assets/vendor/blockly/msg/en.js"></script>
 <script>
 /* ============================================================
    1. CUSTOM BLOCK DEFINITIONS
@@ -1163,6 +1177,27 @@ toolboxToggleBtn.addEventListener('click', () => {
   // fully applied the new layout, and gets the real width reliably.
   setTimeout(() => workspace.resize(), 0);
 });
+
+/* Mobile: hides the toolbox category rail the instant a category's
+   flyout opens (.category-flyout-open, see the <head> <style>), so
+   Blockly measures its own toolbox width as 0 - matching what's on
+   screen - instead of visually papering over the stale 147px it'd
+   otherwise still use internally to convert a drag's drop position
+   into workspace coordinates. Without this, blocks dragged out of the
+   flyout landed ~147px right of wherever they were actually dropped.
+   Driven by a MutationObserver on the flyout's own `style` attribute
+   (which Blockly toggles between display:none/block) rather than a
+   Blockly event, since it fires correctly no matter *why* the flyout
+   closed - picking a category, dragging a block out, or tapping
+   outside it (autoClose). */
+const blocklyFlyoutEl = document.querySelector('.blocklyFlyout');
+if (blocklyFlyoutEl) {
+  new MutationObserver(() => {
+    const isFlyoutOpen = blocklyFlyoutEl.style.display !== 'none';
+    document.body.classList.toggle('category-flyout-open', isFlyoutOpen);
+    setTimeout(() => workspace.resize(), 0);
+  }).observe(blocklyFlyoutEl, { attributes: true, attributeFilter: ['style'] });
+}
 
 /* ============================================================
    2c. STRATEGY AUTO-SAVE (Tier 0 - this browser only)

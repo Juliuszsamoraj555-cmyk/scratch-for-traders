@@ -1,9 +1,13 @@
-# The builder itself (index_1.html) is a canvas-based editor with no
-# meaningful indexable content - only the landing page (index.html) is
-# meant to show up in search results. Sitemap points at the real domain
-# once one exists (see DEPLOYMENT.md).
+# The builder itself (index_1.html) has no meaningful indexable content -
+# only the landing page and blog are meant to show up in search results.
+# It's deliberately NOT Disallow'd here though: a page blocked in
+# robots.txt can never be crawled, which means Google can never see a
+# noindex tag on it either - and since index.html links to it directly
+# ("Open the Builder"), it's discoverable regardless of this file and
+# would risk showing up as a bare, snippet-less URL. index_1.html instead
+# carries its own <meta name="robots" content="noindex, nofollow"> and
+# stays crawlable so that tag actually gets read.
 User-agent: *
 Allow: /
-Disallow: /index_1.html
 
 Sitemap: https://algopuzzle.com/sitemap.xml
