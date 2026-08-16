@@ -58,62 +58,77 @@
 
     <div class="mt-12 space-y-6 max-w-5xl">
 
-      <a href="what-is-algorithmic-trading.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <!-- Newest first. When adding a post: card goes here at the top,
+           plus a matching entry at the top of the 3-card "Learn
+           algorithmic trading" section in ../index.html (bump whichever
+           post falls out of the top 3 there), plus sitemap.xml. -->
+      <a href="backtesting-vs-demo-trading.html" class="relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+        <span class="absolute top-3 px-2 py-1 text-xs font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded-md" style="right: 0.75rem;">New</span>
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <line x1="20" y1="30" x2="20" y2="130" stroke="#1f2937" stroke-width="1.5"/>
-          <line x1="20" y1="130" x2="220" y2="130" stroke="#1f2937" stroke-width="1.5"/>
-          <path d="M28 110 L60 95 L88 108 L118 70 L150 82 L182 45 L212 38" stroke="#34d399" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="24" y1="70" x2="216" y2="70" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <circle cx="118" cy="70" r="6" fill="#0f766e" stroke="#34d399" stroke-width="2"/>
-          <path d="M118 70 L146 52" stroke="#d1fae5" stroke-width="2" stroke-linecap="round"/>
-          <path d="M140 52 L146 52 L146 58" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Left half = backtest/demo (proven, solid line, checkmark badge),
+               right half = live (dotted line trailing off) - the split
+               communicates "verified here before it runs there". -->
+          <rect x="20" y="24" width="100" height="112" fill="#34d399" opacity="0.08"/>
+          <rect x="120" y="24" width="100" height="112" fill="#f59e0b" opacity="0.08"/>
+          <line x1="120" y1="20" x2="120" y2="140" stroke="#4b5563" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <path d="M28 100 L50 90 L72 96 L94 78 L116 84" stroke="#34d399" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M116 84 L138 70 L160 76 L182 58 L204 64" stroke="#9ca3af" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 6"/>
+          <circle cx="58" cy="48" r="15" fill="#0f766e"/>
+          <path d="M51 48 L56 53 L66 41" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="30" y="128" fill="#6ee7b7" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui">DEMO</text>
+          <text x="210" y="128" fill="#fbbf24" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="end">LIVE</text>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</span>
-          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">What Is Algorithmic Trading?</h2>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A plain-English introduction to trading by rule instead of by gut feel - what a strategy is actually made of, and what you need to get started.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-16" class="text-xs text-gray-500">Aug 16, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Backtesting vs. Demo Trading: How to Test a Strategy First</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Why backtesting and demo trading catch different problems, and how to run each one before a strategy touches real money.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
         </div>
       </a>
 
-      <a href="stop-loss-take-profit-guide.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="position-sizing-how-much-to-risk.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="24" width="200" height="26" fill="#34d399" opacity="0.12"/>
-          <rect x="20" y="110" width="200" height="26" fill="#f87171" opacity="0.12"/>
-          <line x1="20" y1="50" x2="220" y2="50" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <line x1="20" y1="110" x2="220" y2="110" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <path d="M24 88 L56 96 L84 78 L112 92 L140 74 L168 84 L196 50" stroke="#e5e7eb" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="196" cy="50" r="5" fill="#34d399"/>
-          <text x="224" y="53" fill="#6ee7b7" font-size="11" font-family="ui-sans-serif,system-ui" text-anchor="end">TP</text>
-          <text x="224" y="113" fill="#fca5a5" font-size="11" font-family="ui-sans-serif,system-ui" text-anchor="end">SL</text>
+          <circle cx="120" cy="80" r="50" fill="none" stroke="#1f2937" stroke-width="14"/>
+          <circle cx="120" cy="80" r="50" fill="none" stroke="#34d399" stroke-width="14" stroke-dasharray="6.5 307" stroke-linecap="round" transform="rotate(-90 120 80)"/>
+          <text x="120" y="87" fill="#f9fafb" font-size="22" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">2%</text>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
-          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Stop Loss vs. Take Profit, Explained</h2>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">What each one actually protects you from, and three practical ways to size them - pips, percent of entry, and ATR.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-14" class="text-xs text-gray-500">Aug 14, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Position Sizing: How Much Should One Trade Risk?</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">How to think about position sizing so a single losing trade never threatens your account.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
         </div>
       </a>
 
-      <a href="trading-indicators-explained.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="24" width="200" height="22" fill="#f59e0b" opacity="0.12"/>
-          <rect x="20" y="114" width="200" height="22" fill="#34d399" opacity="0.12"/>
-          <line x1="20" y1="46" x2="220" y2="46" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <line x1="20" y1="114" x2="220" y2="114" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <path d="M20 80 C 45 30, 75 30, 100 80 S 155 130, 180 80 S 210 40, 220 60"
-            stroke="#a78bfa" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <circle cx="100" cy="80" r="4" fill="#a78bfa"/>
-          <circle cx="180" cy="80" r="4" fill="#a78bfa"/>
+          <circle cx="60" cy="80" r="34" fill="#111827" stroke="#2563eb" stroke-width="2"/>
+          <text x="60" y="87" fill="#93c5fd" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">MT4</text>
+          <circle cx="120" cy="80" r="34" fill="#111827" stroke="#059669" stroke-width="2"/>
+          <text x="120" y="87" fill="#6ee7b7" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">MT5</text>
+          <circle cx="180" cy="80" r="34" fill="#111827" stroke="#dc2626" stroke-width="2"/>
+          <text x="180" y="85" fill="#fca5a5" font-size="12" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">cTrader</text>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Indicators</span>
-          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">RSI, MACD & Moving Averages, Quickly</h2>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A short primer on the three indicators you'll reach for most often, and what each one is actually telling you.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Platforms</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-11" class="text-xs text-gray-500">Aug 11, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">MT4 vs MT5 vs cTrader: Which Should You Automate On?</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A practical comparison of the three platforms for automated trading, and how to actually decide.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
@@ -134,7 +149,11 @@
           <rect x="148" y="102" width="34" height="6" rx="3" fill="#d1fae5"/>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-09" class="text-xs text-gray-500">Aug 9, 2026</time>
+          </div>
           <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">How to Build a Trading Bot Without Coding</h2>
           <p class="mt-2 text-sm text-gray-400 leading-relaxed">A step-by-step look at building a working trading bot using visual blocks instead of code.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
@@ -143,60 +162,74 @@
         </div>
       </a>
 
-      <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="trading-indicators-explained.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="60" cy="80" r="34" fill="#111827" stroke="#2563eb" stroke-width="2"/>
-          <text x="60" y="87" fill="#93c5fd" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">MT4</text>
-          <circle cx="120" cy="80" r="34" fill="#111827" stroke="#059669" stroke-width="2"/>
-          <text x="120" y="87" fill="#6ee7b7" font-size="16" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">MT5</text>
-          <circle cx="180" cy="80" r="34" fill="#111827" stroke="#dc2626" stroke-width="2"/>
-          <text x="180" y="85" fill="#fca5a5" font-size="12" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">cTrader</text>
+          <rect x="20" y="24" width="200" height="22" fill="#f59e0b" opacity="0.12"/>
+          <rect x="20" y="114" width="200" height="22" fill="#34d399" opacity="0.12"/>
+          <line x1="20" y1="46" x2="220" y2="46" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <line x1="20" y1="114" x2="220" y2="114" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <path d="M20 80 C 45 30, 75 30, 100 80 S 155 130, 180 80 S 210 40, 220 60"
+            stroke="#a78bfa" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <circle cx="100" cy="80" r="4" fill="#a78bfa"/>
+          <circle cx="180" cy="80" r="4" fill="#a78bfa"/>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Platforms</span>
-          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">MT4 vs MT5 vs cTrader: Which Should You Automate On?</h2>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A practical comparison of the three platforms for automated trading, and how to actually decide.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Indicators</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-07" class="text-xs text-gray-500">Aug 7, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">RSI, MACD & Moving Averages, Quickly</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A short primer on the three indicators you'll reach for most often, and what each one is actually telling you.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
         </div>
       </a>
 
-      <a href="position-sizing-how-much-to-risk.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="stop-loss-take-profit-guide.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="120" cy="80" r="50" fill="none" stroke="#1f2937" stroke-width="14"/>
-          <circle cx="120" cy="80" r="50" fill="none" stroke="#34d399" stroke-width="14" stroke-dasharray="6.5 307" stroke-linecap="round" transform="rotate(-90 120 80)"/>
-          <text x="120" y="87" fill="#f9fafb" font-size="22" font-weight="700" text-anchor="middle" font-family="ui-sans-serif,system-ui">2%</text>
+          <rect x="20" y="24" width="200" height="26" fill="#34d399" opacity="0.12"/>
+          <rect x="20" y="110" width="200" height="26" fill="#f87171" opacity="0.12"/>
+          <line x1="20" y1="50" x2="220" y2="50" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <line x1="20" y1="110" x2="220" y2="110" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <path d="M24 88 L56 96 L84 78 L112 92 L140 74 L168 84 L196 50" stroke="#e5e7eb" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="196" cy="50" r="5" fill="#34d399"/>
+          <text x="224" y="53" fill="#6ee7b7" font-size="11" font-family="ui-sans-serif,system-ui" text-anchor="end">TP</text>
+          <text x="224" y="113" fill="#fca5a5" font-size="11" font-family="ui-sans-serif,system-ui" text-anchor="end">SL</text>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
-          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Position Sizing: How Much Should One Trade Risk?</h2>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">How to think about position sizing so a single losing trade never threatens your account.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-04" class="text-xs text-gray-500">Aug 4, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Stop Loss vs. Take Profit, Explained</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">What each one actually protects you from, and three practical ways to size them - pips, percent of entry, and ATR.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
         </div>
       </a>
 
-      <a href="backtesting-vs-demo-trading.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="what-is-algorithmic-trading.html" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Left half = backtest/demo (proven, solid line, checkmark badge),
-               right half = live (dotted line trailing off) - the split
-               communicates "verified here before it runs there". -->
-          <rect x="20" y="24" width="100" height="112" fill="#34d399" opacity="0.08"/>
-          <rect x="120" y="24" width="100" height="112" fill="#f59e0b" opacity="0.08"/>
-          <line x1="120" y1="20" x2="120" y2="140" stroke="#4b5563" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <path d="M28 100 L50 90 L72 96 L94 78 L116 84" stroke="#34d399" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M116 84 L138 70 L160 76 L182 58 L204 64" stroke="#9ca3af" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 6"/>
-          <circle cx="58" cy="48" r="15" fill="#0f766e"/>
-          <path d="M51 48 L56 53 L66 41" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <text x="30" y="128" fill="#6ee7b7" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui">DEMO</text>
-          <text x="210" y="128" fill="#fbbf24" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="end">LIVE</text>
+          <line x1="20" y1="30" x2="20" y2="130" stroke="#1f2937" stroke-width="1.5"/>
+          <line x1="20" y1="130" x2="220" y2="130" stroke="#1f2937" stroke-width="1.5"/>
+          <path d="M28 110 L60 95 L88 108 L118 70 L150 82 L182 45 L212 38" stroke="#34d399" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="24" y1="70" x2="216" y2="70" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <circle cx="118" cy="70" r="6" fill="#0f766e" stroke="#34d399" stroke-width="2"/>
+          <path d="M118 70 L146 52" stroke="#d1fae5" stroke-width="2" stroke-linecap="round"/>
+          <path d="M140 52 L146 52 L146 58" stroke="#d1fae5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <div class="min-w-0">
-          <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
-          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Backtesting vs. Demo Trading: How to Test a Strategy First</h2>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Why backtesting and demo trading catch different problems, and how to run each one before a strategy touches real money.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-02" class="text-xs text-gray-500">Aug 2, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">What Is Algorithmic Trading?</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A plain-English introduction to trading by rule instead of by gut feel - what a strategy is actually made of, and what you need to get started.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
