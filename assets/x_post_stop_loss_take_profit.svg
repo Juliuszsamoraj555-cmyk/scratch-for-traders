@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <!-- X post image for blog/stop-loss-take-profit-guide.html - 1200x675
+       (16:9, X's recommended native-upload size). Not the generic
+       og-image.png card reused on every post - this one's illustration
+       and headline are specific to this article. -->
+  <defs>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.5" fill="#1f2937" opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="675" fill="#030712"/>
+  <rect width="1200" height="675" fill="url(#dots)"/>
+
+  <!-- Small wordmark, top-left, same mark used across the site -->
+  <g transform="translate(56, 44)">
+    <g transform="scale(0.22)">
+      <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+      <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+      <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+      <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+      <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+      <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+      <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+      <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+      <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+      <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+      <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+      <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+    </g>
+    <text x="46" y="26" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="700">
+      <tspan fill="#f9fafb">Algo</tspan><tspan fill="#34d399">Puzzle</tspan>
+    </text>
+  </g>
+
+  <!-- Chart: entry line in the middle, TP above (green, price reaches it),
+       SL below (red) - the same visual language as the article's own
+       illustration, just built directly at this canvas's scale. -->
+  <line x1="120" y1="190" x2="1080" y2="190" stroke="#34d399" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="1080" y="182" fill="#6ee7b7" font-size="22" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="end">TAKE PROFIT</text>
+
+  <line x1="120" y1="330" x2="1080" y2="330" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text x="1080" y="322" fill="#9ca3af" font-size="16" font-family="ui-sans-serif,system-ui" text-anchor="end">ENTRY</text>
+
+  <line x1="120" y1="480" x2="1080" y2="480" stroke="#f87171" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="1080" y="504" fill="#fca5a5" font-size="22" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="end">STOP LOSS</text>
+
+  <path d="M140 340 L220 356 L300 322 L380 350 L460 300 L540 328 L620 270 L700 296 L780 234 L860 250 L940 190"
+    stroke="#e5e7eb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="940" cy="190" r="8" fill="#34d399"/>
+
+  <text x="600" y="590" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="42" font-weight="700" fill="#f9fafb">Stop Loss vs. Take Profit, Explained</text>
+  <text x="600" y="628" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="22" fill="#9ca3af">Three practical ways to size them: pips, percent of entry, and ATR.</text>
+</svg>
