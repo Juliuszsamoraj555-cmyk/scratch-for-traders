@@ -35,6 +35,17 @@
      order would make Blockly's rule win instead of this one. */
   @media (max-width: 639px) {
     body:not(.toolbox-open) .blocklyToolbox { display: none !important; }
+    /* The toggle button sits at top-3/left-3, which is also exactly
+       where the toolbox's own category rows start - open the drawer and
+       the button was rendered directly on top of "Conditions" (the
+       first category), covering roughly its first half. Push the whole
+       category list down clear of the button instead of relying on
+       z-index (the button being above it, so it's clickable, is a
+       separate concern from it also visually blocking what's under it -
+       fixing the first doesn't fix the second). Blockly sets its own
+       `padding: 4px 0` on this element; !important is needed to win
+       over that, same reasoning as the display:none rule above. */
+    body.toolbox-open .blocklyToolbox { padding-top: 56px !important; }
     /* A selected category's flyout (the block list/preview) is offset by
        Blockly to start right after the toolbox rail, which on a phone
        left only ~200px of a ~375px screen for block content - most
@@ -83,6 +94,14 @@
       </svg>
       <h1 class="text-lg font-semibold tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></h1>
       <span class="hidden sm:inline-block ml-2 text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">MVP</span>
+      <!-- Lives with the brand, not the action buttons: this is account
+         status ("how many exports do I have left"), not something you
+         click, so grouping it with New/Load/Save/export implied it was
+         another action and left it with nowhere consistent to land when
+         the row wrapped on a narrow phone - it ended up floating
+         between button groups with no clear home (see git history for
+         a screenshot of exactly that). -->
+      <span id="billingIndicator" class="hidden ml-2 text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
     </div>
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
@@ -111,7 +130,6 @@
         </button>
       </div>
       <span id="statusMsg" class="hidden sm:inline text-sm text-gray-400"></span>
-      <span id="billingIndicator" class="hidden text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
       <!-- Only shown once actually logged in (30-day pass account - see
            supabase_auth.py). Free tier / single export never need this. -->
       <!-- Always shows exactly one of these two, never both/neither -
@@ -149,24 +167,31 @@
           </button>
         </span>
       </div>
-      <button id="exportMt5Btn" aria-label="Export to MT5"
-        class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
-        <img src="assets/mt5_icon.png"
-          alt="MT5" class="w-5 h-5 object-contain shrink-0" />
-        <span class="hidden sm:inline">Export to MT5</span>
-      </button>
-      <button id="exportMt4Btn" aria-label="Export to MT4"
-        class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
-        <img src="assets/mt4_icon.png"
-          alt="MT4" class="w-5 h-5 object-contain shrink-0" />
-        <span class="hidden sm:inline">Export to MT4</span>
-      </button>
-      <button id="exportCtraderBtn" aria-label="Export to cTrader"
-        class="bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
-        <img src="assets/ctrader_icon.png"
-          alt="cTrader" class="w-5 h-5 object-contain shrink-0" />
-        <span class="hidden sm:inline">Export to cTrader</span>
-      </button>
+      <!-- Grouped like the two clusters before it (border + padding),
+           instead of three loose buttons - previously the only visual
+           break between "logged in as X" and "export" was a faint 1px
+           divider that disappeared into the noise once the header
+           wrapped to two lines on a narrow phone. -->
+      <div class="flex items-center gap-1.5 sm:gap-2 pl-2 sm:pl-3 -ml-1 sm:ml-0">
+        <button id="exportMt5Btn" aria-label="Export to MT5"
+          class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
+          <img src="assets/mt5_icon.png"
+            alt="MT5" class="w-5 h-5 object-contain shrink-0" />
+          <span class="hidden sm:inline">Export to MT5</span>
+        </button>
+        <button id="exportMt4Btn" aria-label="Export to MT4"
+          class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
+          <img src="assets/mt4_icon.png"
+            alt="MT4" class="w-5 h-5 object-contain shrink-0" />
+          <span class="hidden sm:inline">Export to MT4</span>
+        </button>
+        <button id="exportCtraderBtn" aria-label="Export to cTrader"
+          class="bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
+          <img src="assets/ctrader_icon.png"
+            alt="cTrader" class="w-5 h-5 object-contain shrink-0" />
+          <span class="hidden sm:inline">Export to cTrader</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -263,7 +288,13 @@
        devices, not just this browser. Either way, "Pay" hands off to
        Stripe's own hosted Checkout page - this app never touches a card
        number. -->
-  <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center px-4">
+  <!-- z-index 100 via inline style (not compiled - see the build-step
+       note in <head>): a modal must always render above the mobile
+       toolbox drawer (z-70) and its toggle button (z-80), or it gets
+       visually buried under them - happened for real with this one, the
+       toolbox drawer stayed open behind the paywall and hid the pricing
+       cards entirely. -->
+  <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-2xl p-6 sm:p-8">
       <!-- paywallMessage carries the backend's own count (e.g. "You've
            used your 2 free exports") - kept server-driven rather than
@@ -332,7 +363,8 @@
        by JS: 'login', 'signup', 'reset'. Talks directly to Supabase
        Auth's REST API (see the AUTH section in the script below) - our
        own backend never sees a password, only the resulting token. -->
-  <div id="authOverlay" class="hidden fixed inset-0 bg-black/60 z-[70] flex items-center justify-center px-4">
+  <!-- z-index 100 - see the comment on paywallOverlay above. -->
+  <div id="authOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 id="authTitle" class="text-lg font-semibold text-gray-100 mb-1">Log in</h2>
       <p id="authSubtitle" class="text-sm text-gray-400 mb-4">The 30-day pass works across every device once you're logged in.</p>
@@ -369,7 +401,8 @@
        AUTH section in the script below). Sits above everything else,
        including authOverlay, since it replaces the whole login flow for
        this one visit rather than being another mode of it. -->
-  <div id="authResetOverlay" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center px-4">
+  <!-- z-index 100 - see the comment on paywallOverlay above. -->
+  <div id="authResetOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 class="text-lg font-semibold text-gray-100 mb-1">Set a new password</h2>
       <p id="authResetError" class="hidden text-sm font-medium bg-red-950 border border-red-600 text-red-200 rounded-md px-3 py-2.5 mb-3 flex items-start gap-2"><span aria-hidden="true">✕</span><span id="authResetErrorText"></span></p>
@@ -384,7 +417,8 @@
   </div>
 
   <!-- "My Strategies" panel -->
-  <div id="strategiesOverlay" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center px-4">
+  <!-- z-index 100 - see the comment on paywallOverlay above. -->
+  <div id="strategiesOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md max-h-[75vh] flex flex-col">
       <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800 shrink-0">
         <h2 class="font-semibold text-gray-100">My Strategies</h2>
@@ -398,7 +432,8 @@
        which don't work in every embedding context (e.g. this app previews
        inside a sandboxed iframe in some tooling, where native dialogs are
        blocked outright rather than just looking different). -->
-  <div id="dialogOverlay" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center px-4">
+  <!-- z-index 100 - see the comment on paywallOverlay above. -->
+  <div id="dialogOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-5">
       <p id="dialogMessage" class="text-sm text-gray-200 mb-3 whitespace-pre-line"></p>
       <input id="dialogInput" type="text"
@@ -1151,30 +1186,59 @@ trackEvent('builder_opened');
    - "some tabs' contents don't appear" and "fields only show a
    fragment" both traced back to this. workspace.resize() forces Blockly
    to re-measure the toolbox's real (now on-screen) width and reposition
-   the flyout to match, every time the drawer's visibility changes. */
+   the flyout to match, every time the drawer's visibility changes.
+
+   The button actually has three states, not two - "closed", "open
+   showing categories", and "open showing a category's flyout" - and it
+   used to collapse the last two into one (any tap while open, from
+   either state, fully closed the drawer). That meant picking a category
+   and then wanting to browse a *different* one meant fully closing and
+   re-opening the drawer, there was no "just go back to the list"
+   affordance - updateToggleBtnLabel() below drives the button's label
+   off the actual current state so it stays correct however the flyout
+   got opened or closed (picking a category, dragging a block out,
+   tapping outside it), not just off this click handler's own view of
+   things. */
 const toolboxToggleBtn = document.getElementById('toolboxToggleBtn');
-toolboxToggleBtn.addEventListener('click', () => {
-  const isOpen = document.body.classList.toggle('toolbox-open');
+
+function updateToggleBtnLabel() {
+  const isOpen = document.body.classList.contains('toolbox-open');
+  const isFlyoutOpen = document.body.classList.contains('category-flyout-open');
+  const label = !isOpen ? 'Blocks' : isFlyoutOpen ? 'Categories' : 'Close';
   toolboxToggleBtn.setAttribute('aria-expanded', String(isOpen));
-  toolboxToggleBtn.querySelector('span').textContent = isOpen ? 'Close' : 'Blocks';
-  if (!isOpen) {
-    // Closing the drawer hides the category list via CSS, but a flyout
-    // that was open (a tab's blocks) lives in its own DOM node outside
-    // the toolbox and wouldn't be hidden by that rule - it'd be left
-    // floating over the workspace with no toolbox visible behind it.
-    // Deselecting the category closes that flyout too.
+  toolboxToggleBtn.querySelector('span').textContent = label;
+}
+
+toolboxToggleBtn.addEventListener('click', () => {
+  if (document.body.classList.contains('category-flyout-open')) {
+    // A category's flyout is showing - go back to the category list
+    // instead of closing the whole drawer. clearSelection() closes the
+    // flyout; the MutationObserver below reacts to that (removing
+    // category-flyout-open, re-showing the toolbox, resizing) the same
+    // way it reacts to a flyout closing for any other reason.
     workspace.getToolbox()?.clearSelection();
+  } else {
+    const isOpen = document.body.classList.toggle('toolbox-open');
+    if (!isOpen) {
+      // Closing the drawer hides the category list via CSS, but a flyout
+      // that was open (a tab's blocks) lives in its own DOM node outside
+      // the toolbox and wouldn't be hidden by that rule - it'd be left
+      // floating over the workspace with no toolbox visible behind it.
+      // Deselecting the category closes that flyout too.
+      workspace.getToolbox()?.clearSelection();
+    }
+    updateToggleBtnLabel();
   }
   // Deferred, not called inline: calling workspace.resize() synchronously
-  // right after the classList.toggle() above still measures the
-  // toolbox's old (pre-toggle) width most of the time - some part of
-  // Blockly's own resize/metrics plumbing hasn't caught up to the class
-  // change within the same tick yet, even though the class and the
-  // toolbox's actual layout have already flipped by then. A 0ms timeout
-  // (not requestAnimationFrame - rAF gets throttled/paused on a
-  // backgrounded tab, e.g. while switching to MetaTrader to check the
-  // export) pushes the call to the next tick, after the browser has
-  // fully applied the new layout, and gets the real width reliably.
+  // right after the classList change above still measures the toolbox's
+  // old (pre-change) width most of the time - some part of Blockly's own
+  // resize/metrics plumbing hasn't caught up to the class change within
+  // the same tick yet, even though the class and the toolbox's actual
+  // layout have already flipped by then. A 0ms timeout (not
+  // requestAnimationFrame - rAF gets throttled/paused on a backgrounded
+  // tab, e.g. while switching to MetaTrader to check the export) pushes
+  // the call to the next tick, after the browser has fully applied the
+  // new layout, and gets the real width reliably.
   setTimeout(() => workspace.resize(), 0);
 });
 
@@ -1189,12 +1253,14 @@ toolboxToggleBtn.addEventListener('click', () => {
    (which Blockly toggles between display:none/block) rather than a
    Blockly event, since it fires correctly no matter *why* the flyout
    closed - picking a category, dragging a block out, or tapping
-   outside it (autoClose). */
+   outside it (autoClose). Also drives the toggle button's label (see
+   updateToggleBtnLabel above), for the same reason. */
 const blocklyFlyoutEl = document.querySelector('.blocklyFlyout');
 if (blocklyFlyoutEl) {
   new MutationObserver(() => {
     const isFlyoutOpen = blocklyFlyoutEl.style.display !== 'none';
     document.body.classList.toggle('category-flyout-open', isFlyoutOpen);
+    updateToggleBtnLabel();
     setTimeout(() => workspace.resize(), 0);
   }).observe(blocklyFlyoutEl, { attributes: true, attributeFilter: ['style'] });
 }
