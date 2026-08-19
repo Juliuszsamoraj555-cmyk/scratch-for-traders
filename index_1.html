@@ -29,23 +29,14 @@
      it - see the toolboxToggleBtn handler below - so hiding it here
      doesn't need any Blockly resize call, the canvas underneath is
      already the right size. Below sm, it starts hidden and only shows
-     while body has .toolbox-open (toggled by toolboxToggleBtn).
+     while body has .toolbox-open (toggled by toolboxToggleBtn, now a
+     normal header button rather than something floating over this
+     panel - nothing to keep clear of here anymore).
      !important because Blockly injects its own <style> for this class
      later in <head>, at the same specificity - without it, source
      order would make Blockly's rule win instead of this one. */
   @media (max-width: 639px) {
     body:not(.toolbox-open) .blocklyToolbox { display: none !important; }
-    /* The toggle button sits at top-3/left-3, which is also exactly
-       where the toolbox's own category rows start - open the drawer and
-       the button was rendered directly on top of "Conditions" (the
-       first category), covering roughly its first half. Push the whole
-       category list down clear of the button instead of relying on
-       z-index (the button being above it, so it's clickable, is a
-       separate concern from it also visually blocking what's under it -
-       fixing the first doesn't fix the second). Blockly sets its own
-       `padding: 4px 0` on this element; !important is needed to win
-       over that, same reasoning as the display:none rule above. */
-    body.toolbox-open .blocklyToolbox { padding-top: 56px !important; }
     /* A selected category's flyout (the block list/preview) is offset by
        Blockly to start right after the toolbox rail, which on a phone
        left only ~200px of a ~375px screen for block content - most
@@ -128,6 +119,28 @@
           </svg>
           <span class="hidden sm:inline">Save</span>
         </button>
+        <!-- Mobile-only (sm:hidden - the toolbox is always visible on
+             desktop, this button would have nothing to do there). Used
+             to float absolutely-positioned over the canvas at
+             top-3/left-3, which put it directly on top of whatever
+             happened to render in that same corner underneath it - the
+             toolbox's first category, then (after that got fixed) the
+             flyout's first block. Two rounds of patching the same class
+             of bug in the same spot was the sign to stop patching
+             collisions and remove the thing colliding: it's a normal
+             header button now, laid out in-flow next to New/Load/Save,
+             so there's no floating overlay left to collide with
+             anything the canvas renders. -->
+        <button id="toolboxToggleBtn" class="sm:hidden bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5"
+          title="Show block categories" aria-label="Show block categories" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          </svg>
+          <span class="text-xs font-medium">Blocks</span>
+        </button>
       </div>
       <span id="statusMsg" class="hidden sm:inline text-sm text-gray-400"></span>
       <!-- Only shown once actually logged in (30-day pass account - see
@@ -198,30 +211,6 @@
   <!-- Blockly workspace -->
   <main class="flex-1 relative">
     <div id="blocklyDiv" class="absolute inset-0"></div>
-    <!-- Mobile-only: the block category panel (.blocklyToolbox) starts
-         collapsed below sm (see the <style> block) to leave the phone
-         screen usable - this toggles it back open. Hidden on sm+ where
-         the toolbox is always visible and there's room for it. -->
-    <!-- z-index:80 via inline style (not a Tailwind z-[80] class - the
-         precompiled stylesheet only ships z-10/20/40/50, see the build-step
-         note at the top of <head>, and a class the build never generated
-         would silently do nothing at runtime). Needed because Blockly's own
-         .blocklyToolbox panel renders at z-index:70 (baked into its
-         vendored stylesheet, not ours to edit), so once the drawer is open
-         it sits on top of anything below z-70 - including this button at
-         its usual top-3/left-3 spot, which is exactly where the toolbox
-         panel starts. At the old z-20 the button became unclickable (and so
-         unclosable) the moment the drawer opened. -->
-    <button id="toolboxToggleBtn" class="sm:hidden absolute top-3 left-3 bg-gray-800/95 hover:bg-gray-700 active:bg-gray-600 text-gray-200 rounded-md p-2 shadow-lg flex items-center gap-1.5 transition" style="z-index: 80;"
-      title="Show block categories" aria-label="Show block categories" aria-expanded="false">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
-      </svg>
-      <span class="text-xs font-medium">Blocks</span>
-    </button>
   </main>
 
   <!-- Toolbox -->
