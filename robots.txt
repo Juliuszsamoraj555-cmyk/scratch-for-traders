@@ -10,4 +10,40 @@
 User-agent: *
 Allow: /
 
+# Explicit AI-crawler allows below are functionally redundant with the
+# wildcard Allow above (nothing here is Disallow'd for anyone) - they're
+# here because the goal isn't just "don't block AI" but "get cited by
+# AI", and being explicit is the documented signal that a site actually
+# wants these bots crawling it, per current (2026) GEO guidance. Covers
+# both training crawlers (GPTBot, ClaudeBot, Google-Extended - what
+# feeds a model's general knowledge) and the separate real-time
+# answer/search crawlers (OAI-SearchBot, Claude-SearchBot,
+# PerplexityBot - what a live query actually fetches at answer time).
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 Sitemap: https://algopuzzle.com/sitemap.xml

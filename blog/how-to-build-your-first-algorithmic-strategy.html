@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>How to Build Your First Algorithmic Trading Strategy - AlgoPuzzle</title>
+<meta name="description" content="A step-by-step walkthrough for building your first algorithmic trading strategy: pick a rule, set risk, choose a platform, test it, then go live." />
+<link rel="canonical" href="https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How to Build Your First Algorithmic Trading Strategy" />
+<meta property="og:description" content="A step-by-step walkthrough from a blank idea to a running strategy: one rule, risk first, a platform, a test, then live." />
+<meta property="og:url" content="https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "How to Build Your First Algorithmic Trading Strategy",
+  "description": "A step-by-step walkthrough for building a first algorithmic trading strategy, from picking one rule through testing and going live.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-08-20",
+  "dateModified": "2026-08-20",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html" }
+}
+</script>
+<!-- Mirrors the FAQ section below - keep the two in sync when editing
+     either one. Same pattern as index.html's own FAQPage block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Do I need to know how to code to build an algorithmic trading strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. A no-code strategy builder like AlgoPuzzle lets you define entry conditions, risk, and position sizing by connecting blocks, then generates the actual MQL5, MQL4, or C# file your platform runs - you never have to write or read the code yourself." }
+    },
+    {
+      "@type": "Question",
+      "name": "What's the difference between an algorithmic trading strategy and an Expert Advisor?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A strategy is the idea - the rules for when to enter, how much to risk, and when to exit. An Expert Advisor (or cBot on cTrader) is that idea turned into a running program a platform can actually execute. One strategy can become an EA, an MT4 file, or a cBot, depending on which platform runs it." }
+    },
+    {
+      "@type": "Question",
+      "name": "How long does it take to build a first algorithmic strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "With a visual, block-based builder, a simple single-condition strategy typically takes a few minutes to define. Most of the real time goes into testing it afterward - backtesting and demo trading - not building it." }
+    },
+    {
+      "@type": "Question",
+      "name": "Should my first strategy target MT5, MT4, or cTrader?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Whichever platform your broker actually runs - check your broker's supported platforms first. If more than one is available, MT5 is the more actively developed successor to MT4, while cTrader is often preferred for its native C# scripting and execution model." }
+    }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul, article ol { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">How to Build Your First Algorithmic Trading Strategy</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Building your first algorithmic trading strategy comes down to five steps: pick one clear rule, set your risk before your entry, choose the platform you'll run it on, test it without real money, then export and go live. None of this requires knowing how to code - a no-code strategy builder like AlgoPuzzle turns each step into blocks you connect visually, then generates the actual file (.mq5, .mq4, or .cs) your platform runs. Below is each step in the order you'd actually do them.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 1: Start with one condition, not a system</h2>
+      <p>Your first strategy should test exactly one idea, not several combined at once. Something like "sell when RSI(14) crosses above 70" or "buy when price crosses above its 50-period moving average" is a complete, testable strategy on its own. Bundling five conditions together before you've validated even one makes it impossible to tell which part of the rule is actually doing the work - and which part is just noise.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 2: Set your risk before you touch the entry</h2>
+      <p>Decide your stop loss, take profit, and position size before you finalize the entry condition, not after. The entry decides <em>when</em> you trade; risk decides <em>how much you actually have on the line</em> when you're wrong - and get to that decision first, it's easy to skip. See <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a> and <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a> for how to size both.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 3: Choose the platform you'll actually run it on</h2>
+      <p>Pick based on what your broker supports, not personal preference - a strategy built for a platform your broker doesn't offer is unusable regardless of how good it is.</p>
+      <table>
+        <thead><tr><th>Platform</th><th>Language</th><th>File type</th></tr></thead>
+        <tbody>
+          <tr><td>MetaTrader 5</td><td>MQL5</td><td>.mq5</td></tr>
+          <tr><td>MetaTrader 4</td><td>MQL4</td><td>.mq4</td></tr>
+          <tr><td>cTrader</td><td>C#</td><td>.cs (cBot)</td></tr>
+        </tbody>
+      </table>
+      <p>A strategy isn't automatically portable between them - the underlying file has to be built (or exported) separately for each one. More on choosing between them in <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs MT5 vs cTrader</a>.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 4: Test it before you trust it</h2>
+      <p>Run the strategy through your platform's own backtester against historical data first, then on a demo account against a live price feed, before it ever touches real money - the two catch different problems, and skipping either is how a fatal flaw gets found with real capital on the line instead of before it. Full explanation in <a href="backtesting-vs-demo-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a>.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 5: Export and run it</h2>
+      <p>Once you're satisfied with how it performed in testing, export the strategy as a ready-to-run file for your platform, compile it (a one-click step in MetaEditor or the cAlgo editor, not something you write), and attach it to a chart - from there it runs on its own, checking your condition and acting on it without you at the screen.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Mistakes worth avoiding on a first strategy</h2>
+      <ul class="list-disc pl-5 space-y-2">
+        <li><strong class="text-gray-200">Combining too many conditions at once</strong> - makes it impossible to tell what's actually driving results.</li>
+        <li><strong class="text-gray-200">Skipping the demo phase</strong> because the backtest looked good - a backtest can't see slippage, requotes, or real execution.</li>
+        <li><strong class="text-gray-200">Sizing risk as an afterthought</strong> - the same entry rule can be a reasonable strategy or a reckless one depending only on position size.</li>
+      </ul>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build your first strategy - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

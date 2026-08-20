@@ -37,28 +37,92 @@ just needs updating with the new content:
 - [ ] `<title>` — under ~60 characters, format: `<Headline> - AlgoPuzzle`
 - [ ] `<meta name="description">` — under ~155 characters, states what the reader gets
 - [ ] `<link rel="canonical">` — matches the final URL once a domain exists
-- [ ] `og:type`, `og:title`, `og:description`, `og:url`
-- [ ] `Article` JSON-LD block (`headline`, `description`, `datePublished` — use the real publish date)
+- [ ] `og:type`, `og:title`, `og:description`, `og:url`, `og:image`
+- [ ] `Article` JSON-LD block: `headline`, `description`, `author`,
+      `publisher`, `datePublished` **and** `dateModified` (same value
+      unless the content is actually later edited), `image`
+      (`https://algopuzzle.com/assets/og-image.png`), and
+      `mainEntityOfPage` (`{ "@type": "WebPage", "@id": "<canonical URL>" }`)
 - [ ] `<h1>` — should closely match `<title>` and the target search phrase
 - [ ] Body: 400-800 words, plain language, short paragraphs, at least one `<h2>` subheading break
 - [ ] A CTA at the bottom linking to `../index_1.html` (every article should end by sending the reader to actually build something)
 - [ ] "&larr; Back to all articles" link to `../index.html#blog`
 
+## 3b. LLMO — writing so an AI answer engine can actually quote it
+
+Google isn't the only thing reading these anymore - ChatGPT, Claude, and
+Perplexity increasingly answer trading questions directly, citing (or
+not citing) a source in the process. This section is what changed as a
+result, effective for every article going forward (started 2026-08-20 -
+see `how-to-build-your-first-algorithmic-strategy.html` for a worked
+example. Existing older articles are intentionally NOT being retrofitted
+to this - it's a going-forward standard, not a backfill project):
+
+- [ ] **First paragraph answers the question directly, in ~150-200
+      words, before anything else.** Not a windup - if the title asks
+      "how do I X", paragraph one states the actual answer. This is the
+      single highest-leverage change: it's the part most likely to get
+      lifted verbatim into an AI answer.
+- [ ] **The first 1-2 sentences under every `<h2>` are a standalone,
+      quotable claim** - readable and correct even with zero
+      surrounding context, because that's exactly how a model extracts
+      it.
+- [ ] **Any comparison goes in a real `<table>`, never prose.** Models
+      extract HTML tables close to verbatim; a comparison written as a
+      paragraph has to be paraphrased (and often garbled or dropped) to
+      extract the same information. (`article table` /
+      `article th, article td` styles are already in the shared
+      `<style>` block - copy them into a new article's `<head>` if
+      they're not there yet.)
+- [ ] **Step-by-step content uses a real numbered structure** (`<h2>`
+      per step or an `<ol>`), not narrative prose describing steps -
+      same extractability reasoning as tables.
+- [ ] **Add a `FAQPage` JSON-LD block** alongside the `Article` one, 3-5
+      questions, mirroring an actual "Common questions" section in the
+      body (same paired pattern `index.html` already uses for its own
+      FAQ). Q&A pairs are one of the formats AI answer engines lean on
+      most - phrase questions the way someone would actually type them.
+- [ ] **Cover the natural-language variants of the target phrase**, not
+      just one exact keyword - "algo strategy builder", "algorithmic
+      trading strategy", "no-code EA creator", etc. - somewhere in the
+      body copy. AI answer engines match semantically, not on exact
+      keyword strings, so synonym coverage matters more here than it
+      does for classic SEO.
+
+Two content *types* worth deliberately seeding into the topic queue
+because they get cited disproportionately often, per 2026 GEO data
+(listicles alone account for the majority of citations across a
+400M-citation study):
+- **Ranked/comparison roundups** ("best no-code strategy builders",
+  "MT5 vs MT4 vs cTrader for automation") - written honestly, including
+  real alternatives, not just self-promotion dressed as a ranking. A
+  transparently biased "top 10" reads as untrustworthy to a model just
+  as it would to a person, and undermines citation-worthiness rather
+  than helping it.
+- **Direct how-to tutorials** matching a real query shape ("how to
+  build X"), per the Step 1/2/3 pattern in section 3b above.
+
 ## 4. Register the article in three places
 
-A new HTML file alone is invisible to Google until it's linked from
-somewhere and listed in the sitemap:
+A new HTML file alone is invisible to Google (or an AI crawler) until
+it's linked from somewhere and listed in the sitemap:
 
-1. **`blog/index.html`** — add a new card (copy the row-format markup:
-   graphic + category tag + title + excerpt + "Read article" link).
-2. **`index.html`'s `#blog` section** — same card markup. **Once there
-   are more than 3 articles**, stop growing this list indefinitely:
-   switch it to showing only the 3 most recent, with a "View all
-   articles &rarr;" link to `blog/index.html` instead. (Not needed yet
-   at 3 articles — but don't let the homepage section become a scroll of
-   15 cards.)
-3. **`sitemap.xml`** — add a `<url>` entry (`changefreq: yearly`,
-   `priority: 0.6`, matching the pattern already there).
+1. **`blog/index.html`** — add a new card **at the top** of the list
+   (newest-first order - see the comment above the card list there).
+   Give it a `<time datetime="YYYY-MM-DD">` next to the category tag,
+   and move the `New` badge (`absolute top-3 ... style="right:
+   0.75rem"` span, plus `relative` on the `<a>`) from whichever card
+   currently has it onto the new one - only the single newest post
+   keeps the badge, never two at once.
+2. **`index.html`'s `#blog` section** — same card markup (using `<h3>`
+   instead of `<h2>` there), same badge-and-date treatment. This
+   section shows only the 3 most recent posts, newest first - add the
+   new one at the top and delete whichever card is now 4th, don't let
+   it grow past 3.
+3. **`sitemap.xml`** — add a `<url>` entry at the top of the blog
+   entries (`changefreq: yearly`, `priority: 0.6`, matching the pattern
+   already there), and bump the `<lastmod>` on both the `/` and
+   `/blog/` entries to today's date.
 
 ## 5. Internal-link it from somewhere relevant
 
