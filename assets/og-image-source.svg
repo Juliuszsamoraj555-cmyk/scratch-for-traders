@@ -7,7 +7,7 @@
   <rect width="1200" height="630" fill="#030712"/>
   <rect width="1200" height="630" fill="url(#dots)"/>
 
-  <g transform="translate(535, 150) scale(0.8125)">
+  <g transform="translate(535, 110) scale(0.8125)">
     <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
     <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
     <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
@@ -23,15 +23,15 @@
     <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
   </g>
 
-  <text x="600" y="300" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="700" text-anchor="middle">
+  <text x="600" y="320" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="700" text-anchor="middle">
     <tspan fill="#f9fafb">Algo</tspan><tspan fill="#34d399">Puzzle</tspan>
   </text>
 
-  <text x="600" y="355" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="26" fill="#9ca3af" text-anchor="middle">
+  <text x="600" y="375" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="26" fill="#9ca3af" text-anchor="middle">
     <tspan x="600" dy="0">Build MT5, MT4 &amp; cTrader trading strategies -</tspan>
     <tspan x="600" dy="34">without writing a single line of code.</tspan>
   </text>
 
-  <rect x="450" y="420" width="300" height="42" rx="21" fill="#0f766e" opacity="0.18" stroke="#10b981" stroke-width="1.5"/>
-  <text x="600" y="447" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="600" fill="#34d399" text-anchor="middle">No code. No signup to start.</text>
+  <rect x="450" y="440" width="300" height="42" rx="21" fill="#0f766e" opacity="0.18" stroke="#10b981" stroke-width="1.5"/>
+  <text x="600" y="467" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="600" fill="#34d399" text-anchor="middle">No code. No signup to start.</text>
 </svg>
