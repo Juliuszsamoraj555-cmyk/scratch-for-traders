@@ -2541,15 +2541,27 @@ const billingIndicator = document.getElementById('billingIndicator');
    since the frontend and backend usually live on different origins.
    ------------------------------------------------------------ */
 
-async function fetchBillingStatus() {
+// timeoutMs: the Render free-plan cold start (see the comment on
+// exportStrategy's slowHintTimer) can take up to ~60s to answer the very
+// first request after the backend's been asleep. Without a timeout here,
+// a cold backend just hangs this fetch indefinitely - refreshBillingIndicator
+// never gets a result, so billingIndicator/upgradeBtn stay hidden with zero
+// feedback and a trader reasonably assumes the feature is broken. A short
+// first attempt plus one longer retry (below) surfaces a "loading" state
+// immediately and still catches a slow-but-real cold-start wake-up.
+async function fetchBillingStatus(timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const token = await getValidAccessToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await fetch(`${API_BASE}/api/billing/status`, { credentials: 'include', headers });
+    const res = await fetch(`${API_BASE}/api/billing/status`, { credentials: 'include', headers, signal: controller.signal });
     if (!res.ok) return null;
     return await res.json();
   } catch (_) {
-    return null; // backend unreachable - fail silent, export itself will surface any real problem
+    return null; // backend unreachable or timed out - caller decides whether to retry
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -2578,7 +2590,23 @@ function renderBillingIndicator(status) {
 }
 
 async function refreshBillingIndicator() {
-  renderBillingIndicator(await fetchBillingStatus());
+  // Show *something* the instant this starts, instead of leaving
+  // billingIndicator/upgradeBtn invisible for however long the first
+  // fetch takes - see fetchBillingStatus's comment for why that fetch
+  // can legitimately take a while on a cold backend.
+  billingIndicator.textContent = 'Loading...';
+  billingIndicator.classList.remove('hidden');
+  upgradeBtn.classList.add('hidden');
+
+  let status = await fetchBillingStatus(8000);
+  if (!status) {
+    // Most likely a Render free-plan cold start, not a real outage - one
+    // longer retry catches the instance waking up rather than giving up
+    // on the very request that triggered the wake-up.
+    billingIndicator.textContent = 'Loading... (server may be waking up)';
+    status = await fetchBillingStatus(25000);
+  }
+  renderBillingIndicator(status);
 }
 
 const paywallOverlay = document.getElementById('paywallOverlay');
