@@ -109,8 +109,14 @@
            exports first. Hidden whenever there's nothing to upgrade to
            (billing not configured) or they're already on it
            (pass_active) - see renderBillingIndicator, which toggles this
-           alongside billingIndicator itself. -->
-      <button id="upgradeBtn" class="hidden ml-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 border border-emerald-700 hover:border-emerald-600 rounded-md px-2 py-1 transition">Go unlimited</button>
+           alongside billingIndicator itself. Solid emerald fill (same
+           weight as the primary "Export to MT5"-style CTAs), not another
+           muted outlined box like MVP/billingIndicator next to it - this
+           one's supposed to actually get clicked, not just read. -->
+      <button id="upgradeBtn" class="hidden ml-2 inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 text-xs font-bold px-2.5 py-1.5 rounded-md shadow transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <path d="M13 2L4.5 14H11L10 22L19.5 10H13L13 2Z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>Go unlimited</button>
     </div>
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
