@@ -55,6 +55,17 @@
        it - correctly on its own, no fighting its layout needed. */
     body.toolbox-open.category-flyout-open .blocklyToolbox { display: none !important; }
   }
+  /* Plain CSS, not a Tailwind sm:grid-cols-3 class: the precompiled
+     stylesheet (see the build-step note above) only ships whatever
+     utility classes were actually present in the source HTML at the
+     last `npm run build:css` - no responsive grid-cols variant was ever
+     used before, so none exist to reference, and a class the build
+     never generated silently does nothing at runtime (same trap as the
+     z-index utilities elsewhere in this file). This drives the paywall
+     modal's 3-column layout directly instead. */
+  @media (min-width: 640px) {
+    #paywallOverlay .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
 </style>
 </head>
 <body class="bg-gray-900 text-gray-100 flex flex-col h-screen overflow-hidden">
@@ -93,6 +104,13 @@
          between button groups with no clear home (see git history for
          a screenshot of exactly that). -->
       <span id="billingIndicator" class="hidden ml-2 text-xs font-medium text-gray-400 border border-gray-700 rounded-md px-2 py-1"></span>
+      <!-- Proactive upgrade entry point - opens the same paywall modal
+           without waiting for a trader to actually run out of free
+           exports first. Hidden whenever there's nothing to upgrade to
+           (billing not configured) or they're already on it
+           (pass_active) - see renderBillingIndicator, which toggles this
+           alongside billingIndicator itself. -->
+      <button id="upgradeBtn" class="hidden ml-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 border border-emerald-700 hover:border-emerald-600 rounded-md px-2 py-1 transition">Go unlimited</button>
     </div>
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
@@ -284,21 +302,55 @@
        toolbox drawer stayed open behind the paywall and hid the pricing
        cards entirely. -->
   <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-2xl p-6 sm:p-8">
-      <!-- paywallMessage carries the backend's own count (e.g. "You've
-           used your 2 free exports") - kept server-driven rather than
-           hardcoded here so it never drifts if FREE_EXPORT_LIMIT in
-           settings.py ever changes. The line below it is fixed marketing
-           copy, not tied to any dynamic value, so it's never overwritten. -->
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-4xl p-6 sm:p-8">
+      <!-- paywallMessage is set dynamically by JS depending on what
+           triggered the paywall (out of free exports - carries the
+           backend's own count so it never drifts if FREE_EXPORT_LIMIT in
+           settings.py changes; hit the free-tier saved-strategies limit;
+           or the proactive "Go unlimited" entry point) - see
+           showPaywall() below. -->
       <p id="paywallMessage" class="text-lg font-semibold text-gray-100 mb-6">Free exports used up</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button id="paywallExportBtn"
-          class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-5 transition flex flex-col">
-          <div class="flex items-center justify-between mb-3">
-            <span class="font-semibold text-gray-100">Single export</span>
-            <span class="font-semibold text-emerald-400 text-lg">$2.00</span>
-          </div>
-          <ul class="text-sm text-gray-300 space-y-2">
+      <!-- Three-column plan layout: name label + price at top, feature
+           checklist, a dedicated CTA pinned to the bottom of each card
+           (flex column + mt-auto) rather than the whole card being the
+           button - same structural template as a standard pricing table,
+           just in our own colors/copy. The Free column is purely
+           informational (no CTA - there's nothing to "buy" for a plan
+           you're already on); paywallExportCol is hidden by JS whenever
+           free exports remain, since buying a single $2 export never
+           makes sense while free ones are still available (see
+           showPaywall's hideSingleExport option). -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Free</span>
+          <span class="mt-2 font-semibold text-gray-100 text-lg">$0</span>
+          <ul class="mt-3 text-sm text-gray-300 space-y-2">
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>2 free exports</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Up to 2 saved strategies</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>No signup required</span>
+            </li>
+          </ul>
+          <span class="mt-4 text-xs text-gray-500">Your current plan until you upgrade.</span>
+        </div>
+
+        <div id="paywallExportCol" class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Single export</span>
+          <span class="mt-2 font-semibold text-emerald-400 text-lg">$2.00</span>
+          <ul class="mt-3 text-sm text-gray-300 space-y-2">
             <li class="flex items-start gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -312,19 +364,36 @@
               <span>Ready-to-run .zip in seconds</span>
             </li>
           </ul>
-        </button>
-        <button id="paywallPassBtn"
-          class="w-full text-left bg-gray-800 hover:bg-gray-700 border-2 border-emerald-600 rounded-lg p-5 transition flex flex-col">
-          <div class="flex items-center justify-between mb-3">
-            <span class="font-semibold text-gray-100">30-day unlimited</span>
-            <span class="font-semibold text-emerald-400 text-lg">$9.99</span>
-          </div>
-          <ul class="text-sm text-gray-300 space-y-2">
+          <button id="paywallExportBtn"
+            class="mt-4 w-full bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
+        </div>
+
+        <div class="bg-gray-800/60 border-2 border-emerald-600 rounded-lg p-5 flex flex-col">
+          <!-- In normal flow, not absolutely positioned over the plan
+               label - an earlier version overlapped "30-day unlimited"
+               with this badge (same class of bug as the toggle-button/
+               og-image overlaps found elsewhere in this app; same fix:
+               stop layering with position:absolute, put it in the flow
+               instead). -->
+          <!-- align-self via inline style, not the self-start class - the
+               precompiled stylesheet doesn't ship it (see the build-step
+               note in <head>), so the class would silently do nothing
+               and this would go right back to stretching full-width. -->
+          <span class="mb-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded-md" style="align-self: flex-start;">Best value</span>
+          <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">30-day unlimited</span>
+          <span class="mt-2 font-semibold text-emerald-400 text-lg">$9.99</span>
+          <ul class="mt-3 text-sm text-gray-300 space-y-2">
             <li class="flex items-start gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>Unlimited exports across MT5, MT4 and cTrader</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Unlimited saved strategies</span>
             </li>
             <li class="flex items-start gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -339,7 +408,9 @@
               <span>Works from any device once you're logged in</span>
             </li>
           </ul>
-        </button>
+          <button id="paywallPassBtn"
+            class="mt-4 w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
+        </div>
       </div>
       <div class="flex justify-end mt-6">
         <button id="paywallCancelBtn" class="text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded-md">Not now</button>
@@ -1535,7 +1606,26 @@ function writeStrategyEntry(id, name) {
 // strategy is currently open (or a suggested default if none is) so the
 // name can be adjusted right here - no separate trip through "My
 // Strategies" -> Rename needed just to fix a name at save time.
+// Free plan: max 2 saved strategies. Only checked when actually about to
+// add a NEW one (currentStrategyId set means this save re-saves/renames
+// an existing library entry - already-at-the-limit traders can still
+// keep editing what they've got, this only blocks growing past 2). The
+// count check itself is free (just the in-memory library object), so the
+// network call to confirm entitlement only happens in the one case where
+// it's actually needed - right at the limit, about to add another.
+async function isBlockedBySavedStrategyLimit() {
+  const isNewStrategy = !currentStrategyId;
+  if (!isNewStrategy || Object.keys(strategiesLibrary).length < 2) return false;
+  const status = await fetchBillingStatus();
+  if (status && status.billing_configured && status.pass_active) return false; // 30-day pass: unlimited
+  return true;
+}
+
 async function handleSaveClick() {
+  if (await isBlockedBySavedStrategyLimit()) {
+    showPaywall('Free plan is limited to 2 saved strategies', { hideSingleExport: true });
+    return;
+  }
   const openEntry = currentStrategyId ? strategiesLibrary[currentStrategyId] : null;
   const defaultName = openEntry ? openEntry.name : suggestStrategyName();
   const name = await showPromptDialog('Name this strategy:', defaultName);
@@ -2442,9 +2532,12 @@ async function fetchBillingStatus() {
   }
 }
 
+const upgradeBtn = document.getElementById('upgradeBtn');
+
 function renderBillingIndicator(status) {
   if (!status || !status.billing_configured) {
     billingIndicator.classList.add('hidden');
+    upgradeBtn.classList.add('hidden');
     return;
   }
   let label;
@@ -2458,6 +2551,9 @@ function renderBillingIndicator(status) {
   }
   billingIndicator.textContent = label;
   billingIndicator.classList.remove('hidden');
+  // Nothing to upsell once they're already on the pass - hide the entry
+  // point rather than showing it disabled or misleadingly.
+  upgradeBtn.classList.toggle('hidden', status.pass_active);
 }
 
 async function refreshBillingIndicator() {
@@ -2466,9 +2562,18 @@ async function refreshBillingIndicator() {
 
 const paywallOverlay = document.getElementById('paywallOverlay');
 const paywallMessage = document.getElementById('paywallMessage');
+const paywallExportCol = document.getElementById('paywallExportCol');
 
-function showPaywall(message) {
+// hideSingleExport: the single $2 export never makes sense to offer
+// while free exports are still available (see the two call sites below -
+// the reactive one only ever fires once free exports are already gone,
+// so it never needs this; the proactive "Go unlimited" entry point and
+// the saved-strategies-limit prompt both can fire while free exports are
+// still available, so they pass this based on the trader's actual
+// current status rather than guessing from which one opened the modal).
+function showPaywall(message, { hideSingleExport = false } = {}) {
   if (message) paywallMessage.textContent = message;
+  paywallExportCol.classList.toggle('hidden', hideSingleExport);
   paywallOverlay.classList.remove('hidden');
   trackEvent('paywall_shown');
 }
@@ -2509,6 +2614,18 @@ document.getElementById('paywallExportBtn').addEventListener('click', () => star
 document.getElementById('paywallPassBtn').addEventListener('click', () => startCheckout('pass'));
 document.getElementById('paywallCancelBtn').addEventListener('click', hidePaywall);
 paywallOverlay.addEventListener('click', (e) => { if (e.target === paywallOverlay) hidePaywall(); });
+
+// Proactive entry point - fetches a fresh status right at click time
+// (rather than trusting whatever was last cached) since whether the
+// single-export column makes sense to show depends on the trader's
+// *current* free-export balance, and this is the one path that can be
+// opened at literally any moment, not just right after an action that
+// already implies a stale status is fine.
+upgradeBtn.addEventListener('click', async () => {
+  const status = await fetchBillingStatus();
+  const hasFreeExportsLeft = !!(status && !status.pass_active && status.paid_export_credits === 0 && status.free_exports_remaining > 0);
+  showPaywall('Go unlimited for 30 days', { hideSingleExport: hasFreeExportsLeft });
+});
 
 // Coming back from Stripe Checkout - success_url/cancel_url (see
 // billing.py) tag the return with ?checkout=success|cancel so we can
