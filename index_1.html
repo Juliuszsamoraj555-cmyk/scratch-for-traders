@@ -356,7 +356,15 @@
               <span>No signup required</span>
             </li>
           </ul>
-          <span class="mt-4 text-xs text-gray-500">Your current plan until you upgrade.</span>
+          <!-- mt-auto (not a fixed mt-4 like the other two columns used
+               to have) - pushes this to the bottom of the card
+               regardless of how long the feature list above it is, so
+               all three buttons land on the same line instead of
+               trailing whatever height each column's own list happens
+               to be. -->
+          <span class="mt-auto text-xs text-gray-500">Your current plan until you upgrade.</span>
+          <button id="paywallStayFreeBtn"
+            class="mt-2 w-full bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 rounded-md transition">Stay on Free plan</button>
         </div>
 
         <div id="paywallExportCol" class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
@@ -378,7 +386,7 @@
             </li>
           </ul>
           <button id="paywallExportBtn"
-            class="mt-4 w-full bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
+            class="mt-auto w-full bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
         </div>
 
         <div class="bg-gray-800/60 border-2 border-emerald-600 rounded-lg p-5 flex flex-col">
@@ -422,7 +430,7 @@
             </li>
           </ul>
           <button id="paywallPassBtn"
-            class="mt-4 w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
+            class="mt-auto w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
         </div>
       </div>
       <div class="flex justify-end mt-6">
@@ -2626,6 +2634,7 @@ async function startCheckout(kind) {
 document.getElementById('paywallExportBtn').addEventListener('click', () => startCheckout('export'));
 document.getElementById('paywallPassBtn').addEventListener('click', () => startCheckout('pass'));
 document.getElementById('paywallCancelBtn').addEventListener('click', hidePaywall);
+document.getElementById('paywallStayFreeBtn').addEventListener('click', hidePaywall);
 paywallOverlay.addEventListener('click', (e) => { if (e.target === paywallOverlay) hidePaywall(); });
 
 // Proactive entry point - fetches a fresh status right at click time
