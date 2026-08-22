@@ -322,6 +322,12 @@
            showPaywall's hideSingleExport option). -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
+          <!-- Invisible placeholder matching the "Best value" badge's
+               box on the highlighted column - without it, that column
+               alone getting an extra line pushed its price down out of
+               line with the other two. `invisible` keeps the layout
+               space without showing anything. -->
+          <span class="mb-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide rounded-md" style="visibility: hidden;" aria-hidden="true">Best value</span>
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Free</span>
           <span class="mt-2 font-semibold text-gray-100 text-lg">$0</span>
           <ul class="mt-3 text-sm text-gray-300 space-y-2">
@@ -348,6 +354,7 @@
         </div>
 
         <div id="paywallExportCol" class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
+          <span class="mb-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide rounded-md" style="visibility: hidden;" aria-hidden="true">Best value</span>
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Single export</span>
           <span class="mt-2 font-semibold text-emerald-400 text-lg">$2.00</span>
           <ul class="mt-3 text-sm text-gray-300 space-y-2">
