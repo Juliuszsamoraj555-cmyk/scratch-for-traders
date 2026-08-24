@@ -23,12 +23,7 @@ the product.
 
 Path: `blog/<kebab-case-slug>.html`, where the slug is close to the
 target search phrase (`stop-loss-take-profit-guide.html`, not
-`article-2.html`). **The on-disk filename still ends in `.html`** - only
-the *served URL* is clean (`/blog/<slug>/`, no extension, via the
-rewrite/redirect rules in `render.yaml`, see docs/HANDOFF.md Session 6).
-Don't rename the file itself; a new slug just needs a matching pair of
-`routes` entries added to `render.yaml` (copy an existing slug's
-redirect + rewrite pair) before the clean URL will resolve in production.
+`article-2.html`).
 
 Fastest way: copy an existing article (`blog/what-is-algorithmic-trading.html`
 is the shortest) and replace its content — the `<head>` block, nav, and
@@ -41,22 +36,17 @@ just needs updating with the new content:
 
 - [ ] `<title>` — under ~60 characters, format: `<Headline> - AlgoPuzzle`
 - [ ] `<meta name="description">` — under ~155 characters, states what the reader gets
-- [ ] `<link rel="canonical">` — the clean URL, `https://algopuzzle.com/blog/<slug>/` (trailing slash, no `.html`)
-- [ ] `og:type`, `og:title`, `og:description`, `og:url` (same clean form as canonical), `og:image`
+- [ ] `<link rel="canonical">` — matches the final URL once a domain exists
+- [ ] `og:type`, `og:title`, `og:description`, `og:url`, `og:image`
 - [ ] `Article` JSON-LD block: `headline`, `description`, `author`,
       `publisher`, `datePublished` **and** `dateModified` (same value
       unless the content is actually later edited), `image`
       (`https://algopuzzle.com/assets/og-image.png`), and
       `mainEntityOfPage` (`{ "@type": "WebPage", "@id": "<canonical URL>" }`)
-- [ ] `BreadcrumbList` JSON-LD block right after the `Article` one — 3
-      items: Home (`/`), Blog (`/blog/`), then this article's title +
-      clean URL. Copy an existing article's block, it's boilerplate
-      except the title/URL on item 3.
 - [ ] `<h1>` — should closely match `<title>` and the target search phrase
 - [ ] Body: 400-800 words, plain language, short paragraphs, at least one `<h2>` subheading break
-- [ ] A CTA at the bottom linking to `/builder/` (every article should end by sending the reader to actually build something) — same URL for the header's "Open the Builder" button and the logo link (`/`)
-- [ ] "&larr; Back to all articles" link to `/#blog`
-- [ ] Any cross-link to another article uses its clean URL (`/blog/<other-slug>/`), not a relative `<other-slug>.html`
+- [ ] A CTA at the bottom linking to `../index_1.html` (every article should end by sending the reader to actually build something)
+- [ ] "&larr; Back to all articles" link to `../index.html#blog`
 
 ## 3b. LLMO — writing so an AI answer engine can actually quote it
 
@@ -112,35 +102,27 @@ because they get cited disproportionately often, per 2026 GEO data
 - **Direct how-to tutorials** matching a real query shape ("how to
   build X"), per the Step 1/2/3 pattern in section 3b above.
 
-## 4. Register the article in four places
+## 4. Register the article in three places
 
 A new HTML file alone is invisible to Google (or an AI crawler) until
 it's linked from somewhere and listed in the sitemap:
 
 1. **`blog/index.html`** — add a new card **at the top** of the list
-   (newest-first order - see the comment above the card list there),
-   `href="/blog/<slug>/"` (clean URL, not the `.html` filename).
+   (newest-first order - see the comment above the card list there).
    Give it a `<time datetime="YYYY-MM-DD">` next to the category tag,
    and move the `New` badge (`absolute top-3 ... style="right:
    0.75rem"` span, plus `relative` on the `<a>`) from whichever card
    currently has it onto the new one - only the single newest post
    keeps the badge, never two at once.
 2. **`index.html`'s `#blog` section** — same card markup (using `<h3>`
-   instead of `<h2>` there), same `href="/blog/<slug>/"` and
-   badge-and-date treatment. This section shows only the 3 most recent
-   posts, newest first - add the new one at the top and delete
-   whichever card is now 4th, don't let it grow past 3.
+   instead of `<h2>` there), same badge-and-date treatment. This
+   section shows only the 3 most recent posts, newest first - add the
+   new one at the top and delete whichever card is now 4th, don't let
+   it grow past 3.
 3. **`sitemap.xml`** — add a `<url>` entry at the top of the blog
-   entries (`<loc>https://algopuzzle.com/blog/<slug>/</loc>`,
-   `changefreq: yearly`, `priority: 0.6`, matching the pattern already
-   there), and bump the `<lastmod>` on both the `/` and `/blog/`
-   entries to today's date.
-4. **`render.yaml`** — add a matching redirect + rewrite pair for the
-   new slug under `algopuzzle-frontend`'s `routes` (copy any existing
-   slug's 3 entries - the `.html`-to-clean-URL redirect, the
-   no-trailing-slash-to-trailing-slash redirect, and the rewrite that
-   actually serves the file). Without this, the clean URL 404s in
-   production even though the file exists on disk.
+   entries (`changefreq: yearly`, `priority: 0.6`, matching the pattern
+   already there), and bump the `<lastmod>` on both the `/` and
+   `/blog/` entries to today's date.
 
 ## 5. Internal-link it from somewhere relevant
 

@@ -6,12 +6,12 @@
 
 <title>How to Build Your First Algorithmic Trading Strategy - AlgoPuzzle</title>
 <meta name="description" content="A step-by-step walkthrough for building your first algorithmic trading strategy: pick a rule, set risk, choose a platform, test it, then go live." />
-<link rel="canonical" href="https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy/" />
+<link rel="canonical" href="https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html" />
 
 <meta property="og:type" content="article" />
 <meta property="og:title" content="How to Build Your First Algorithmic Trading Strategy" />
 <meta property="og:description" content="A step-by-step walkthrough from a blank idea to a running strategy: one rule, risk first, a platform, a test, then live." />
-<meta property="og:url" content="https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy/" />
+<meta property="og:url" content="https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html" />
 <meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
 
 <script type="application/ld+json">
@@ -25,18 +25,7 @@
   "datePublished": "2026-08-20",
   "dateModified": "2026-08-20",
   "image": "https://algopuzzle.com/assets/og-image.png",
-  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy/" }
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
-    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
-    { "@type": "ListItem", "position": 3, "name": "How to Build Your First Algorithmic Trading Strategy", "item": "https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy/" }
-  ]
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html" }
 }
 </script>
 <!-- Mirrors the FAQ section below - keep the two in sync when editing
@@ -84,7 +73,7 @@
 
   <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
     <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2.5">
+      <a href="../index.html" class="flex items-center gap-2.5">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g transform="translate(1,1) scale(0.175)">
             <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
@@ -104,7 +93,7 @@
         </svg>
         <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
       </a>
-      <a href="/builder/"
+      <a href="../index_1.html"
         class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
         Open the Builder
       </a>
@@ -112,7 +101,7 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-6 py-16">
-    <a href="/#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
 
     <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
     <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">How to Build Your First Algorithmic Trading Strategy</h1>
@@ -124,7 +113,7 @@
       <p>Your first strategy should test exactly one idea, not several combined at once. Something like "sell when RSI(14) crosses above 70" or "buy when price crosses above its 50-period moving average" is a complete, testable strategy on its own. Bundling five conditions together before you've validated even one makes it impossible to tell which part of the rule is actually doing the work - and which part is just noise.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 2: Set your risk before you touch the entry</h2>
-      <p>Decide your stop loss, take profit, and position size before you finalize the entry condition, not after. The entry decides <em>when</em> you trade; risk decides <em>how much you actually have on the line</em> when you're wrong - and get to that decision first, it's easy to skip. See <a href="/blog/stop-loss-take-profit-guide/" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a> and <a href="/blog/position-sizing-how-much-to-risk/" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a> for how to size both - and <a href="/blog/market-limit-stop-orders-explained/" class="text-emerald-400 hover:text-emerald-300 underline">market, limit, and stop orders</a> for how each actually gets placed.</p>
+      <p>Decide your stop loss, take profit, and position size before you finalize the entry condition, not after. The entry decides <em>when</em> you trade; risk decides <em>how much you actually have on the line</em> when you're wrong - and get to that decision first, it's easy to skip. See <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a> and <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a> for how to size both - and <a href="market-limit-stop-orders-explained.html" class="text-emerald-400 hover:text-emerald-300 underline">market, limit, and stop orders</a> for how each actually gets placed.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 3: Choose the platform you'll actually run it on</h2>
       <p>Pick based on what your broker supports, not personal preference - a strategy built for a platform your broker doesn't offer is unusable regardless of how good it is.</p>
@@ -136,10 +125,10 @@
           <tr><td>cTrader</td><td>C#</td><td>.cs (cBot)</td></tr>
         </tbody>
       </table>
-      <p>A strategy isn't automatically portable between them - the underlying file has to be built (or exported) separately for each one. More on choosing between them in <a href="/blog/mt4-vs-mt5-vs-ctrader-automation/" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs MT5 vs cTrader</a>.</p>
+      <p>A strategy isn't automatically portable between them - the underlying file has to be built (or exported) separately for each one. More on choosing between them in <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs MT5 vs cTrader</a>.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 4: Test it before you trust it</h2>
-      <p>Run the strategy through your platform's own backtester against historical data first, then on a demo account against a live price feed, before it ever touches real money - the two catch different problems, and skipping either is how a fatal flaw gets found with real capital on the line instead of before it. Full explanation in <a href="/blog/backtesting-vs-demo-trading/" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a>.</p>
+      <p>Run the strategy through your platform's own backtester against historical data first, then on a demo account against a live price feed, before it ever touches real money - the two catch different problems, and skipping either is how a fatal flaw gets found with real capital on the line instead of before it. Full explanation in <a href="backtesting-vs-demo-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a>.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">Step 5: Export and run it</h2>
       <p>Once you're satisfied with how it performed in testing, export the strategy as a ready-to-run file for your platform, compile it (a one-click step in MetaEditor or the cAlgo editor, not something you write), and attach it to a chart - from there it runs on its own, checking your condition and acting on it without you at the screen.</p>
@@ -153,7 +142,7 @@
     </article>
 
     <div class="mt-12 border-t border-gray-800 pt-8">
-      <a href="/builder/"
+      <a href="../index_1.html"
         class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
         Build your first strategy - Free
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>

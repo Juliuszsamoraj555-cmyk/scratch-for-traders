@@ -6,12 +6,12 @@
 
 <title>What Is an Expert Advisor (EA)? A Beginner's Guide - AlgoPuzzle</title>
 <meta name="description" content="What an Expert Advisor (EA) actually is, how it differs from a cTrader cBot, and what's inside one: entry conditions, risk rules, and execution logic." />
-<link rel="canonical" href="https://algopuzzle.com/blog/what-is-an-expert-advisor/" />
+<link rel="canonical" href="https://algopuzzle.com/blog/what-is-an-expert-advisor.html" />
 
 <meta property="og:type" content="article" />
 <meta property="og:title" content="What Is an Expert Advisor (EA)? A Beginner's Guide" />
 <meta property="og:description" content="What an EA actually is, how it differs from a cTrader cBot, and the three parts every one is built from." />
-<meta property="og:url" content="https://algopuzzle.com/blog/what-is-an-expert-advisor/" />
+<meta property="og:url" content="https://algopuzzle.com/blog/what-is-an-expert-advisor.html" />
 <meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
 
 <script type="application/ld+json">
@@ -25,18 +25,7 @@
   "datePublished": "2026-08-18",
   "dateModified": "2026-08-18",
   "image": "https://algopuzzle.com/assets/og-image.png",
-  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/what-is-an-expert-advisor/" }
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
-    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
-    { "@type": "ListItem", "position": 3, "name": "What Is an Expert Advisor (EA)? A Beginner's Guide", "item": "https://algopuzzle.com/blog/what-is-an-expert-advisor/" }
-  ]
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/what-is-an-expert-advisor.html" }
 }
 </script>
 
@@ -51,7 +40,7 @@
 
   <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
     <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2.5">
+      <a href="../index.html" class="flex items-center gap-2.5">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g transform="translate(1,1) scale(0.175)">
             <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
@@ -71,7 +60,7 @@
         </svg>
         <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
       </a>
-      <a href="/builder/"
+      <a href="../index_1.html"
         class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
         Open the Builder
       </a>
@@ -79,7 +68,7 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-6 py-16">
-    <a href="/#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
 
     <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
     <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">What Is an Expert Advisor (EA)? A Beginner's Guide</h1>
@@ -91,7 +80,7 @@
       <p>An Expert Advisor is software - written in MQL5 for MetaTrader 5, or MQL4 for the older MetaTrader 4 - that attaches to a chart and runs continuously, checking your conditions on every new price tick or candle and acting the moment they're met. It doesn't get tired, doesn't hesitate, and doesn't deviate from what it was told, which is both the appeal and the risk: it follows a bad rule exactly as faithfully as a good one.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">EA vs. cBot vs. "trading bot"</h2>
-      <p>Different platforms use different names for the same underlying idea. MetaTrader calls it an Expert Advisor. cTrader calls its equivalent a cBot, written in C# instead of MQL. "Trading bot" is just the informal, platform-agnostic term for either one. An MT5 EA and an MT4 EA aren't interchangeable either, despite the shared name - MQL5 and MQL4 are different languages, so a strategy has to be built (or exported) separately for each platform, covered in more depth in <a href="/blog/mt4-vs-mt5-vs-ctrader-automation/" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs MT5 vs cTrader</a>.</p>
+      <p>Different platforms use different names for the same underlying idea. MetaTrader calls it an Expert Advisor. cTrader calls its equivalent a cBot, written in C# instead of MQL. "Trading bot" is just the informal, platform-agnostic term for either one. An MT5 EA and an MT4 EA aren't interchangeable either, despite the shared name - MQL5 and MQL4 are different languages, so a strategy has to be built (or exported) separately for each platform, covered in more depth in <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs MT5 vs cTrader</a>.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">What's actually inside one</h2>
       <p>Strip an EA down and there are really only three parts. A <strong class="text-gray-200">condition</strong> that decides when to act - price crossing a moving average, an RSI level, a candle pattern, anything that can be checked automatically. An <strong class="text-gray-200">action</strong> that decides what to do once that condition is true - buy, sell, close. And <strong class="text-gray-200">risk logic</strong> that decides how much to risk and where the trade exits - position size, stop loss, take profit. Every EA, no matter how sophisticated it looks from the outside, is built from those same three pieces.</p>
@@ -100,10 +89,10 @@
       <p>The traditional path to having your own EA meant learning MQL5 or MQL4 first. That's no longer the only option - a block-based builder lets you define the same three parts (condition, action, risk logic) by connecting pieces visually, then generates the actual .mq5, .mq4, or .cs file for you. Not knowing what a function or a variable is stops mattering; being able to describe the rule in plain language is what actually matters.</p>
     </article>
 
-    <p class="mt-6 text-sm text-gray-500">For the actual step-by-step process, see <a href="/blog/how-to-build-a-trading-bot-without-coding/" class="text-emerald-400 hover:text-emerald-300 underline">how to build a trading bot without coding</a>.</p>
+    <p class="mt-6 text-sm text-gray-500">For the actual step-by-step process, see <a href="how-to-build-a-trading-bot-without-coding.html" class="text-emerald-400 hover:text-emerald-300 underline">how to build a trading bot without coding</a>.</p>
 
     <div class="mt-12 border-t border-gray-800 pt-8">
-      <a href="/builder/"
+      <a href="../index_1.html"
         class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
         Build your first EA - Free
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>

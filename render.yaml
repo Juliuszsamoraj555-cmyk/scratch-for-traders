@@ -59,107 +59,24 @@ services:
     # see the comment on PRODUCTION_API_BASE itself for the full story.
     # Purely internal either way, never shown to a trader.
     #
-    # --- SEO Phase 1 (2026-08-24): clean-URL migration, see docs/HANDOFF.md
-    # Session 6. On-disk filenames are unchanged (index.html, index_1.html,
-    # blog/<slug>.html) - only how they're addressed over HTTP changes.
+    # A clean-URL migration (redirect+rewrite routes for /builder/ and
+    # /blog/<slug>/) was attempted and fully reverted the same day
+    # (2026-08-24) after it caused a live ERR_TOO_MANY_REDIRECTS outage -
+    # every request to /builder/ or a /blog/<slug>/ URL looped forever in
+    # real browsers (confirmed by the user, CPU pegged, site unusable).
+    # Removing only the conflicting redirect half (via a follow-up git
+    # push) did NOT stop the loop, and neither did editing the same rules
+    # directly in Render's dashboard "Redirects/Rewrites" UI and saving -
+    # so the exact root cause was never conclusively confirmed (leading
+    # theory: Render re-evaluates a rewrite's destination path against the
+    # full routes list again, rather than serving it as a simple
+    # passthrough, but that alone doesn't explain why the dashboard edit
+    # didn't help either). See docs/HANDOFF.md Session 6 for the full
+    # timeline. DO NOT re-add redirect/rewrite routes here from memory or
+    # assumption - if this gets revisited, add and deploy ONE rule for a
+    # single low-traffic path first, confirm in a real browser that it
+    # resolves without looping, and only then add more.
     #
-    # EMERGENCY FIX (same day): the original version of this block ALSO had
-    # a redirect from every legacy ".html" URL to its clean form (e.g.
-    # /blog/foo.html -> /blog/foo/). That's gone now - it caused a live
-    # ERR_TOO_MANY_REDIRECTS outage on /builder/ and every /blog/<slug>/
-    # URL within minutes of deploying, confirmed in a real browser (repeated
-    # 301s to the same URL). Root cause: Render's "rewrite" below serves
-    # /blog/foo/ by internally dispatching to /blog/foo.html - but it
-    # re-evaluates that destination path against the FULL routes list
-    # (contrary to how a passthrough/rewrite is usually assumed to behave),
-    # so it kept re-matching the now-removed redirect rule and bouncing
-    # straight back to /blog/foo/, forever. Removing that redirect block
-    # breaks the cycle: /blog/foo.html no longer matches any rule, so the
-    # rewrite's destination just falls through to normal static file
-    # serving. Net effect: a bookmark/old link to the .html form still
-    # works (serves the same content directly, unchanged from before this
-    # migration) - it just no longer 301s to the clean form. Revisit only
-    # with real, live-tested evidence of a loop-safe pattern - don't
-    # re-add this block from memory/assumption again.
-    #
-    # What's left below:
-    #   1. "redirect" (301) - no-trailing-slash -> trailing-slash only,
-    #      so there's one canonical clean form (not two).
-    #   2. "rewrite" (invisible - browser URL bar keeps showing the clean
-    #      form) - actually serves the real file from its clean URL.
-    # `/` and `/blog/` need no rules: Render's static server already
-    # serves index.html for a directory request by default (this is how
-    # both already worked before this migration).
-    routes:
-      # --- 301: no-trailing-slash -> trailing-slash (one canonical form
-      # only - avoids recreating the exact duplicate-URL problem this
-      # migration fixes) ---
-      - type: redirect
-        source: /builder
-        destination: /builder/
-      - type: redirect
-        source: /blog/backtesting-vs-demo-trading
-        destination: /blog/backtesting-vs-demo-trading/
-      - type: redirect
-        source: /blog/how-to-build-a-trading-bot-without-coding
-        destination: /blog/how-to-build-a-trading-bot-without-coding/
-      - type: redirect
-        source: /blog/how-to-build-your-first-algorithmic-strategy
-        destination: /blog/how-to-build-your-first-algorithmic-strategy/
-      - type: redirect
-        source: /blog/market-limit-stop-orders-explained
-        destination: /blog/market-limit-stop-orders-explained/
-      - type: redirect
-        source: /blog/mt4-vs-mt5-vs-ctrader-automation
-        destination: /blog/mt4-vs-mt5-vs-ctrader-automation/
-      - type: redirect
-        source: /blog/position-sizing-how-much-to-risk
-        destination: /blog/position-sizing-how-much-to-risk/
-      - type: redirect
-        source: /blog/stop-loss-take-profit-guide
-        destination: /blog/stop-loss-take-profit-guide/
-      - type: redirect
-        source: /blog/trading-indicators-explained
-        destination: /blog/trading-indicators-explained/
-      - type: redirect
-        source: /blog/what-is-algorithmic-trading
-        destination: /blog/what-is-algorithmic-trading/
-      - type: redirect
-        source: /blog/what-is-an-expert-advisor
-        destination: /blog/what-is-an-expert-advisor/
-
-      # --- rewrite: serve the real file, keep the clean URL in the
-      # browser's address bar ---
-      - type: rewrite
-        source: /builder/
-        destination: /index_1.html
-      - type: rewrite
-        source: /blog/backtesting-vs-demo-trading/
-        destination: /blog/backtesting-vs-demo-trading.html
-      - type: rewrite
-        source: /blog/how-to-build-a-trading-bot-without-coding/
-        destination: /blog/how-to-build-a-trading-bot-without-coding.html
-      - type: rewrite
-        source: /blog/how-to-build-your-first-algorithmic-strategy/
-        destination: /blog/how-to-build-your-first-algorithmic-strategy.html
-      - type: rewrite
-        source: /blog/market-limit-stop-orders-explained/
-        destination: /blog/market-limit-stop-orders-explained.html
-      - type: rewrite
-        source: /blog/mt4-vs-mt5-vs-ctrader-automation/
-        destination: /blog/mt4-vs-mt5-vs-ctrader-automation.html
-      - type: rewrite
-        source: /blog/position-sizing-how-much-to-risk/
-        destination: /blog/position-sizing-how-much-to-risk.html
-      - type: rewrite
-        source: /blog/stop-loss-take-profit-guide/
-        destination: /blog/stop-loss-take-profit-guide.html
-      - type: rewrite
-        source: /blog/trading-indicators-explained/
-        destination: /blog/trading-indicators-explained.html
-      - type: rewrite
-        source: /blog/what-is-algorithmic-trading/
-        destination: /blog/what-is-algorithmic-trading.html
-      - type: rewrite
-        source: /blog/what-is-an-expert-advisor/
-        destination: /blog/what-is-an-expert-advisor.html
+    # No `routes` key below means every page is reachable only at its
+    # real on-disk filename (index.html, index_1.html, blog/<slug>.html) -
+    # exactly how this site worked for weeks before the aborted migration.

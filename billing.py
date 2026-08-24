@@ -100,7 +100,10 @@ def create_checkout_session(device_id: str, kind: Kind, user_id: Optional[str] =
         # index_1.html's handleCheckoutReturn() already handles
         # ?checkout=cancel correctly (a toast, no charge made), it just
         # never used to receive the redirect that would let it fire.
-        cancel_url=f"{settings.SITE_URL}/builder/?checkout=cancel",
+        # Uses the real filename (not /builder/) - the clean-URL routing
+        # that would have made /builder/ resolve was fully reverted the
+        # same day after a live outage, see render.yaml's own comment.
+        cancel_url=f"{settings.SITE_URL}/index_1.html?checkout=cancel",
         # Collects the payer's email without requiring an account -
         # stored against the device/user row for future re-engagement
         # (e.g. a "your pass expires tomorrow" email), never required to

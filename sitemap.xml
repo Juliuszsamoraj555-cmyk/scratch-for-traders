@@ -2,72 +2,72 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://algopuzzle.com/</loc>
-    <lastmod>2026-08-24</lastmod>
+    <lastmod>2026-08-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://algopuzzle.com/blog/</loc>
-    <lastmod>2026-08-24</lastmod>
+    <lastmod>2026-08-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/market-limit-stop-orders-explained/</loc>
+    <loc>https://algopuzzle.com/blog/market-limit-stop-orders-explained.html</loc>
     <lastmod>2026-08-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy/</loc>
+    <loc>https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy.html</loc>
     <lastmod>2026-08-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/what-is-an-expert-advisor/</loc>
+    <loc>https://algopuzzle.com/blog/what-is-an-expert-advisor.html</loc>
     <lastmod>2026-08-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/backtesting-vs-demo-trading/</loc>
+    <loc>https://algopuzzle.com/blog/backtesting-vs-demo-trading.html</loc>
     <lastmod>2026-08-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/position-sizing-how-much-to-risk/</loc>
+    <loc>https://algopuzzle.com/blog/position-sizing-how-much-to-risk.html</loc>
     <lastmod>2026-08-14</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/mt4-vs-mt5-vs-ctrader-automation/</loc>
+    <loc>https://algopuzzle.com/blog/mt4-vs-mt5-vs-ctrader-automation.html</loc>
     <lastmod>2026-08-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/how-to-build-a-trading-bot-without-coding/</loc>
+    <loc>https://algopuzzle.com/blog/how-to-build-a-trading-bot-without-coding.html</loc>
     <lastmod>2026-08-09</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/trading-indicators-explained/</loc>
+    <loc>https://algopuzzle.com/blog/trading-indicators-explained.html</loc>
     <lastmod>2026-08-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/stop-loss-take-profit-guide/</loc>
+    <loc>https://algopuzzle.com/blog/stop-loss-take-profit-guide.html</loc>
     <lastmod>2026-08-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://algopuzzle.com/blog/what-is-algorithmic-trading/</loc>
+    <loc>https://algopuzzle.com/blog/what-is-algorithmic-trading.html</loc>
     <lastmod>2026-08-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
