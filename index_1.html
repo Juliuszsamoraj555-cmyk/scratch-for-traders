@@ -2677,9 +2677,16 @@ upgradeBtn.addEventListener('click', async () => {
   showPaywall('Go unlimited for 30 days', { hideSingleExport: hasFreeExportsLeft });
 });
 
-// Coming back from Stripe Checkout - success_url/cancel_url (see
-// billing.py) tag the return with ?checkout=success|cancel so we can
-// show a toast and refresh the indicator without the user re-checking.
+// Coming back from a cancelled Stripe Checkout - cancel_url (see
+// billing.py) tags the return with ?checkout=cancel so we can show a
+// toast without the user re-checking. A *successful* payment no longer
+// lands here at all (fixed 2026-08-24, see docs/HANDOFF.md Session 6) -
+// success_url now points straight at a dedicated confirmation page
+// (thank-you/export/ or thank-you/pass/) instead of back to the builder
+// with a query string, so a paying trader actually sees on-screen
+// confirmation instead of an unhandled ?checkout=success on whatever
+// page happened to receive it. The 'success' branch below is kept only
+// as a defensive fallback (harmless, just never expected to fire).
 (function handleCheckoutReturn() {
   const params = new URLSearchParams(window.location.search);
   const checkout = params.get('checkout');
