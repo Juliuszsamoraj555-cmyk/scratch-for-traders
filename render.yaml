@@ -62,59 +62,35 @@ services:
     # --- SEO Phase 1 (2026-08-24): clean-URL migration, see docs/HANDOFF.md
     # Session 6. On-disk filenames are unchanged (index.html, index_1.html,
     # blog/<slug>.html) - only how they're addressed over HTTP changes.
-    # Two kinds of rule below:
-    #   1. "redirect" (301, visible to the browser/crawler) - sends every
-    #      old .html-suffixed or no-trailing-slash URL to the one true
-    #      canonical form, so a bookmark, an already-indexed URL, or a link
-    #      from an existing X/Instagram post still resolves, just through
-    #      one redirect hop instead of a duplicate live URL.
+    #
+    # EMERGENCY FIX (same day): the original version of this block ALSO had
+    # a redirect from every legacy ".html" URL to its clean form (e.g.
+    # /blog/foo.html -> /blog/foo/). That's gone now - it caused a live
+    # ERR_TOO_MANY_REDIRECTS outage on /builder/ and every /blog/<slug>/
+    # URL within minutes of deploying, confirmed in a real browser (repeated
+    # 301s to the same URL). Root cause: Render's "rewrite" below serves
+    # /blog/foo/ by internally dispatching to /blog/foo.html - but it
+    # re-evaluates that destination path against the FULL routes list
+    # (contrary to how a passthrough/rewrite is usually assumed to behave),
+    # so it kept re-matching the now-removed redirect rule and bouncing
+    # straight back to /blog/foo/, forever. Removing that redirect block
+    # breaks the cycle: /blog/foo.html no longer matches any rule, so the
+    # rewrite's destination just falls through to normal static file
+    # serving. Net effect: a bookmark/old link to the .html form still
+    # works (serves the same content directly, unchanged from before this
+    # migration) - it just no longer 301s to the clean form. Revisit only
+    # with real, live-tested evidence of a loop-safe pattern - don't
+    # re-add this block from memory/assumption again.
+    #
+    # What's left below:
+    #   1. "redirect" (301) - no-trailing-slash -> trailing-slash only,
+    #      so there's one canonical clean form (not two).
     #   2. "rewrite" (invisible - browser URL bar keeps showing the clean
     #      form) - actually serves the real file from its clean URL.
     # `/` and `/blog/` need no rules: Render's static server already
     # serves index.html for a directory request by default (this is how
     # both already worked before this migration).
     routes:
-      # --- 301: legacy .html URLs -> clean canonical URLs ---
-      - type: redirect
-        source: /index.html
-        destination: /
-      - type: redirect
-        source: /index_1.html
-        destination: /builder/
-      - type: redirect
-        source: /blog/index.html
-        destination: /blog/
-      - type: redirect
-        source: /blog/backtesting-vs-demo-trading.html
-        destination: /blog/backtesting-vs-demo-trading/
-      - type: redirect
-        source: /blog/how-to-build-a-trading-bot-without-coding.html
-        destination: /blog/how-to-build-a-trading-bot-without-coding/
-      - type: redirect
-        source: /blog/how-to-build-your-first-algorithmic-strategy.html
-        destination: /blog/how-to-build-your-first-algorithmic-strategy/
-      - type: redirect
-        source: /blog/market-limit-stop-orders-explained.html
-        destination: /blog/market-limit-stop-orders-explained/
-      - type: redirect
-        source: /blog/mt4-vs-mt5-vs-ctrader-automation.html
-        destination: /blog/mt4-vs-mt5-vs-ctrader-automation/
-      - type: redirect
-        source: /blog/position-sizing-how-much-to-risk.html
-        destination: /blog/position-sizing-how-much-to-risk/
-      - type: redirect
-        source: /blog/stop-loss-take-profit-guide.html
-        destination: /blog/stop-loss-take-profit-guide/
-      - type: redirect
-        source: /blog/trading-indicators-explained.html
-        destination: /blog/trading-indicators-explained/
-      - type: redirect
-        source: /blog/what-is-algorithmic-trading.html
-        destination: /blog/what-is-algorithmic-trading/
-      - type: redirect
-        source: /blog/what-is-an-expert-advisor.html
-        destination: /blog/what-is-an-expert-advisor/
-
       # --- 301: no-trailing-slash -> trailing-slash (one canonical form
       # only - avoids recreating the exact duplicate-URL problem this
       # migration fixes) ---
