@@ -29,4 +29,5 @@ A no-code visual builder that compiles drag-and-drop trading blocks into a deplo
 - [`docs/HANDOFF.md`](docs/HANDOFF.md) — full project handoff: architecture, design decisions, current state, open items.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — step-by-step production deploy checklist (Supabase → Stripe → Render → domain).
 - [`docs/SEO_KEYWORDS.md`](docs/SEO_KEYWORDS.md) — target-keyword tracking for the landing page and blog.
+- [`docs/SOCIAL_MEDIA_GUIDE.md`](docs/SOCIAL_MEDIA_GUIDE.md) — visual template, copy rules, and platform mechanics for X and Instagram posts.
 - [`blog/CONTENT_GUIDE.md`](blog/CONTENT_GUIDE.md) — process for writing a new blog article.
