@@ -2,15 +2,21 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://algopuzzle.com/</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-08-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://algopuzzle.com/blog/</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-08-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://algopuzzle.com/blog/visual-trading-strategy-builder.html</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://algopuzzle.com/blog/market-limit-stop-orders-explained.html</loc>

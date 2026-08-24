@@ -29,8 +29,7 @@ already covered (title tag, every page's `<title>`).
 ## 1. No-code / visual builder terms
 - ✅ "no-code MT5 EA builder" — homepage `<title>`
 - ✅ "build trading strategies without code" — homepage H1/hero
-- ⚠️ "drag and drop trading bot builder" — implied ("Connect blocks"), not the literal phrase anywhere
-- ❌ "visual trading strategy builder"
+- ✅ "visual trading strategy builder" — full article (`blog/visual-trading-strategy-builder.html`), also covers "no-code EA builder" / "drag-and-drop trading bot builder" as explicit synonyms in the FAQ
 - ❌ "create Expert Advisor without programming"
 - ❌ "trading bot builder no coding"
 
@@ -53,10 +52,9 @@ already covered (title tag, every page's `<title>`).
 - ✅ "position sizing forex" — full article (`blog/position-sizing-how-much-to-risk.html`), cross-linked from the SL/TP article
 - ❌ "how to size a stop loss" / "ATR stop loss sizing" (touched on inside the SL/TP article, no dedicated one)
 
-## Next 3 candidates (once ready for another round)
-1. **"Visual Trading Strategy Builder: How It Works"** — hits the remaining no-code/builder gap directly.
-2. **"Backtesting Basics: What It Can and Can't Tell You"** — new topic area entirely, high natural search volume among beginner algo traders.
-3. **"ATR-Based Stop Loss Sizing, Explained"** — the one remaining risk-management gap, natural follow-up to both existing risk articles.
+## Next 2 candidates (once ready for another round)
+1. **"Backtesting Basics: What It Can and Can't Tell You"** — new topic area entirely, high natural search volume among beginner algo traders.
+2. **"ATR-Based Stop Loss Sizing, Explained"** — the one remaining risk-management gap, natural follow-up to both existing risk articles.
 
 Say the word and I'll write any/all of these using the same process as
 `CONTENT_GUIDE.md`.
