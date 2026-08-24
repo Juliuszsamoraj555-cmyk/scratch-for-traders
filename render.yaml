@@ -58,3 +58,132 @@ services:
     # refuses to point any record at Render's IP range (error 1000) -
     # see the comment on PRODUCTION_API_BASE itself for the full story.
     # Purely internal either way, never shown to a trader.
+    #
+    # --- SEO Phase 1 (2026-08-24): clean-URL migration, see docs/HANDOFF.md
+    # Session 6. On-disk filenames are unchanged (index.html, index_1.html,
+    # blog/<slug>.html) - only how they're addressed over HTTP changes.
+    # Two kinds of rule below:
+    #   1. "redirect" (301, visible to the browser/crawler) - sends every
+    #      old .html-suffixed or no-trailing-slash URL to the one true
+    #      canonical form, so a bookmark, an already-indexed URL, or a link
+    #      from an existing X/Instagram post still resolves, just through
+    #      one redirect hop instead of a duplicate live URL.
+    #   2. "rewrite" (invisible - browser URL bar keeps showing the clean
+    #      form) - actually serves the real file from its clean URL.
+    # `/` and `/blog/` need no rules: Render's static server already
+    # serves index.html for a directory request by default (this is how
+    # both already worked before this migration).
+    routes:
+      # --- 301: legacy .html URLs -> clean canonical URLs ---
+      - type: redirect
+        source: /index.html
+        destination: /
+      - type: redirect
+        source: /index_1.html
+        destination: /builder/
+      - type: redirect
+        source: /blog/index.html
+        destination: /blog/
+      - type: redirect
+        source: /blog/backtesting-vs-demo-trading.html
+        destination: /blog/backtesting-vs-demo-trading/
+      - type: redirect
+        source: /blog/how-to-build-a-trading-bot-without-coding.html
+        destination: /blog/how-to-build-a-trading-bot-without-coding/
+      - type: redirect
+        source: /blog/how-to-build-your-first-algorithmic-strategy.html
+        destination: /blog/how-to-build-your-first-algorithmic-strategy/
+      - type: redirect
+        source: /blog/market-limit-stop-orders-explained.html
+        destination: /blog/market-limit-stop-orders-explained/
+      - type: redirect
+        source: /blog/mt4-vs-mt5-vs-ctrader-automation.html
+        destination: /blog/mt4-vs-mt5-vs-ctrader-automation/
+      - type: redirect
+        source: /blog/position-sizing-how-much-to-risk.html
+        destination: /blog/position-sizing-how-much-to-risk/
+      - type: redirect
+        source: /blog/stop-loss-take-profit-guide.html
+        destination: /blog/stop-loss-take-profit-guide/
+      - type: redirect
+        source: /blog/trading-indicators-explained.html
+        destination: /blog/trading-indicators-explained/
+      - type: redirect
+        source: /blog/what-is-algorithmic-trading.html
+        destination: /blog/what-is-algorithmic-trading/
+      - type: redirect
+        source: /blog/what-is-an-expert-advisor.html
+        destination: /blog/what-is-an-expert-advisor/
+
+      # --- 301: no-trailing-slash -> trailing-slash (one canonical form
+      # only - avoids recreating the exact duplicate-URL problem this
+      # migration fixes) ---
+      - type: redirect
+        source: /builder
+        destination: /builder/
+      - type: redirect
+        source: /blog/backtesting-vs-demo-trading
+        destination: /blog/backtesting-vs-demo-trading/
+      - type: redirect
+        source: /blog/how-to-build-a-trading-bot-without-coding
+        destination: /blog/how-to-build-a-trading-bot-without-coding/
+      - type: redirect
+        source: /blog/how-to-build-your-first-algorithmic-strategy
+        destination: /blog/how-to-build-your-first-algorithmic-strategy/
+      - type: redirect
+        source: /blog/market-limit-stop-orders-explained
+        destination: /blog/market-limit-stop-orders-explained/
+      - type: redirect
+        source: /blog/mt4-vs-mt5-vs-ctrader-automation
+        destination: /blog/mt4-vs-mt5-vs-ctrader-automation/
+      - type: redirect
+        source: /blog/position-sizing-how-much-to-risk
+        destination: /blog/position-sizing-how-much-to-risk/
+      - type: redirect
+        source: /blog/stop-loss-take-profit-guide
+        destination: /blog/stop-loss-take-profit-guide/
+      - type: redirect
+        source: /blog/trading-indicators-explained
+        destination: /blog/trading-indicators-explained/
+      - type: redirect
+        source: /blog/what-is-algorithmic-trading
+        destination: /blog/what-is-algorithmic-trading/
+      - type: redirect
+        source: /blog/what-is-an-expert-advisor
+        destination: /blog/what-is-an-expert-advisor/
+
+      # --- rewrite: serve the real file, keep the clean URL in the
+      # browser's address bar ---
+      - type: rewrite
+        source: /builder/
+        destination: /index_1.html
+      - type: rewrite
+        source: /blog/backtesting-vs-demo-trading/
+        destination: /blog/backtesting-vs-demo-trading.html
+      - type: rewrite
+        source: /blog/how-to-build-a-trading-bot-without-coding/
+        destination: /blog/how-to-build-a-trading-bot-without-coding.html
+      - type: rewrite
+        source: /blog/how-to-build-your-first-algorithmic-strategy/
+        destination: /blog/how-to-build-your-first-algorithmic-strategy.html
+      - type: rewrite
+        source: /blog/market-limit-stop-orders-explained/
+        destination: /blog/market-limit-stop-orders-explained.html
+      - type: rewrite
+        source: /blog/mt4-vs-mt5-vs-ctrader-automation/
+        destination: /blog/mt4-vs-mt5-vs-ctrader-automation.html
+      - type: rewrite
+        source: /blog/position-sizing-how-much-to-risk/
+        destination: /blog/position-sizing-how-much-to-risk.html
+      - type: rewrite
+        source: /blog/stop-loss-take-profit-guide/
+        destination: /blog/stop-loss-take-profit-guide.html
+      - type: rewrite
+        source: /blog/trading-indicators-explained/
+        destination: /blog/trading-indicators-explained.html
+      - type: rewrite
+        source: /blog/what-is-algorithmic-trading/
+        destination: /blog/what-is-algorithmic-trading.html
+      - type: rewrite
+        source: /blog/what-is-an-expert-advisor/
+        destination: /blog/what-is-an-expert-advisor.html

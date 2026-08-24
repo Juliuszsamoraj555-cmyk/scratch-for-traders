@@ -1,0 +1,28 @@
+# AlgoPuzzle
+
+> AlgoPuzzle is a no-code, block-based visual builder for algorithmic trading strategies. Connect blocks to define entry conditions, risk management, and position sizing, then export a ready-to-run strategy file for MetaTrader 5, MetaTrader 4, or cTrader - no programming required.
+
+AlgoPuzzle generates real platform code from the visual strategy: a MetaTrader 5 Expert Advisor (`.mq5`), a MetaTrader 4 Expert Advisor (`.mq4`), or a cTrader cBot (`.cs`), packaged with a setup guide. No account is required to use the builder or claim the free exports. Strategy data stays in the browser and the exported file - there is no server-side database of user strategies.
+
+## Platforms supported
+- MetaTrader 5 (MQL5 Expert Advisor)
+- MetaTrader 4 (MQL4 Expert Advisor)
+- cTrader (C# cBot via cAlgo)
+
+## Pricing
+Free to start: the first 2 exports are free, with no account or payment required. Beyond that, pay-as-you-go, one-time payments only (no subscription): $2.00 per additional export, or $9.99 for a 30-day pass with unlimited exports (requires a free login, used only to unlock the pass).
+
+## Key pages
+- [Home](https://algopuzzle.com/): product overview, how it works, platforms, FAQ.
+- [Builder](https://algopuzzle.com/builder/): the visual strategy builder itself (interactive canvas app, not indexed for search).
+- [Blog](https://algopuzzle.com/blog/): plain-language guides on algorithmic trading, risk management, and indicators.
+- [What Is Algorithmic Trading?](https://algopuzzle.com/blog/what-is-algorithmic-trading/)
+- [What Is an Expert Advisor (EA)?](https://algopuzzle.com/blog/what-is-an-expert-advisor/)
+- [How to Build Your First Algorithmic Trading Strategy](https://algopuzzle.com/blog/how-to-build-your-first-algorithmic-strategy/)
+- [How to Build a Trading Bot Without Coding](https://algopuzzle.com/blog/how-to-build-a-trading-bot-without-coding/)
+- [MT4 vs MT5 vs cTrader: Which Should You Automate On?](https://algopuzzle.com/blog/mt4-vs-mt5-vs-ctrader-automation/)
+- [Stop Loss vs. Take Profit, Explained](https://algopuzzle.com/blog/stop-loss-take-profit-guide/)
+- [Position Sizing: How Much Should One Trade Risk?](https://algopuzzle.com/blog/position-sizing-how-much-to-risk/)
+- [RSI, MACD & Moving Averages, Quickly](https://algopuzzle.com/blog/trading-indicators-explained/)
+- [Market, Limit, and Stop Orders Explained](https://algopuzzle.com/blog/market-limit-stop-orders-explained/)
+- [Backtesting vs. Demo Trading: How to Test a Strategy First](https://algopuzzle.com/blog/backtesting-vs-demo-trading/)

@@ -6,12 +6,12 @@
 
 <title>Market, Limit, and Stop Orders Explained - AlgoPuzzle</title>
 <meta name="description" content="How market, limit, and stop orders trigger a trade, and which one an automated strategy should actually use for its entry and exit." />
-<link rel="canonical" href="https://algopuzzle.com/blog/market-limit-stop-orders-explained.html" />
+<link rel="canonical" href="https://algopuzzle.com/blog/market-limit-stop-orders-explained/" />
 
 <meta property="og:type" content="article" />
 <meta property="og:title" content="Market, Limit, and Stop Orders Explained" />
 <meta property="og:description" content="How each order type actually triggers a trade, and which one to use for a strategy's entry and exit." />
-<meta property="og:url" content="https://algopuzzle.com/blog/market-limit-stop-orders-explained.html" />
+<meta property="og:url" content="https://algopuzzle.com/blog/market-limit-stop-orders-explained/" />
 <meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
 
 <script type="application/ld+json">
@@ -25,7 +25,18 @@
   "datePublished": "2026-08-22",
   "dateModified": "2026-08-22",
   "image": "https://algopuzzle.com/assets/og-image.png",
-  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/market-limit-stop-orders-explained.html" }
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/market-limit-stop-orders-explained/" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Market, Limit, and Stop Orders Explained", "item": "https://algopuzzle.com/blog/market-limit-stop-orders-explained/" }
+  ]
 }
 </script>
 <!-- Mirrors the FAQ section below - keep the two in sync when editing
@@ -73,7 +84,7 @@
 
   <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
     <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <a href="../index.html" class="flex items-center gap-2.5">
+      <a href="/" class="flex items-center gap-2.5">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g transform="translate(1,1) scale(0.175)">
             <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
@@ -93,7 +104,7 @@
         </svg>
         <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
       </a>
-      <a href="../index_1.html"
+      <a href="/builder/"
         class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
         Open the Builder
       </a>
@@ -101,7 +112,7 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-6 py-16">
-    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+    <a href="/#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
 
     <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
     <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Market, Limit, and Stop Orders Explained</h1>
@@ -128,13 +139,13 @@
       </table>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">Which one an automated strategy should actually use</h2>
-      <p>Most strategies enter with a market order, since the entry condition itself (RSI crossing 70, price crossing a moving average) already confirms the moment to act - there's rarely anything to gain by waiting for a marginally better price once the signal has fired. Limit and stop orders do the rest of the work: a <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">take profit is a limit order, a stop loss is a stop order</a>, both placed the moment the position opens, not decided in the moment.</p>
+      <p>Most strategies enter with a market order, since the entry condition itself (RSI crossing 70, price crossing a moving average) already confirms the moment to act - there's rarely anything to gain by waiting for a marginally better price once the signal has fired. Limit and stop orders do the rest of the work: a <a href="/blog/stop-loss-take-profit-guide/" class="text-emerald-400 hover:text-emerald-300 underline">take profit is a limit order, a stop loss is a stop order</a>, both placed the moment the position opens, not decided in the moment.</p>
     </article>
 
-    <p class="mt-6 text-sm text-gray-500">Once entries and exits are settled, the next thing worth getting right is how much each trade actually risks - covered in <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a>.</p>
+    <p class="mt-6 text-sm text-gray-500">Once entries and exits are settled, the next thing worth getting right is how much each trade actually risks - covered in <a href="/blog/position-sizing-how-much-to-risk/" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a>.</p>
 
     <div class="mt-12 border-t border-gray-800 pt-8">
-      <a href="../index_1.html"
+      <a href="/builder/"
         class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
         Build a strategy with the right orders - Free
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>

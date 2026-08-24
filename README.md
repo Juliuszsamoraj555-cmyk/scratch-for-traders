@@ -11,7 +11,7 @@ A no-code visual builder that compiles drag-and-drop trading blocks into a deplo
    ```
 
 2. **Frontend**
-   Two separate HTML files, not one: `index.html` is the marketing/landing page (SEO front door, links to the builder); `index_1.html` is the actual builder app. To work on the builder, open `index_1.html` directly in your browser (double-click it, or serve it with any static server, e.g. `python -m http.server 5500`). It talks to the backend at `http://127.0.0.1:8000`.
+   Two separate HTML files, not one: `index.html` is the marketing/landing page (SEO front door, links to the builder); `index_1.html` is the actual builder app. To work on the builder, open `index_1.html` directly in your browser (double-click it, or serve it with any static server, e.g. `python -m http.server 5500`). It talks to the backend at `http://127.0.0.1:8000`. In production these filenames stay on disk unchanged, but are served at clean URLs (`/`, `/builder/`, `/blog/<slug>/`) via the redirect/rewrite rules in `render.yaml` — see `docs/HANDOFF.md` Session 6.
    Billing/auth are optional locally — with no `.env` / `DATABASE_URL` set, `billing.py`/`db.py` no-op with a warning and exports are unlimited. See `docs/DEPLOYMENT.md` for setting up the real Stripe/Supabase-backed billing.
 
 ## How it works
