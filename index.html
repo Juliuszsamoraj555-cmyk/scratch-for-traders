@@ -733,6 +733,23 @@
     });
   });
 
+  // Real bug, found 2026-08-24: clicking a CTA adds .leaving (opacity 0)
+  // right before navigating away - but if the visitor then hits the
+  // browser's Back button, Chrome can restore this exact page from
+  // bfcache with .leaving still applied, since bfcache snapshots the
+  // live DOM state including classes added by JS, not just the original
+  // HTML. Result: a blank, fully-transparent #pageRoot forever, with a
+  // perfectly correct URL/title - looks like the page failed to load
+  // when it's actually just stuck mid-fade-out. `pageshow` fires on
+  // every load INCLUDING a bfcache restore (unlike DOMContentLoaded,
+  // which does not) - event.persisted is true specifically for the
+  // bfcache-restore case, which is the only case that needs this, but
+  // clearing it unconditionally here is harmless on a normal fresh load
+  // too (the class is never present then anyway).
+  window.addEventListener('pageshow', () => {
+    document.getElementById('pageRoot').classList.remove('leaving');
+  });
+
   // Scroll-reveal: sections settle into place as they enter view.
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {

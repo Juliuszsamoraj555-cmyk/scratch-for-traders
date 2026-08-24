@@ -76,7 +76,14 @@
       <!-- Same wordmark as the landing page (index.html) / blog pages -
            ascending block-bars doubling as a rising price chart, with a
            trend arrow across the tops. Keep these three in sync if the
-           mark changes again. -->
+           mark changes again. Wrapped in a plain "/" link (added
+           2026-08-24) - the builder never had a way back to the homepage
+           before. Deliberately "/" and nothing fancier: the clean-URL
+           routing attempt was fully reverted the same day after a live
+           outage (see docs/HANDOFF.md Session 6 and render.yaml's own
+           comment) - "/" needs no custom routing and is guaranteed to
+           resolve. -->
+      <a href="/" class="flex items-center gap-2">
       <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g transform="translate(1,1) scale(0.175)">
           <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
@@ -95,6 +102,7 @@
         </g>
       </svg>
       <h1 class="text-lg font-semibold tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></h1>
+      </a>
       <span class="hidden sm:inline-block ml-2 text-xs text-gray-500 border border-gray-700 rounded px-2 py-0.5">MVP</span>
       <!-- Lives with the brand, not the action buttons: this is account
          status ("how many exports do I have left"), not something you
