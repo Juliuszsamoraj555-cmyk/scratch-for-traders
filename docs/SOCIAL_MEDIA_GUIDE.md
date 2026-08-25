@@ -91,6 +91,13 @@ What to actually do:
 - **Discount the raw like/reply count** when judging a post's real performance — a chunk of it is very likely bot noise on a small/new account in this niche, not a sign the content is bad.
 - If the account ever gets X Premium+, check for the "2nd-degree reply" restriction (replies limited to followers-of-followers) — tightens this at the source.
 
+**A related but distinct problem, confirmed 2026-08-24: bots polluting the account's own "For You" feed, not just replying to posts.** Even *blocking* a bot involves opening its profile - itself an engagement signal that trains the algorithm to serve more of the same, so a block-heavy week can spiral into a feed that's mostly spam. Fix (user-side, in X's own settings, not something this project's code touches):
+1. Use the **"Following" tab instead of "For You"** - chronological, only accounts actually followed, bypasses the polluted algorithmic feed entirely.
+2. Use **"Not interested" (the ··· menu on a post)**, not just block - block only removes that one account's future visibility; "Not interested" is the actual negative training signal for "stop showing me this category."
+3. **Mute keywords, not individual accounts** (Settings → Privacy and safety → Mute and block → Muted keywords) - new bot accounts spawn faster than they can be blocked one at a time; a keyword mute (their common phrases - "DM me", "check my bio", etc.) catches all of them at once.
+4. Minimize dwell time on a bot's content even without interacting - view duration itself is a signal.
+5. Check **Settings → Privacy → Your ads preferences/Interests** - X sometimes lets you view and remove inferred interests (e.g. an over-broad "crypto" tag) directly.
+
 ## Site integration (so social presence shows up beyond the posts themselves)
 
 - **Footer icons** on every page (homepage + all `blog/*.html`): small SVG icon links next to the support email, `24×24`, brand-colored — X in solid off-white `#f9fafb` (X has no signature color; white-on-dark is its own convention), Instagram using the real Instagram gradient (`#feda75 → #fa7e1e → #d62976 → #4f5bd5`) via an inline SVG `linearGradient`, not a flat/muted tint. Footer container: `py-16`, `text-base` (bumped up from an earlier, too-quiet `py-10`/`text-sm` pass per direct feedback — "chciałbym żeby to było bardziej widoczne").
