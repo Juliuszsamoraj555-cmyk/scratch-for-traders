@@ -46,6 +46,7 @@
         <a href="index.html#how-it-works" class="hover:text-gray-100 transition">How it works</a>
         <a href="index.html#features" class="hover:text-gray-100 transition">Features</a>
         <a href="strategy-of-the-week.html" class="text-emerald-400 font-medium">Strategy of the Week</a>
+        <a href="my-purchases.html" class="hover:text-gray-100 transition">My Purchases</a>
         <a href="blog/index.html" class="hover:text-gray-100 transition">Blog</a>
       </nav>
       <a href="index_1.html" class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
@@ -58,8 +59,16 @@
        HERO
        ============================================================ -->
   <section class="max-w-6xl mx-auto px-6 pt-16 pb-10">
-    <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
-    <p class="mt-4 text-gray-400 leading-relaxed max-w-2xl">Every week we test hundreds of automatically generated strategies against fresh market data, across forex, indices, and gold, and publish only the ones that made the cut. One is always free to download, five more are available to buy individually.</p>
+    <div class="flex items-center gap-3">
+      <span class="shrink-0 w-11 h-11 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/>
+          <path d="M7 6H4a2 2 0 0 0 2 5M17 6h3a2 2 0 0 1-2 5"/>
+        </svg>
+      </span>
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
+    </div>
+    <p class="mt-4 text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually.</p>
     <div class="mt-5 flex items-center gap-3 text-sm text-gray-500">
       <span>Tested <span class="text-gray-300 font-medium">Jul 26 &ndash; Aug 25, 2026</span> &middot; published Aug 25</span>
       <span class="text-gray-700">&middot;</span>
@@ -82,9 +91,7 @@
       <h2 class="text-lg font-bold text-gray-100">5 strategies this week</h2>
       <span class="text-sm text-gray-500">One-time purchase &middot; yours forever</span>
     </div>
-    <p class="text-sm text-gray-500 mb-5">Ranked by return %, not raw pips &mdash; the only fair comparison once forex, indices, and gold sit in the same list. All backtested on the same window: Jul 26 &ndash; Aug 25, 2026.</p>
-
-    <div id="featuredStrategyCard" class="mb-4"></div>
+    <div id="featuredStrategyCard" class="mt-5 mb-4"></div>
     <div id="strategyGrid" class="grid sm:grid-cols-2 gap-4"></div>
   </section>
 
@@ -110,13 +117,12 @@
         <span class="text-xs font-medium text-gray-500">&middot; one-time, yours forever</span>
       </div>
 
-      <div class="mt-5 bg-amber-500/5 border border-amber-500 rounded-lg p-4 flex gap-3">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.5" fill="#f59e0b"/></svg>
-        <div class="text-xs text-gray-300 leading-relaxed space-y-1.5">
-          <p class="font-bold text-amber-400 text-sm">Before you buy:</p>
+      <div class="mt-5 bg-gray-800/40 border border-gray-700 rounded-lg p-4 flex gap-3">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.5" fill="#9ca3af"/></svg>
+        <div class="text-xs text-gray-400 leading-relaxed space-y-1.5">
+          <p class="font-semibold text-gray-300 text-sm">Before you buy</p>
           <p>Past performance does not guarantee future results.</p>
           <p>This strategy was tested from Jul 26 to Aug 25, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
-          <p>This is informational material, not investment advice, and we have no control over how the market behaves after purchase.</p>
         </div>
       </div>
 
@@ -217,12 +223,15 @@ function renderFeaturedCard() {
   if (!strategy) return;
   const owned = isStrategyOwned(strategy.id);
   document.getElementById('featuredStrategyCard').innerHTML = `
-    <div class="relative bg-gray-900/60 border border-gray-800 rounded-xl p-6">
-      <span class="absolute top-4 right-4 text-[11px] font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded px-2 py-1">Top performer this week</span>
-      <div class="flex flex-wrap gap-6 items-center">
+    <div class="relative bg-gradient-to-br from-amber-500/10 via-gray-900/60 to-gray-900/60 border-2 border-amber-600/40 rounded-xl p-7 shadow-lg shadow-amber-950/40">
+      <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide bg-amber-500 text-gray-900 rounded-full px-3 py-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a2 2 0 0 0 2 5M17 6h3a2 2 0 0 1-2 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Top performer this week
+      </span>
+      <div class="mt-4 flex flex-wrap gap-6 items-center">
         <div class="flex-[2] min-w-[260px]">
           <span class="text-xs font-medium text-gray-500">${strategy.style} &middot; ${strategy.timeframe}</span>
-          <h4 class="mt-1.5 text-lg font-bold text-gray-50">${strategy.symbol} &mdash; ${strategy.name.split('—')[1] || strategy.name}</h4>
+          <h4 class="mt-1.5 text-xl font-bold text-gray-50">${strategy.symbol} &mdash; ${strategy.name.split('—')[1] || strategy.name}</h4>
           <p class="mt-1.5 text-sm text-gray-400 leading-relaxed max-w-md">${strategy.description}</p>
         </div>
         <div class="flex-1 min-w-[170px]">${statBlock(strategy)}</div>

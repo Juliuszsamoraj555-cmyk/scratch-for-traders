@@ -262,12 +262,13 @@
         <a href="#how-it-works" class="hover:text-gray-100 transition">How it works</a>
         <a href="#features" class="hover:text-gray-100 transition">Features</a>
         <a href="#platforms" class="hover:text-gray-100 transition">Platforms</a>
-        <!-- 2026-08-26 (staging): links to a placeholder-content page,
-             see strategy-of-the-week.html's own header comment. Fine to
-             leave in staging's nav since the page is noindex, nofollow -
-             don't merge this link (or the page) into main until real
-             strategy content/prices replace the placeholders. -->
-        <a href="strategy-of-the-week.html" class="hover:text-gray-100 transition">Strategy of the Week</a>
+        <!-- 2026-08-26 (staging): anchors to the teaser section below,
+             same pattern as the Blog nav item -> #blog. The teaser links
+             on to strategy-of-the-week.html, a placeholder-content page
+             (see its own header comment) - fine to leave in staging's
+             nav since that page is noindex, nofollow, but don't merge
+             either into main until real content/prices replace them. -->
+        <a href="#strategy-of-the-week" class="hover:text-gray-100 transition">Strategy of the Week</a>
         <a href="#blog" class="hover:text-gray-100 transition">Blog</a>
         <a href="#faq" class="hover:text-gray-100 transition">FAQ</a>
       </nav>
@@ -485,6 +486,40 @@
           <img src="assets/ctrader_icon.png" alt="cTrader" class="w-8 h-8 object-contain" />
           <span class="font-medium text-gray-200">cTrader</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       STRATEGY OF THE WEEK (2026-08-26, staging)
+       Teaser mirroring the BLOG section's own pattern below (short
+       intro + a peek at the content + a "see everything" link to the
+       real page, not the full listing inlined here). Data-driven from
+       assets/marketplace-data.js so the free strategy shown here can
+       never drift out of sync with the real page - placeholder content
+       until the marketplace's real content/prices/Stripe land (see
+       that file's header comment).
+       ============================================================ -->
+  <section id="strategy-of-the-week" class="border-t border-gray-800 bg-gray-900/40">
+    <div class="max-w-5xl mx-auto px-6 py-20">
+      <div class="flex items-center justify-center gap-3">
+        <span class="shrink-0 w-10 h-10 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/>
+            <path d="M7 6H4a2 2 0 0 0 2 5M17 6h3a2 2 0 0 1-2 5"/>
+          </svg>
+        </span>
+        <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">Strategy of the Week</h2>
+      </div>
+      <p class="reveal mt-3 text-gray-400 text-center max-w-xl mx-auto">A new, independently backtested strategy every week. One is always free.</p>
+
+      <div id="sotwTeaserCard" class="reveal mt-12 border border-emerald-800 rounded-xl bg-gradient-to-b from-emerald-950/40 to-emerald-950/10 p-7 flex flex-wrap gap-8 items-stretch"></div>
+
+      <div class="reveal mt-8 text-center">
+        <a href="strategy-of-the-week.html" class="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition">
+          Show more
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
       </div>
     </div>
   </section>
@@ -725,8 +760,42 @@
 
 </div>
 
+<script src="assets/marketplace-data.js"></script>
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Strategy of the Week teaser card - see the section's own header
+  // comment above. Renders the free strategy from the shared catalog
+  // (assets/marketplace-data.js) so this can never drift out of sync
+  // with the real listing page.
+  (function renderStrategyOfTheWeekTeaser() {
+    const strategy = typeof MARKETPLACE_STRATEGIES !== 'undefined'
+      ? MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free')
+      : null;
+    const el = document.getElementById('sotwTeaserCard');
+    if (!strategy || !el) return;
+    el.innerHTML = `
+      <div class="flex-1 min-w-[280px]">
+        <span class="text-xs font-bold uppercase tracking-wide text-emerald-400">${strategy.badge}</span>
+        <h3 class="mt-2.5 text-xl font-bold text-gray-50">${strategy.name}</h3>
+        <p class="mt-2.5 text-sm text-gray-300 leading-relaxed max-w-md">${strategy.description}</p>
+        <div class="mt-5 flex gap-6 flex-wrap">
+          <div><div class="text-xl font-bold text-emerald-300">${strategy.stats.winRate}%</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
+          <div><div class="text-xl font-bold text-emerald-300">+${strategy.stats.returnPct}%</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
+          <div><div class="text-xl font-bold text-gray-100">${strategy.stats.trades}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
+        </div>
+        <div class="mt-5">
+          <a href="strategy-of-the-week.html" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md">Download for free</a>
+        </div>
+      </div>
+      <div class="flex-1 min-w-[220px] flex items-center justify-center">
+        <svg viewBox="0 0 320 140" width="100%" height="140" style="max-width:340px" preserveAspectRatio="none" aria-hidden="true">
+          <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16 320,140 0,140" fill="rgba(16,185,129,0.10)" stroke="none"/>
+        </svg>
+      </div>
+    `;
+  })();
 
   // Fade the page out before handing off to the builder, so the jump
   // feels like one motion instead of a hard cut. Falls back to an
