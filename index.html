@@ -504,8 +504,40 @@
          checklist. -->
     <div class="mt-14 space-y-6">
 
-      <a href="blog/visual-trading-strategy-builder.html" class="reveal relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="blog/atr-stop-loss-sizing.html" class="reveal relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <span class="absolute top-3 px-2 py-1 text-xs font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded-md" style="right: 0.75rem;">New</span>
+        <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Four candles with growing range (volatility), a bracket
+               next to the last one showing the stop distance scaling
+               with it - "the stop adapts to how much it's actually
+               moving". -->
+          <line x1="35" y1="55" x2="35" y2="115" stroke="#4b5563" stroke-width="2"/>
+          <rect x="27" y="75" width="16" height="20" fill="#374151"/>
+          <line x1="80" y1="45" x2="80" y2="125" stroke="#4b5563" stroke-width="2"/>
+          <rect x="72" y="65" width="16" height="35" fill="#4b5563"/>
+          <line x1="125" y1="35" x2="125" y2="135" stroke="#0f766e" stroke-width="2"/>
+          <rect x="117" y="55" width="16" height="50" fill="#0f766e"/>
+          <line x1="170" y1="20" x2="170" y2="150" stroke="#10b981" stroke-width="2.5"/>
+          <rect x="160" y="45" width="20" height="70" fill="#10b981"/>
+          <line x1="205" y1="20" x2="205" y2="150" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 4"/>
+          <path d="M198 20 L212 20 M198 150 L212 150" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="205" y="14" fill="#fbbf24" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">ATR</text>
+        </svg>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-08-25" class="text-xs text-gray-500">Aug 25, 2026</time>
+          </div>
+          <h3 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">ATR-Based Stop Loss Sizing, Explained</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Why a fixed-pip stop breaks down across instruments, and how to size one that adapts to each market's own volatility.</p>
+          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="blog/visual-trading-strategy-builder.html" class="reveal group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Three connected blocks - condition, action, risk - the
                shape every visual-builder strategy reduces to. -->
@@ -553,29 +585,6 @@
           </div>
           <h3 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Market, Limit, and Stop Orders Explained</h3>
           <p class="mt-2 text-sm text-gray-400 leading-relaxed">How each order type actually triggers a trade, and which one a strategy should use for its entry and exit.</p>
-          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </div>
-      </a>
-
-      <a href="blog/how-to-build-your-first-algorithmic-strategy.html" class="reveal group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
-        <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="106" width="36" height="30" fill="#374151"/>
-          <rect x="64" y="86" width="36" height="50" fill="#4b5563"/>
-          <rect x="108" y="66" width="36" height="70" fill="#0f766e"/>
-          <rect x="152" y="46" width="36" height="90" fill="#10b981"/>
-          <circle cx="196" cy="40" r="16" fill="#34d399"/>
-          <path d="M189 40 L194 45 L204 33" stroke="#052e21" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</span>
-            <span class="text-xs text-gray-600">&middot;</span>
-            <time datetime="2026-08-20" class="text-xs text-gray-500">Aug 20, 2026</time>
-          </div>
-          <h3 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">How to Build Your First Algorithmic Trading Strategy</h3>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A step-by-step walkthrough from a blank idea to a running strategy: one rule, risk first, a platform, a test, then live.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>

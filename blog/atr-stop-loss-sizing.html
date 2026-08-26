@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>ATR-Based Stop Loss Sizing, Explained - AlgoPuzzle</title>
+<meta name="description" content="Why a fixed-pip stop loss breaks down across different instruments, and how to size one with ATR so it adapts to each market's own volatility." />
+<link rel="canonical" href="https://algopuzzle.com/blog/atr-stop-loss-sizing.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="ATR-Based Stop Loss Sizing, Explained" />
+<meta property="og:description" content="A fixed-pip stop treats a calm pair and a volatile one identically. ATR-based sizing fixes that - here's how it actually works." />
+<meta property="og:url" content="https://algopuzzle.com/blog/atr-stop-loss-sizing.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "ATR-Based Stop Loss Sizing, Explained",
+  "description": "Why a fixed-pip stop loss breaks down across different instruments, and how to size one using ATR so it adapts to each market's own volatility.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-08-25",
+  "dateModified": "2026-08-25",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/atr-stop-loss-sizing.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What does ATR-based stop loss mean?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It means setting a stop loss as a multiple of the Average True Range (ATR) instead of a fixed number of pips - for example, entry price minus 2x ATR(14) - so the distance automatically scales with how much the instrument is actually moving." }
+    },
+    {
+      "@type": "Question",
+      "name": "What ATR multiplier should I use?",
+      "acceptedAnswer": { "@type": "Answer", "text": "There's no universally correct number - 1.5x to 3x ATR is a common starting range, tighter for faster mean-reversion strategies and wider for trend-following ones that need room to breathe. The right multiplier depends on the strategy and has to be confirmed through backtesting, not assumed." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is ATR-based sizing better than a fixed-pip stop loss?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It's more consistent across instruments and across changing market conditions, since it's measuring actual volatility rather than guessing at it - but \"better\" depends on the strategy. A fixed-pip stop is simpler and can be perfectly fine for a single instrument traded under stable conditions." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does ATR-based stop sizing replace position sizing?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No - they solve different problems. ATR decides how far away the stop sits; position sizing decides how large the trade is given that distance, so the dollar risk stays consistent regardless of how wide or narrow the ATR-based stop turns out to be." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "ATR-Based Stop Loss Sizing, Explained", "item": "https://algopuzzle.com/blog/atr-stop-loss-sizing.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">ATR-Based Stop Loss Sizing, Explained</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>ATR-based stop loss sizing means setting a stop as a multiple of the Average True Range instead of a fixed number of pips - for example, entry price minus 2x ATR(14), rather than a flat "20 pips" for every trade. ATR measures how much an instrument typically moves over a given number of candles, so a stop built from it automatically widens on a volatile instrument and tightens on a calm one. The problem it solves is simple: a fixed 20-pip stop is tight on a pair that regularly moves 80 pips a day and wide on one that moves 15, even though the number never changes. ATR-based sizing replaces that guess with an actual measurement of the market's own recent behavior, so the stop means roughly the same thing - "outside normal noise" - no matter what's being traded.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What ATR actually measures</h2>
+      <p>ATR is the average, over a chosen number of candles, of the "true range" of each one - the largest of: the current high minus the current low, the current high minus the previous close, or the current low minus the previous close. Using the previous close (not just the current candle's own range) is what makes it account for gaps, not only intra-candle movement. A 14-period ATR on a 1-hour chart, for instance, is simply the average true range of the last 14 hourly candles - a rolling measure of "how much does this thing normally move," recalculated on every new candle.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why a fixed-pip stop breaks down</h2>
+      <p>A fixed-pip stop has no relationship to the instrument's actual behavior - it's the same number whether volatility just doubled or halved. That creates two failure modes: a stop too tight for current conditions gets clipped by ordinary noise before the trade has a real chance to work, and a stop too wide for current conditions risks far more than intended for no added benefit. Both are corrected automatically by tying the distance to ATR, since the distance is recalculated from real, recent price behavior rather than picked once and left alone.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Fixed-pip vs. ATR-based stops</h2>
+      <table>
+        <thead><tr><th></th><th>Fixed-pip stop</th><th>ATR-based stop</th></tr></thead>
+        <tbody>
+          <tr><td>Adapts to volatility</td><td>No - same distance always</td><td>Yes - recalculated per candle</td></tr>
+          <tr><td>Consistent across instruments</td><td>No - "20 pips" means something different on every pair</td><td>Yes - relative to each instrument's own normal range</td></tr>
+          <tr><td>Simplicity</td><td>Simpler to reason about</td><td>One extra input (the ATR period and multiplier)</td></tr>
+          <tr><td>Best fit</td><td>A single instrument under stable conditions</td><td>Multiple instruments, or any single one whose volatility genuinely changes</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Choosing a multiplier</h2>
+      <p>1.5x to 3x ATR is a common starting range, not a fixed rule - a tighter multiplier suits a mean-reversion strategy expecting price to turn quickly, while a wider one suits a trend-following strategy that needs room to survive a normal pullback before continuing. The correct number for a given strategy isn't something to guess at once and keep forever; it's something to confirm the same way any other part of a strategy gets confirmed - a real backtest against historical data, then a demo account against a live feed, comparing a few candidate multipliers against each other rather than assuming the first one picked is right.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">ATR sizes the stop, not the trade</h2>
+      <p>ATR-based sizing decides how far away the stop sits - it says nothing about how large the position itself should be. Those are two separate decisions: a wider ATR-based stop on a volatile instrument should generally come with a smaller position size, so the actual dollar risk stays the same trade to trade regardless of how far the stop ends up sitting. See <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a> for how that second half of the calculation works, and <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a> for the broader picture both pieces fit into. In a block-based builder, this looks like combining an ATR operand with a multiplier directly in the risk block - e.g. "2 x ATR(14)" as the stop distance - rather than typing a static pip value.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What does ATR-based stop loss mean?</p>
+          <p class="mt-1">It means setting a stop loss as a multiple of the Average True Range (ATR) instead of a fixed number of pips - for example, entry price minus 2x ATR(14) - so the distance automatically scales with how much the instrument is actually moving.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What ATR multiplier should I use?</p>
+          <p class="mt-1">There's no universally correct number - 1.5x to 3x ATR is a common starting range, tighter for faster mean-reversion strategies and wider for trend-following ones that need room to breathe. The right multiplier depends on the strategy and has to be confirmed through backtesting, not assumed.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Is ATR-based sizing better than a fixed-pip stop loss?</p>
+          <p class="mt-1">It's more consistent across instruments and across changing market conditions, since it's measuring actual volatility rather than guessing at it - but "better" depends on the strategy. A fixed-pip stop is simpler and can be perfectly fine for a single instrument traded under stable conditions.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Does ATR-based stop sizing replace position sizing?</p>
+          <p class="mt-1">No - they solve different problems. ATR decides how far away the stop sits; position sizing decides how large the trade is given that distance, so the dollar risk stays consistent regardless of how wide or narrow the ATR-based stop turns out to be.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build an ATR-sized stop - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

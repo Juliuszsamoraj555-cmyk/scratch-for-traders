@@ -50,11 +50,10 @@ already covered (title tag, every page's `<title>`).
 - ✅ "stop loss vs take profit" — full article
 - ✅ "RSI MACD moving average explained" — full article
 - ✅ "position sizing forex" — full article (`blog/position-sizing-how-much-to-risk.html`), cross-linked from the SL/TP article
-- ❌ "how to size a stop loss" / "ATR stop loss sizing" (touched on inside the SL/TP article, no dedicated one)
+- ✅ "how to size a stop loss" / "ATR stop loss sizing" — full article (`blog/atr-stop-loss-sizing.html`), cross-linked from the SL/TP article
 
-## Next 2 candidates (once ready for another round)
+## Next candidate (once ready for another round)
 1. **"Backtesting Basics: What It Can and Can't Tell You"** — new topic area entirely, high natural search volume among beginner algo traders.
-2. **"ATR-Based Stop Loss Sizing, Explained"** — the one remaining risk-management gap, natural follow-up to both existing risk articles.
 
 Say the word and I'll write any/all of these using the same process as
 `CONTENT_GUIDE.md`.
