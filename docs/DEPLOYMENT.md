@@ -162,20 +162,24 @@ Only after step 6 passes cleanly in Test mode:
 Set up once, ahead of building the strategy-marketplace feature (see
 `mockups/strategy-of-the-week.html`) — a second, disposable pair of
 Render services that deploy from the `staging` git branch instead of
-`main`, so new features (especially anything touching Stripe/money) get
-a real end-to-end test against a real deployed URL before ever touching
-`main`/production.
+`main`, so new features get a real end-to-end test against a real
+deployed URL before ever touching `main`/production.
 
-**Deliberate scope decision:** only Render is duplicated. Supabase and
-Stripe are **not** — staging uses the exact same Supabase project and
-the exact same Stripe account (Test mode, which staging should always
-stay in) as everything else already does locally. Reasoning: Stripe
-already separates test/live within one account, so there's nothing to
-duplicate there; and duplicating Supabase now would mean maintaining a
-second schema/migration path with no marketplace tables designed yet.
-Revisit this (a dedicated Supabase project, or at least a separate
-Postgres schema) before staging starts writing real purchase/webhook
-rows for testing, so test data never mixes with real user data.
+**Deliberate scope decision (2026-08-26): Render only, nothing else,
+for now.** No Supabase, no Stripe — not even Test mode — get configured
+on staging at this point. There's no marketplace code yet to test that
+would need either of them, so wiring them up now would just be
+unused config to maintain. This isn't a workaround: `billing.py`/`db.py`
+are already built to run with neither configured — see
+`BillingNotConfigured`/`_require_configured()` in `billing.py` and the
+`if settings.DATABASE_URL:` branch in `device_identity.py` — missing
+`DATABASE_URL`/`STRIPE_SECRET_KEY` just logs a warning and exports stay
+unlimited, no crash. That's exactly the mode staging runs in until a
+feature actually needs billing to test against. When that day comes,
+revisit this section and decide then (Stripe Test mode is cheap - one
+account, no duplication needed; Supabase needs an explicit choice
+between the shared prod project and a dedicated one, see the git history
+of this section for the fuller writeup of that tradeoff).
 
 1. **Push the `staging` branch** (already created locally as of this
    doc update): `git push -u origin staging`.
@@ -188,8 +192,9 @@ rows for testing, so test data never mixes with real user data.
      if Render appends a suffix because the name's taken, update that
      constant to match).
    - Branch: `staging`
-   - Runtime: Python, Region: Frankfurt (matches the Supabase project's
-     region — see the region comment in `render.yaml`)
+   - Runtime: Python, Region: Frankfurt (matches everything else, so
+     latency stays comparable if/when this does start talking to
+     Supabase)
    - Build command: `pip install -r requirements.txt`
    - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
    - Plan: Free
@@ -198,45 +203,29 @@ rows for testing, so test data never mixes with real user data.
    - Branch: `staging`
    - Build command: (leave empty), Publish directory: `.`
    - Plan: Free
-4. **Env vars on `algopuzzle-api-staging`** (Environment tab):
+4. **Env vars on `algopuzzle-api-staging`** (Environment tab) — just
+   one, for now:
    - `PYTHON_VERSION` = `3.12.8`
-   - `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
-     `SUPABASE_JWT_SECRET` = **same values as the production API
-     service** (shared Supabase project, per the scope decision above)
-   - `STRIPE_SECRET_KEY` = the **Test mode** secret key (`sk_test_...`)
-   - `STRIPE_PRICE_EXPORT` / `STRIPE_PRICE_PASS` = the **Test mode**
-     Price IDs from step 3 above
-   - `STRIPE_WEBHOOK_SECRET` = leave blank for now, comes from step 6
-     below (needs the staging API's real URL first)
-   - `COOKIE_SIGNING_SECRET` = generate a fresh one, don't reuse
-     production's (`python -c "import secrets; print(secrets.token_hex(32))"`)
-     — keeps a staging device cookie from ever being valid against prod
-     or vice versa
-   - `COOKIE_DOMAIN` = leave blank
-   - `ALLOWED_ORIGINS` = the staging frontend's URL, e.g.
-     `https://algopuzzle-frontend-staging.onrender.com`
-   - `SITE_URL` = same staging frontend URL (used for Stripe Checkout
-     redirect URLs)
-5. **No env vars needed on `algopuzzle-frontend-staging`** — it's a
-   static site; `index_1.html`'s `IS_STAGING` check picks the right
-   backend automatically based on its own hostname (see step 2's name
-   note above).
-6. **A second, separate Stripe webhook endpoint** (Stripe dashboard,
-   still Test mode → Developers → Webhooks → Add endpoint): URL
-   `https://algopuzzle-api-staging.onrender.com/api/billing/webhook`,
-   same event (`checkout.session.completed`) as production's. This is a
-   normal thing to do within one Stripe account — one account can have
-   several webhook endpoints, each with its own signing secret. Copy the
-   new `whsec_...` into `STRIPE_WEBHOOK_SECRET` on the staging API
-   service (step 4).
-7. **Test it exactly like step 6 above**, but against the staging URLs
-   and always with Stripe test cards — never a real card, since staging
-   never leaves Test mode.
-8. **Promoting to production:** once a feature built on `staging` is
-   verified end-to-end here, merge `staging` → `main` and push. Render's
-   production services (still wired to `main`) redeploy automatically;
-   the staging services keep running independently for the next round of
-   work. If the feature added new Supabase tables, run that migration
-   against the real (shared) Supabase project once, by hand — since
-   staging already shares that same project, there's no second
-   migration to repeat.
+
+   That's it. Leave `DATABASE_URL`, every `STRIPE_*`/`SUPABASE_*` var,
+   `COOKIE_SIGNING_SECRET`, `ALLOWED_ORIGINS`, `SITE_URL` all unset -
+   `settings.py`'s `os.getenv(...)` defaults handle every one of them
+   safely (device cookies still work, they just use an insecure default
+   signing secret - fine for a throwaway staging environment with no
+   real payment data ever flowing through it; revisit if that stops
+   being true).
+5. **No env vars needed on `algopuzzle-frontend-staging`** — static
+   site; `index_1.html`'s `IS_STAGING` check picks the right backend
+   automatically based on its own hostname (see step 2's name note
+   above).
+6. **Test it:** open the staging frontend URL, build a strategy, export
+   it - should work end-to-end (unlimited exports, no paywall, since
+   billing is unconfigured). That's the whole test for now.
+7. **Promoting to production:** once a feature built on `staging` is
+   verified here, merge `staging` → `main` and push. Render's production
+   services (still wired to `main`) redeploy automatically; the staging
+   services keep running independently for the next round of work.
+8. **Whenever marketplace work actually needs Stripe/Supabase to test
+   against:** come back to this section and make that call explicitly
+   then - don't silently add it because it seemed like the "complete"
+   thing to do. Ask first.
