@@ -156,3 +156,87 @@ Only after step 6 passes cleanly in Test mode:
    `STRIPE_WEBHOOK_SECRET` in Render to the Live-mode values.
 3. Do one real, small, real-money test purchase yourself before telling
    anyone else the shop is open.
+
+## 9. Staging environment (2026-08-26 addition)
+
+Set up once, ahead of building the strategy-marketplace feature (see
+`mockups/strategy-of-the-week.html`) — a second, disposable pair of
+Render services that deploy from the `staging` git branch instead of
+`main`, so new features (especially anything touching Stripe/money) get
+a real end-to-end test against a real deployed URL before ever touching
+`main`/production.
+
+**Deliberate scope decision:** only Render is duplicated. Supabase and
+Stripe are **not** — staging uses the exact same Supabase project and
+the exact same Stripe account (Test mode, which staging should always
+stay in) as everything else already does locally. Reasoning: Stripe
+already separates test/live within one account, so there's nothing to
+duplicate there; and duplicating Supabase now would mean maintaining a
+second schema/migration path with no marketplace tables designed yet.
+Revisit this (a dedicated Supabase project, or at least a separate
+Postgres schema) before staging starts writing real purchase/webhook
+rows for testing, so test data never mixes with real user data.
+
+1. **Push the `staging` branch** (already created locally as of this
+   doc update): `git push -u origin staging`.
+2. **Render → New + → Web Service** (NOT via Blueprint — Blueprint sync
+   is tied to one branch for every service in `render.yaml`, so the
+   second environment has to be created by hand):
+   - Name: **exactly** `algopuzzle-api-staging` (the name determines the
+     default `*.onrender.com` hostname, which `index_1.html`'s
+     `STAGING_API_BASE`/`IS_STAGING` check — see that file — hardcodes;
+     if Render appends a suffix because the name's taken, update that
+     constant to match).
+   - Branch: `staging`
+   - Runtime: Python, Region: Frankfurt (matches the Supabase project's
+     region — see the region comment in `render.yaml`)
+   - Build command: `pip install -r requirements.txt`
+   - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Plan: Free
+3. **Render → New + → Static Site**:
+   - Name: **exactly** `algopuzzle-frontend-staging`
+   - Branch: `staging`
+   - Build command: (leave empty), Publish directory: `.`
+   - Plan: Free
+4. **Env vars on `algopuzzle-api-staging`** (Environment tab):
+   - `PYTHON_VERSION` = `3.12.8`
+   - `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+     `SUPABASE_JWT_SECRET` = **same values as the production API
+     service** (shared Supabase project, per the scope decision above)
+   - `STRIPE_SECRET_KEY` = the **Test mode** secret key (`sk_test_...`)
+   - `STRIPE_PRICE_EXPORT` / `STRIPE_PRICE_PASS` = the **Test mode**
+     Price IDs from step 3 above
+   - `STRIPE_WEBHOOK_SECRET` = leave blank for now, comes from step 6
+     below (needs the staging API's real URL first)
+   - `COOKIE_SIGNING_SECRET` = generate a fresh one, don't reuse
+     production's (`python -c "import secrets; print(secrets.token_hex(32))"`)
+     — keeps a staging device cookie from ever being valid against prod
+     or vice versa
+   - `COOKIE_DOMAIN` = leave blank
+   - `ALLOWED_ORIGINS` = the staging frontend's URL, e.g.
+     `https://algopuzzle-frontend-staging.onrender.com`
+   - `SITE_URL` = same staging frontend URL (used for Stripe Checkout
+     redirect URLs)
+5. **No env vars needed on `algopuzzle-frontend-staging`** — it's a
+   static site; `index_1.html`'s `IS_STAGING` check picks the right
+   backend automatically based on its own hostname (see step 2's name
+   note above).
+6. **A second, separate Stripe webhook endpoint** (Stripe dashboard,
+   still Test mode → Developers → Webhooks → Add endpoint): URL
+   `https://algopuzzle-api-staging.onrender.com/api/billing/webhook`,
+   same event (`checkout.session.completed`) as production's. This is a
+   normal thing to do within one Stripe account — one account can have
+   several webhook endpoints, each with its own signing secret. Copy the
+   new `whsec_...` into `STRIPE_WEBHOOK_SECRET` on the staging API
+   service (step 4).
+7. **Test it exactly like step 6 above**, but against the staging URLs
+   and always with Stripe test cards — never a real card, since staging
+   never leaves Test mode.
+8. **Promoting to production:** once a feature built on `staging` is
+   verified end-to-end here, merge `staging` → `main` and push. Render's
+   production services (still wired to `main`) redeploy automatically;
+   the staging services keep running independently for the next round of
+   work. If the feature added new Supabase tables, run that migration
+   against the real (shared) Supabase project once, by hand — since
+   staging already shares that same project, there's no second
+   migration to repeat.

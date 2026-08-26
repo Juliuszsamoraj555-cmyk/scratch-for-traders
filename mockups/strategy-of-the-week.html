@@ -1,0 +1,572 @@
+<title>Strategy of the Week</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#030712; --panel:#0b1220; --panel-2:rgba(17,24,39,.55); --border:#1f2937; --border-hover:#047857;
+    --ink-0:#f9fafb; --ink-1:#f3f4f6; --ink-2:#d1d5db; --ink-3:#9ca3af; --ink-4:#6b7280; --ink-5:#4b5563;
+    --surface-1:#111827; --surface-2:#1f2937; --surface-3:#374151;
+    --accent:#10b981; --accent-hi:#34d399; --accent-lo:#6ee7b7; --accent-deep:#047857; --accent-wash:#022c22; --accent-active:#059669;
+    --sky:#0ea5e9; --sky-hi:#38bdf8; --sky-active:#0284c7;
+    --amber:#f59e0b; --amber-hi:#fbbf24; --amber-active:#d97706;
+    --danger-wash:#450a0a; --danger-line:#dc2626; --danger-ink:#fecaca;
+    --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    background:var(--bg); color:var(--ink-1); font-family:var(--font-ui);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:var(--accent-hi); text-decoration:none; }
+  a:hover{ color:var(--accent-lo); }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  button{ font-family:inherit; }
+  .btn-primary{ background:var(--accent); color:#04140f; font-weight:600; border:none; border-radius:8px; padding:10px 18px; font-size:14px; cursor:pointer; transition:background .15s ease; }
+  .btn-primary:hover{ background:var(--accent-hi); }
+  .btn-primary:focus-visible, .btn-ghost:focus-visible, .fmt-real:focus-visible{ outline:2px solid var(--accent-hi); outline-offset:2px; }
+  .btn-ghost{ background:transparent; color:var(--ink-2); border:1px solid var(--border); border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; transition:border-color .15s ease, color .15s ease; }
+  .btn-ghost:hover{ border-color:var(--ink-5); color:var(--ink-1); }
+  .microlabel{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-4); }
+  .card{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; }
+  .num{ font-variant-numeric:tabular-nums; }
+
+  /* ---- tab switcher (mockup-only chrome, not part of the real product) ---- */
+  .mock-shell{ max-width:1160px; margin:0 auto; padding:28px 20px 80px; }
+  .mock-head{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+  .mock-head h1{ font-size:15px; font-weight:700; color:var(--ink-2); margin:0; letter-spacing:-0.01em; }
+  .mock-head p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-4); }
+  .tabs{ display:flex; gap:6px; background:var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:4px; flex-wrap:wrap; }
+  .tab{ border:none; background:transparent; color:var(--ink-3); font-size:13px; font-weight:600; padding:8px 14px; border-radius:7px; cursor:pointer; transition:background .15s ease, color .15s ease; }
+  .tab:hover{ color:var(--ink-1); }
+  .tab.active{ background:var(--surface-3); color:var(--ink-0); }
+  .screen{ display:none; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--bg); }
+  .screen.active{ display:block; }
+  .mock-note{ font-size:12px; color:var(--ink-4); line-height:1.6; margin-top:14px; max-width:640px; }
+
+  /* ---- screen 1: listing ---- */
+  .site-header{ position:sticky; top:0; z-index:5; background:rgba(3,7,18,.9); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
+  .site-header .row{ display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand span{ font-weight:600; color:var(--ink-1); letter-spacing:-0.01em; }
+  .site-nav{ display:flex; align-items:center; gap:32px; font-size:14px; color:var(--ink-3); }
+  .site-nav a{ color:var(--ink-3); }
+  .site-nav a.current{ color:var(--accent-hi); font-weight:600; }
+  .hero-block h2.page-title{ font-size:34px; font-weight:700; letter-spacing:-0.02em; color:var(--ink-0); margin:0; line-height:1.15; text-wrap:balance; }
+  .hero-block p{ margin:16px 0 0; font-size:16px; color:var(--ink-3); line-height:1.7; max-width:620px; }
+  .meta-row{ margin-top:20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--ink-4); }
+  .stat-num{ font-size:20px; font-weight:700; }
+  .stat-lbl{ font-size:11.5px; color:var(--ink-4); margin-top:2px; }
+  .free-spot{ border-color:var(--accent-deep); background:linear-gradient(180deg, rgba(6,78,59,.16), rgba(6,78,59,.06)); padding:28px; display:flex; gap:28px; align-items:stretch; flex-wrap:wrap; }
+  .paid-top{ position:relative; padding:24px; }
+  .paid-top .tag{ position:absolute; top:14px; right:14px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; background:var(--accent); color:#04140f; border-radius:6px; padding:4px 8px; }
+  .paid-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
+  .paid-card{ padding:20px; transition:border-color .15s ease; }
+  .paid-card:hover{ border-color:var(--border-hover); }
+  .site-footer{ border-top:1px solid var(--border); padding:20px 24px; font-size:12px; color:var(--ink-5); line-height:1.6; }
+  .rank-note{ font-size:12.5px; color:var(--ink-4); }
+  .owned-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding-top:2px; }
+  .owned-tag{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--accent-lo); }
+
+  /* ---- screen 2: confirm ---- */
+  .confirm-stage{ position:relative; min-height:640px; }
+  .confirm-backdrop{ position:absolute; inset:0; opacity:.3; filter:blur(1px); padding:40px; overflow:hidden; }
+  .confirm-overlay{ position:absolute; inset:0; background:rgba(0,0,0,.62); }
+  .confirm-center{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center; min-height:640px; padding:24px; }
+  .modal{ background:var(--surface-1); border:1px solid var(--surface-3); border-radius:10px; box-shadow:0 25px 50px -12px rgba(0,0,0,.6); width:100%; max-width:520px; padding:32px; }
+  /* Warm/amber notice instead of the harsher red-alert box - this isn't
+     an error state, it's a heads-up someone reads right before paying,
+     so it borrows the amber tone already used for MT4 elsewhere in the
+     product rather than the red reserved for actual failures. */
+  .warn-box{ margin-top:22px; background:rgba(245,158,11,.05); border:1px solid var(--amber); border-radius:10px; padding:16px 18px; display:flex; gap:12px; align-items:flex-start; }
+  .warn-box .warn-title{ margin:0 0 8px; font-size:13.5px; font-weight:700; color:var(--amber-hi); }
+  .warn-box p{ margin:0 0 8px; font-size:13px; color:var(--ink-2); line-height:1.65; }
+  .warn-box p:last-child{ margin-bottom:0; }
+  .ack-row{ margin-top:18px; display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--ink-2); cursor:pointer; }
+  .ack-row input{ margin-top:2px; width:16px; height:16px; accent-color:var(--accent); }
+  .btn-proceed{ display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .trust-row{ margin-top:20px; padding-top:16px; border-top:1px solid var(--surface-2); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .trust-item{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-4); }
+  .trust-item svg{ flex-shrink:0; color:var(--ink-4); }
+
+  /* ---- screen 3: unlocked ---- */
+  .success-strip{ background:var(--accent-wash); border-bottom:1px solid var(--accent); }
+  .success-strip .row{ padding:14px 24px; display:flex; align-items:center; gap:10px; font-size:14px; color:var(--accent-lo); font-weight:600; }
+  .unlocked-wrap{ max-width:820px; margin:0 auto; padding:36px 24px 60px; }
+  .unlocked-wrap h1{ margin:10px 0 0; font-size:25px; font-weight:700; color:var(--ink-0); }
+  .unlocked-wrap p.desc{ margin:14px 0 0; font-size:14.5px; color:var(--ink-2); line-height:1.75; max-width:640px; }
+  .stat-strip{ margin-top:28px; padding:24px; display:flex; gap:32px; flex-wrap:wrap; }
+  .fmt-row{ display:flex; gap:12px; flex-wrap:wrap; }
+  /* Real builder button anatomy (matches index_1.html's #exportMt5Btn/#exportMt4Btn/#exportCtraderBtn
+     exactly: bg-{color}-500 hover:bg-{color}-400 active:bg-{color}-600, text-gray-900, rounded-md,
+     flex items-center gap, real platform icon - not the boxed vertical placeholder from the first draft). */
+  .fmt-real{ display:inline-flex; align-items:center; gap:8px; border:none; border-radius:6px; padding:10px 18px; font-weight:600; font-size:14px; color:#111827; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.35); transition:background .15s ease; }
+  .fmt-real img{ width:20px; height:20px; object-fit:contain; flex-shrink:0; }
+  .fmt-mt5{ background:var(--accent); } .fmt-mt5:hover{ background:var(--accent-hi); } .fmt-mt5:active{ background:var(--accent-active); }
+  .fmt-mt4{ background:var(--amber); } .fmt-mt4:hover{ background:var(--amber-hi); } .fmt-mt4:active{ background:var(--amber-active); }
+  .fmt-ct{ background:var(--sky); } .fmt-ct:hover{ background:var(--sky-hi); } .fmt-ct:active{ background:var(--sky-active); }
+
+  /* ---- screen 4: my purchases (builder panel) ---- */
+  .builder-stage{ position:relative; min-height:640px; }
+  .builder-backdrop{ position:absolute; inset:0; opacity:.3; filter:blur(1px); padding:40px; overflow:hidden; }
+  .builder-overlay{ position:absolute; inset:0; background:rgba(0,0,0,.62); }
+  .builder-center{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center; min-height:640px; padding:24px; }
+  .strategies-modal{ background:var(--surface-1); border:1px solid var(--surface-3); border-radius:8px; box-shadow:0 25px 50px -12px rgba(0,0,0,.6); width:100%; max-width:460px; max-height:75vh; display:flex; flex-direction:column; }
+  .strategies-modal .head{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--surface-2); flex-shrink:0; }
+  .strategies-modal .head h3{ margin:0; font-size:14px; font-weight:600; color:var(--ink-1); }
+  .subtabs{ display:flex; gap:18px; padding:0 16px; border-bottom:1px solid var(--surface-2); flex-shrink:0; }
+  .subtab{ background:none; border:none; padding:10px 0; font-size:13px; font-weight:600; color:var(--ink-4); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .subtab.active{ color:var(--ink-0); border-bottom-color:var(--accent); }
+  .strategies-list{ overflow-y:auto; padding:8px; flex:1; }
+  .strategy-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:6px; }
+  .strategy-row:hover{ background:var(--surface-2); }
+  .strategy-row .name{ font-size:13.5px; font-weight:500; color:var(--ink-1); }
+  .strategy-row .meta{ font-size:11.5px; color:var(--ink-4); margin-top:2px; }
+  .strategies-modal .foot{ display:flex; justify-content:flex-end; padding:10px 12px; border-top:1px solid var(--surface-2); flex-shrink:0; }
+  .marketplace-btn{ display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,.12); border:1px solid var(--accent-deep); border-radius:6px; color:var(--accent-hi); font-size:12.5px; font-weight:600; cursor:pointer; padding:7px 12px; }
+  .marketplace-btn:hover{ background:rgba(16,185,129,.2); color:var(--accent-lo); }
+  .row-actions{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .row-btn-load{ font-size:11.5px; font-weight:500; background:#059669; color:#fff; padding:6px 10px; border-radius:5px; border:none; cursor:pointer; }
+  .row-btn-load:hover{ background:#10b981; }
+  .row-btn-ghost{ font-size:11.5px; font-weight:500; background:var(--surface-3); color:var(--ink-2); padding:6px 10px; border-radius:5px; border:none; cursor:pointer; }
+  .row-btn-ghost:hover{ background:#4b5563; }
+
+  @media (max-width: 720px){
+    .paid-grid{ grid-template-columns:1fr; }
+    .site-nav{ display:none; }
+    .hero-block h2.page-title{ font-size:27px; }
+  }
+</style>
+
+<div class="mock-shell">
+  <div class="mock-head">
+    <div>
+      <h1>Strategy of the Week &mdash; preliminary UI draft (v2)</h1>
+      <p>Dates instead of "last N days" · real platform icons · a proposal for where purchases live.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Mockup screens">
+      <button class="tab active" data-target="screen-1" role="tab" aria-selected="true">1. Strategy list</button>
+      <button class="tab" data-target="screen-2" role="tab" aria-selected="false">2. Purchase confirmation</button>
+      <button class="tab" data-target="screen-3" role="tab" aria-selected="false">3. After purchase</button>
+      <button class="tab" data-target="screen-4" role="tab" aria-selected="false">4. My Purchases (Builder)</button>
+      <button class="tab" data-target="screen-5" role="tab" aria-selected="false">5. Builder Pricing (preview)</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 1: LISTING ============ -->
+  <div class="screen active" id="screen-1">
+    <header class="site-header">
+      <div class="wrap row">
+        <div class="brand">
+          <svg width="28" height="28" viewBox="0 0 160 160" aria-hidden="true">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+          </svg>
+          <span>Algo<span style="color:var(--accent-hi);">Puzzle</span></span>
+        </div>
+        <nav class="site-nav">
+          <a href="#">How it works</a>
+          <a href="#">Features</a>
+          <a href="#" class="current">Strategy of the Week</a>
+          <a href="#">Blog</a>
+        </nav>
+        <button class="btn-primary">Open Builder</button>
+      </div>
+    </header>
+
+    <section class="wrap hero-block" style="padding:56px 24px 40px;">
+      <h2 class="page-title">Strategy of the Week</h2>
+      <p>Every week we test hundreds of automatically generated strategies against fresh market data, across forex, indices, and gold, and publish only the ones that made the cut. One is always free to download, five more are available to buy individually.</p>
+      <div class="meta-row">
+        <span>Tested <span class="num" style="color:var(--ink-2); font-weight:600;">Jul 26 &ndash; Aug 25, 2026</span> &middot; published Aug 25</span>
+        <span style="color:var(--ink-5);">&middot;</span>
+        <a href="#">How we test our strategies &rarr;</a>
+      </div>
+    </section>
+
+    <section class="wrap" style="padding:0 24px 40px;">
+      <div class="card free-spot">
+        <div style="flex:1 1 320px; min-width:280px;">
+          <span class="microlabel" style="color:var(--accent-hi);">Free strategy of the week</span>
+          <h3 style="margin:10px 0 0; font-size:21px; font-weight:700; color:var(--ink-0);">GBPUSD, 4-hour candles &mdash; trend following</h3>
+          <p style="margin:10px 0 0; font-size:14px; color:var(--ink-2); line-height:1.7; max-width:460px;">Buys when price closes above the previous candle, with Stop Loss and Take Profit distances set dynamically from market volatility (ATR). Full description and exact parameters shown up front &mdash; nothing here is held back.</p>
+          <div style="margin-top:20px; display:flex; gap:28px; flex-wrap:wrap;">
+            <div><div class="stat-num num" style="color:var(--accent-lo);">75%</div><div class="stat-lbl">win rate</div></div>
+            <div><div class="stat-num num" style="color:var(--accent-lo);">+11.2%</div><div class="stat-lbl">return</div></div>
+            <div><div class="stat-num num" style="color:var(--ink-1);">20</div><div class="stat-lbl">trades</div></div>
+            <div><div class="stat-num num" style="color:var(--ink-1);">-0.23%</div><div class="stat-lbl">drawdown</div></div>
+          </div>
+          <button class="btn-primary" style="margin-top:22px; padding:11px 22px;">Download for free</button>
+        </div>
+        <div style="flex:1 1 240px; min-width:220px; display:flex; align-items:center; justify-content:center;">
+          <svg viewBox="0 0 320 140" width="100%" height="140" style="max-width:340px;" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16 320,140 0,140" fill="rgba(16,185,129,0.10)" stroke="none"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap" style="padding:0 24px 56px;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+        <h3 style="font-size:18px; font-weight:700; color:var(--ink-1); margin:0;">5 strategies this week</h3>
+        <span style="font-size:13px; color:var(--ink-4);">One-time purchase &middot; yours forever</span>
+      </div>
+      <p class="rank-note" style="margin:0 0 16px;">Ranked by return %, not raw pips &mdash; the only fair comparison once forex, indices, and gold sit in the same list. All backtested on the same window: Jul 26 &ndash; Aug 25, 2026.</p>
+
+      <div class="card paid-top" style="margin-bottom:16px;">
+        <span class="tag">Top performer this week</span>
+        <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:center;">
+          <div style="flex:2 1 300px; min-width:240px;">
+            <span class="microlabel">Momentum &middot; H4</span>
+            <h4 style="margin:8px 0 0; font-size:18px; font-weight:700; color:var(--ink-0);">GBPUSD &mdash; ATR-driven volatility</h4>
+            <p style="margin:8px 0 0; font-size:13.5px; color:var(--ink-3); line-height:1.6; max-width:420px;">A trend-following strategy with dynamic, volatility-based risk sizing. Exact entry conditions and stop sizing unlock after purchase.</p>
+          </div>
+          <div style="flex:1 1 180px; min-width:170px; display:flex; gap:20px;">
+            <div><div class="stat-num num" style="font-size:20px; color:var(--accent-lo);">75%</div><div class="stat-lbl">win rate</div></div>
+            <div><div class="stat-num num" style="font-size:20px; color:var(--accent-lo);">+11.2%</div><div class="stat-lbl">return</div></div>
+            <div><div class="stat-num num" style="font-size:20px; color:var(--ink-1);">20</div><div class="stat-lbl">trades</div></div>
+          </div>
+          <svg viewBox="0 0 220 70" width="170" height="56" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="0,60 20,58 40,54 60,56 80,44 100,40 120,28 140,26 160,14 180,10 200,4 220,2" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div style="text-align:right; flex:0 0 auto;">
+            <div style="font-size:26px; font-weight:700; color:var(--accent-hi); margin-bottom:8px;">$X.XX</div>
+            <button class="btn-primary" style="padding:10px 20px;" onclick="document.querySelector('[data-target=screen-2]').click()">Buy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="paid-grid">
+        <div class="card paid-card">
+          <span class="microlabel">Mean reversion &middot; M30</span>
+          <h4 style="margin:8px 0 0; font-size:15.5px; font-weight:700; color:var(--ink-1);">GBPUSD &mdash; Momentum Edge</h4>
+          <div style="margin:14px 0; height:36px;"><svg viewBox="0 0 200 44" width="100%" height="44" preserveAspectRatio="none" aria-hidden="true"><path d="M0,36 L18,34 L36,30 L54,32 L72,24 L90,26 L108,16 L126,18 L144,10 L162,12 L180,4 L200,2" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex; gap:18px; margin-bottom:16px;">
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">59%</div><div class="stat-lbl">win rate</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--accent-lo);">+21.8%</div><div class="stat-lbl">return</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">29</div><div class="stat-lbl">trades</div></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:17px; font-weight:700; color:var(--accent-hi);">$X.XX</span>
+            <button class="btn-ghost" onclick="document.querySelector('[data-target=screen-2]').click()">Buy</button>
+          </div>
+        </div>
+
+        <div class="card paid-card">
+          <span class="microlabel">Trend &middot; H4</span>
+          <h4 style="margin:8px 0 0; font-size:15.5px; font-weight:700; color:var(--ink-1);">XAUUSD &mdash; Trend Rider</h4>
+          <div style="margin:14px 0; height:36px;"><svg viewBox="0 0 200 44" width="100%" height="44" preserveAspectRatio="none" aria-hidden="true"><path d="M0,34 L18,32 L36,33 L54,28 L72,29 L90,20 L108,22 L126,14 L144,15 L162,8 L180,9 L200,4" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex; gap:18px; margin-bottom:16px;">
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">61%</div><div class="stat-lbl">win rate</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--accent-lo);">+19.0%</div><div class="stat-lbl">return</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">51</div><div class="stat-lbl">trades</div></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:17px; font-weight:700; color:var(--accent-hi);">$X.XX</span>
+            <button class="btn-ghost" onclick="document.querySelector('[data-target=screen-2]').click()">Buy</button>
+          </div>
+        </div>
+
+        <div class="card paid-card">
+          <span class="microlabel">Trend &middot; H1</span>
+          <h4 style="margin:8px 0 0; font-size:15.5px; font-weight:700; color:var(--ink-1);">US100 &mdash; Trend Filter</h4>
+          <div style="margin:14px 0; height:36px;"><svg viewBox="0 0 200 44" width="100%" height="44" preserveAspectRatio="none" aria-hidden="true"><path d="M0,35 L18,33 L36,31 L54,30 L72,27 L90,24 L108,21 L126,17 L144,14 L162,11 L180,7 L200,4" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex; gap:18px; margin-bottom:16px;">
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">76%</div><div class="stat-lbl">win rate</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--accent-lo);">+10.1%</div><div class="stat-lbl">return</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">17</div><div class="stat-lbl">trades</div></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:17px; font-weight:700; color:var(--accent-hi);">$X.XX</span>
+            <button class="btn-ghost" onclick="document.querySelector('[data-target=screen-2]').click()">Buy</button>
+          </div>
+        </div>
+
+        <div class="card paid-card">
+          <span class="microlabel">Pullback &middot; M15</span>
+          <h4 style="margin:8px 0 0; font-size:15.5px; font-weight:700; color:var(--ink-1);">EURUSD &mdash; RSI 14 oversold</h4>
+          <div style="margin:14px 0; height:36px;"><svg viewBox="0 0 200 44" width="100%" height="44" preserveAspectRatio="none" aria-hidden="true"><path d="M0,30 L18,32 L36,26 L54,29 L72,22 L90,25 L108,20 L126,23 L144,16 L162,19 L180,14 L200,12" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex; gap:18px; margin-bottom:16px;">
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">52%</div><div class="stat-lbl">win rate</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-3);">+4.6%</div><div class="stat-lbl">return</div></div>
+            <div><div class="num" style="font-size:15px; font-weight:700; color:var(--ink-1);">41</div><div class="stat-lbl">trades</div></div>
+          </div>
+          <!-- Touchpoint #2 of the "where do purchases live" proposal: a
+               strategy the current browser/device already bought shows an
+               owned state right here instead of price+Buy - no need to go
+               find it in the Builder to know you already have it. -->
+          <div class="owned-row">
+            <span class="owned-tag">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              You own this
+            </span>
+            <button class="btn-ghost" style="padding:7px 14px; font-size:12.5px;">Load into Builder</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="wrap">Past performance does not guarantee future results. Strategies are provided for informational purposes only and do not constitute investment advice.</div>
+    </footer>
+  </div>
+
+  <!-- ============ SCREEN 2: PURCHASE CONFIRMATION ============ -->
+  <div class="screen" id="screen-2">
+    <div class="confirm-stage">
+      <div class="confirm-backdrop" aria-hidden="true">
+        <div style="height:18px; width:220px; background:var(--surface-2); border-radius:4px; margin-bottom:24px;"></div>
+        <div style="height:34px; width:380px; background:var(--surface-2); border-radius:6px; margin-bottom:14px;"></div>
+        <div style="height:14px; width:520px; background:var(--surface-2); border-radius:4px; margin-bottom:36px;"></div>
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px; max-width:640px;">
+          <div style="height:140px; background:var(--surface-1); border-radius:12px;"></div>
+          <div style="height:140px; background:var(--surface-1); border-radius:12px;"></div>
+        </div>
+      </div>
+      <div class="confirm-overlay"></div>
+      <div class="confirm-center">
+        <div class="modal">
+          <span class="microlabel">Purchase confirmation</span>
+          <h3 style="margin:10px 0 0; font-size:19px; font-weight:700; color:var(--ink-0);">GBPUSD &mdash; ATR-driven volatility</h3>
+          <div style="margin-top:6px; font-size:28px; font-weight:700; color:var(--accent-hi);">$X.XX <span style="font-size:13px; font-weight:500; color:var(--ink-4);">&middot; one-time, yours forever</span></div>
+
+          <div class="warn-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path d="M12 8v5" stroke-linecap="round"/><circle cx="12" cy="16" r="0.5" fill="var(--amber)" stroke="var(--amber)"/>
+            </svg>
+            <div>
+              <p class="warn-title">Before you buy:</p>
+              <p>Past performance does not guarantee future results.</p>
+              <p>This strategy was tested from Jul 26 to Aug 25, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
+              <p>This is informational material, not investment advice, and we have no control over how the market behaves after purchase.</p>
+            </div>
+          </div>
+
+          <label class="ack-row">
+            <input type="checkbox" checked>
+            <span>I understand this is not a guarantee of profit, and I want to proceed to payment.</span>
+          </label>
+
+          <div style="margin-top:24px; display:flex; gap:10px;">
+            <button class="btn-ghost" style="flex:1; padding:11px 16px; font-size:14px;" onclick="document.querySelector('[data-target=screen-1]').click()">Cancel</button>
+            <button class="btn-primary btn-proceed" style="flex:2; padding:11px 16px; font-size:14px;" onclick="document.querySelector('[data-target=screen-3]').click()">
+              Proceed to payment
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <div class="trust-row">
+            <span class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              Secure payments by Stripe
+            </span>
+            <span class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+              Instant access after purchase
+            </span>
+            <span class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>
+              Yours forever, no subscription
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: POST-PURCHASE ============ -->
+  <div class="screen" id="screen-3">
+    <div class="success-strip">
+      <div class="wrap row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Purchase confirmed. This strategy is now fully unlocked and yours to keep.
+      </div>
+    </div>
+    <div class="unlocked-wrap">
+      <span class="microlabel" style="color:var(--accent-hi);">Momentum &middot; H4 &middot; unlocked</span>
+      <h1>GBPUSD &mdash; ATR-driven volatility</h1>
+      <p class="desc">Buys GBPUSD on 4-hour candles when price closes above the previous candle. Stop Loss is set at 2&times; ATR(14), Take Profit also at 2&times; ATR(14) &mdash; both sized dynamically from current market volatility instead of fixed pips. The position closes when either level is hit.</p>
+
+      <div class="card stat-strip">
+        <div><div class="stat-num num" style="color:var(--accent-lo);">75%</div><div class="stat-lbl">win rate</div></div>
+        <div><div class="stat-num num" style="color:var(--accent-lo);">+11.2%</div><div class="stat-lbl">return</div></div>
+        <div><div class="stat-num num" style="color:var(--ink-1);">20</div><div class="stat-lbl">trades</div></div>
+        <div><div class="stat-num num" style="color:var(--ink-1);">-0.23%</div><div class="stat-lbl">max drawdown</div></div>
+        <div><div class="stat-num num" style="color:var(--ink-1); font-size:16px;">Jul 26 &ndash; Aug 25</div><div class="stat-lbl">test window</div></div>
+      </div>
+
+      <div style="margin-top:32px;">
+        <h2 style="font-size:15px; font-weight:700; color:var(--ink-1); margin:0 0 12px;">Download the file for your platform</h2>
+        <div class="fmt-row">
+          <button class="fmt-real fmt-mt5"><img src="data:image/png;base64,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" alt=""><span>Download for MT5</span></button>
+          <button class="fmt-real fmt-ct"><img src="data:image/png;base64,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" alt=""><span>Download for cTrader</span></button>
+          <button class="fmt-real fmt-mt4"><img src="data:image/png;base64,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" alt=""><span>Download for MT4</span></button>
+        </div>
+        <p style="margin-top:16px; font-size:12.5px; color:var(--ink-4); line-height:1.6;">Every file includes a ready-to-run Expert Advisor / cBot plus a README with step-by-step install instructions. You can come back for this file anytime from your Purchases (see the Builder tab in this mockup) &mdash; access never expires.</p>
+      </div>
+
+      <div style="margin-top:28px; border-top:1px solid var(--border); padding-top:16px; font-size:12px; color:var(--ink-5); line-height:1.6;">
+        Past performance does not guarantee future results. This strategy is provided for informational purposes only and does not constitute investment advice.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: MY PURCHASES (in the Builder's existing "My Strategies" panel) ============ -->
+  <div class="screen" id="screen-4">
+    <p class="mock-note wrap" style="padding-top:16px;">
+      Proposal: split the Builder's existing "My Strategies" panel into two tabs instead of adding a new page.
+      Purchases stay tied to your device (the same anonymous model billing already uses for exports) &mdash; no login needed.
+      "Load into Builder" reconstructs the exact blueprint on the canvas, the same way loading a saved draft already works.
+      This, plus the "You own this" card state on Screen 1, are the two places a buyer sees what they've bought.
+      The "Browse Strategy of the Week" link bottom-right belongs to the Purchases tab specifically, not Drafts &mdash;
+      it's there for someone who's already bought once and is looking for what else is on offer.
+    </p>
+    <div class="builder-stage">
+      <div class="builder-backdrop" aria-hidden="true">
+        <div style="height:40px; width:100%; background:var(--surface-2); margin-bottom:20px;"></div>
+        <div style="display:grid; grid-template-columns:220px 1fr; gap:16px; height:400px;">
+          <div style="background:var(--surface-1); border-radius:8px;"></div>
+          <div style="background:var(--surface-1); border-radius:8px;"></div>
+        </div>
+      </div>
+      <div class="builder-overlay"></div>
+      <div class="builder-center">
+        <div class="strategies-modal">
+          <div class="head">
+            <h3>My Strategies</h3>
+            <span style="color:var(--ink-4); font-size:18px; line-height:1;">&times;</span>
+          </div>
+          <div class="subtabs">
+            <button class="subtab">Drafts</button>
+            <button class="subtab active">Purchases</button>
+          </div>
+          <div class="strategies-list">
+            <div class="strategy-row">
+              <div>
+                <div class="name">GBPUSD &mdash; ATR-driven volatility</div>
+                <div class="meta">Purchased Aug 18, 2026 &middot; <span style="color:var(--accent-lo);">+11.2% return</span></div>
+              </div>
+              <div class="row-actions">
+                <button class="row-btn-load">Load into Builder</button>
+                <button class="row-btn-ghost">Details</button>
+              </div>
+            </div>
+            <div class="strategy-row">
+              <div>
+                <div class="name">EURUSD &mdash; RSI 14 oversold</div>
+                <div class="meta">Purchased Aug 18, 2026 &middot; <span style="color:var(--ink-3);">+4.6% return</span></div>
+              </div>
+              <div class="row-actions">
+                <button class="row-btn-load">Load into Builder</button>
+                <button class="row-btn-ghost">Details</button>
+              </div>
+            </div>
+            <div class="strategy-row">
+              <div>
+                <div class="name">XAUUSD &mdash; MA 10/30 crossover</div>
+                <div class="meta">Purchased Aug 11, 2026 &middot; <span style="color:var(--accent-lo);">+19.0% return</span></div>
+              </div>
+              <div class="row-actions">
+                <button class="row-btn-load">Load into Builder</button>
+                <button class="row-btn-ghost">Details</button>
+              </div>
+            </div>
+          </div>
+          <!-- Shown on the Purchases sub-tab specifically (not Drafts) -
+               a bottom-right way back to the marketplace itself, right
+               where someone browsing what they already own would look
+               for "get more". -->
+          <div class="foot">
+            <button class="marketplace-btn" onclick="document.querySelector('[data-target=screen-1]').click()">
+              Browse Strategy of the Week
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 5: BUILDER PRICING (PREVIEW ONLY) ============ -->
+  <!-- Recreates the Builder's real paywall modal (index_1.html's
+       #paywallOverlay - same bg-gray-900/border-gray-700 shell, same
+       3-column plan grid, same "Best value" badge) to preview the
+       bigger+green price treatment there too, before touching the real
+       file. Not wired up anywhere - a preview, not a live change. -->
+  <div class="screen" id="screen-5">
+    <p class="mock-note wrap" style="padding-top:16px;">Preview only &mdash; index_1.html itself hasn't been touched. This is the real paywall's exact layout with the same bigger/green price treatment applied consistently, including the free plan's $0 for consistency. Say the word and I'll apply it live.</p>
+    <div class="builder-stage">
+      <div class="builder-backdrop" aria-hidden="true">
+        <div style="height:40px; width:100%; background:var(--surface-2); margin-bottom:20px;"></div>
+        <div style="display:grid; grid-template-columns:220px 1fr; gap:16px; height:400px;">
+          <div style="background:var(--surface-1); border-radius:8px;"></div>
+          <div style="background:var(--surface-1); border-radius:8px;"></div>
+        </div>
+      </div>
+      <div class="builder-overlay"></div>
+      <div class="builder-center">
+        <div style="background:var(--surface-1); border:1px solid var(--surface-3); border-radius:8px; box-shadow:0 25px 50px -12px rgba(0,0,0,.6); width:100%; max-width:820px; padding:32px;">
+          <p style="font-size:18px; font-weight:600; color:var(--ink-0); margin:0 0 24px;">Go unlimited</p>
+          <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px;">
+
+            <div style="background:var(--panel-2); border:1px solid var(--surface-3); border-radius:8px; padding:20px; display:flex; flex-direction:column;">
+              <span style="visibility:hidden; margin-bottom:8px; padding:2px 8px; font-size:11px; font-weight:700; text-transform:uppercase; border-radius:6px;" aria-hidden="true">Best value</span>
+              <span style="font-size:12px; font-weight:600; color:var(--ink-4); text-transform:uppercase; letter-spacing:.04em;">Free</span>
+              <span style="margin-top:8px; font-size:26px; font-weight:700; color:var(--accent-hi);">$0</span>
+              <ul style="margin:14px 0 18px; padding:0; list-style:none; font-size:13.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:9px;">
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>2 free exports</li>
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Up to 2 saved strategies</li>
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>No signup required</li>
+              </ul>
+              <span style="margin-top:auto; padding-top:14px; font-size:11.5px; color:var(--ink-5);">Your current plan until you upgrade.</span>
+              <button class="btn-ghost" style="margin-top:8px; width:100%; padding:9px 0;">Stay on Free plan</button>
+            </div>
+
+            <div style="background:var(--panel-2); border:2px solid var(--accent-deep); border-radius:8px; padding:20px; display:flex; flex-direction:column;">
+              <span style="align-self:flex-start; margin-bottom:8px; padding:2px 8px; font-size:11px; font-weight:700; text-transform:uppercase; border-radius:6px; background:var(--accent); color:#04140f;">Best value</span>
+              <span style="font-size:12px; font-weight:600; color:var(--accent-hi); text-transform:uppercase; letter-spacing:.04em;">30-day unlimited</span>
+              <span style="margin-top:8px; font-size:26px; font-weight:700; color:var(--accent-hi);">$9.99</span>
+              <ul style="margin:14px 0 18px; padding:0; list-style:none; font-size:13.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:9px;">
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited exports across MT5, MT4 and cTrader</li>
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited saved strategies</li>
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Keep tweaking the same strategy without paying again</li>
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Works from any device once you're logged in</li>
+              </ul>
+              <button class="btn-primary" style="margin-top:auto; width:100%; padding:9px 0;">Choose this plan</button>
+            </div>
+
+            <div style="background:var(--panel-2); border:1px solid var(--surface-3); border-radius:8px; padding:20px; display:flex; flex-direction:column;">
+              <span style="visibility:hidden; margin-bottom:8px; padding:2px 8px; font-size:11px; font-weight:700; text-transform:uppercase; border-radius:6px;" aria-hidden="true">Best value</span>
+              <span style="font-size:12px; font-weight:600; color:var(--ink-4); text-transform:uppercase; letter-spacing:.04em;">Single export</span>
+              <span style="margin-top:8px; font-size:26px; font-weight:700; color:var(--accent-hi);">$2.00</span>
+              <ul style="margin:14px 0 18px; padding:0; list-style:none; font-size:13.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:9px;">
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>One finished strategy, exported once</li>
+                <li style="display:flex; align-items:flex-start; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="margin-top:2px; flex-shrink:0;" aria-hidden="true"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Ready-to-run .zip in seconds</li>
+              </ul>
+              <button style="margin-top:auto; width:100%; padding:9px 0; background:var(--surface-3); color:var(--ink-1); border:none; border-radius:6px; font-size:13.5px; font-weight:600; cursor:pointer;">Choose this plan</button>
+            </div>
+
+          </div>
+          <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+            <button class="btn-ghost" style="padding:8px 14px;">Not now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected','true');
+      document.getElementById(tab.dataset.target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
