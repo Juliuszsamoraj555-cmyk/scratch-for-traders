@@ -30,6 +30,7 @@ already covered (title tag, every page's `<title>`).
 - ✅ "no-code MT5 EA builder" — homepage `<title>`
 - ✅ "build trading strategies without code" — homepage H1/hero
 - ✅ "visual trading strategy builder" — full article (`blog/visual-trading-strategy-builder.html`), also covers "no-code EA builder" / "drag-and-drop trading bot builder" as explicit synonyms in the FAQ
+- ✅ "free algo trading strategy builder" / "free algorithmic trading builder" — full article (`blog/free-algo-trading-strategy-builder.html`), commercial-intent phrase (the "free" qualifier specifically), cross-linked from the first-strategy walkthrough
 - ❌ "create Expert Advisor without programming"
 - ❌ "trading bot builder no coding"
 

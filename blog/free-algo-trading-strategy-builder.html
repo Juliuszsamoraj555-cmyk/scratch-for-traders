@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Free Algo Trading Strategy Builder: What You Actually Get - AlgoPuzzle</title>
+<meta name="description" content="What 'free' really means in a no-code algorithmic trading strategy builder: no signup, no card, two real exports, and exactly where the free tier ends." />
+<link rel="canonical" href="https://algopuzzle.com/blog/free-algo-trading-strategy-builder.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Free Algo Trading Strategy Builder: What You Actually Get" />
+<meta property="og:description" content="No signup, no card, two real exports to MT5, MT4, or cTrader. Here's exactly what's free and what isn't." />
+<meta property="og:url" content="https://algopuzzle.com/blog/free-algo-trading-strategy-builder.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Free Algo Trading Strategy Builder: What You Actually Get",
+  "description": "What 'free' actually means in a no-code algorithmic trading strategy builder - no signup, no card, two real exports, and where the free tier ends.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-08-27",
+  "dateModified": "2026-08-27",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/free-algo-trading-strategy-builder.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is AlgoPuzzle actually free, or is there a catch?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It's genuinely free to start: build strategies and export up to 2 of them with no signup, no card, and no time limit on when you use them. Beyond that, exports are paid (one-time, not a subscription) - that's the entire model, nothing hidden behind it." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need to create an account to use the free exports?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. The builder and the first 2 exports work with no account at all, tracked to your device. An account is only needed if you later want the 30-day unlimited pass, since that entitlement follows you across devices." }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens after I use my 2 free exports?",
+      "acceptedAnswer": { "@type": "Answer", "text": "You can buy a single additional export for $2, or unlock unlimited exports for 30 days for $9.99. Both are one-time payments - there's no subscription running in the background to remember to cancel." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the free version missing any features compared to paid?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No - the free tier uses the exact same builder and generates the exact same MQL5, MQL4, or C# file a paid export would. The only thing that's limited is how many times you export, not what you're able to build." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does AlgoPuzzle sell my data to make the free tier possible?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Strategy data stays in your own browser and your own exported file - there's no server-side database of user strategies to sell in the first place." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Free Algo Trading Strategy Builder: What You Actually Get", "item": "https://algopuzzle.com/blog/free-algo-trading-strategy-builder.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Free Algo Trading Strategy Builder: What You Actually Get</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>AlgoPuzzle is free to start: you can build a complete algorithmic trading strategy and export it as a real MetaTrader 5, MetaTrader 4, or cTrader file without paying anything or creating an account. Free specifically means two exports per device, with no signup, no credit card, and no time limit on when you use them - the builder itself, with no cap on how much you design or test before exporting. Nothing about the free tier is a stripped-down demo: it's the same block-based builder, the same three platforms, and the same generated code a paid export produces. What isn't included is unlimited exports forever - past the first two, a single export is a one-time $2 payment, or $9.99 unlocks unlimited exports for 30 days. Both are one-time purchases, not a subscription running quietly in the background.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What "free" actually gets you</h2>
+      <p>Every part of designing a strategy is unlimited from the start: connecting condition, action, and risk blocks, testing different layouts, saving and reloading drafts - none of that touches the free-export count. Only the act of exporting - generating the actual .mq5, .mq4, or .cs file - is metered, and you get two of those with zero setup. There's no watermark on the generated code, no missing risk options, no platform locked behind a paywall - a free export and a paid export come out of the same generator. See <a href="how-to-build-your-first-algorithmic-strategy.html" class="text-emerald-400 hover:text-emerald-300 underline">how to build your first algorithmic trading strategy</a> for the actual five-step process the free tier is meant to cover.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why it can be free to start</h2>
+      <p>The free tier works the same way most no-code tools structure pricing: the cost of letting someone build and test is small, so it's given away, while the cost gets covered by traders who need more than two exports and pay for it directly - not by selling data or running ads. Strategy data itself never leaves your browser and your own exported file; there's no server-side database of strategies to monetize in the first place, so "free" doesn't come with a hidden trade-off on privacy.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Free builder vs. the alternatives</h2>
+      <table>
+        <thead><tr><th></th><th>Free algo builder</th><th>Freelance MQL5/C# developer</th><th>Learning to code it yourself</th></tr></thead>
+        <tbody>
+          <tr><td>Upfront cost</td><td>$0 for the first 2 exports</td><td>Often $100+ per strategy</td><td>$0 direct cost</td></tr>
+          <tr><td>Time to a working strategy</td><td>Minutes</td><td>Days to weeks, plus revisions</td><td>Weeks to months learning the language first</td></tr>
+          <tr><td>Platforms covered</td><td>MT5, MT4, cTrader from one layout</td><td>Usually quoted and built per platform</td><td>One language learned at a time</td></tr>
+        </tbody>
+      </table>
+      <p>None of these is wrong for every situation - hiring a developer makes sense for something too complex for blocks, and learning MQL5 or C# properly has its own value. But for a straightforward rule-based strategy, a free no-code builder removes both the cost and the time barrier that stop most people from ever testing their first idea.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What happens after the free exports</h2>
+      <p>Once both free exports are used, the export button offers a single $2 credit or a $9.99 30-day pass - the free tier doesn't reset by clearing cookies or switching browsers on purpose, since it's tracked per device rather than per session. A single export credit stays anonymous, the same as the free tier; the 30-day pass is the one option that asks for a login, only because it has to follow your account across devices rather than staying tied to one.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">Is AlgoPuzzle actually free, or is there a catch?</p>
+          <p class="mt-1">It's genuinely free to start: build strategies and export up to 2 of them with no signup, no card, and no time limit on when you use them. Beyond that, exports are paid (one-time, not a subscription) - that's the entire model, nothing hidden behind it.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Do I need to create an account to use the free exports?</p>
+          <p class="mt-1">No. The builder and the first 2 exports work with no account at all, tracked to your device. An account is only needed if you later want the 30-day unlimited pass, since that entitlement follows you across devices.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What happens after I use my 2 free exports?</p>
+          <p class="mt-1">You can buy a single additional export for $2, or unlock unlimited exports for 30 days for $9.99. Both are one-time payments - there's no subscription running in the background to remember to cancel.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Is the free version missing any features compared to paid?</p>
+          <p class="mt-1">No - the free tier uses the exact same builder and generates the exact same MQL5, MQL4, or C# file a paid export would. The only thing that's limited is how many times you export, not what you're able to build.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Does AlgoPuzzle sell my data to make the free tier possible?</p>
+          <p class="mt-1">No. Strategy data stays in your own browser and your own exported file - there's no server-side database of user strategies to sell in the first place.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Start building - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
