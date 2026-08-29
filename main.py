@@ -37,6 +37,7 @@ from pydantic import BaseModel, Field, field_validator
 import billing
 import db
 from device_identity import get_client_ip, get_device_id
+from marketplace_strategies import get_marketplace_strategy_config
 from supabase_auth import get_current_user
 from settings import settings
 
@@ -2981,6 +2982,89 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig, request: Request,
         buffer,
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# --------------------------------------------------------------------------
+# Marketplace downloads (2026-08-29, staging) - see marketplace_strategies.py's
+# own module docstring for the full rationale. Deliberately NOT the same
+# shape as /api/generate above:
+#   - Takes only a strategy `id` (never a client-supplied WorkspaceConfig) -
+#     looked up server-side in MARKETPLACE_STRATEGY_CONFIGS, so a caller can
+#     only ever generate one of the pre-approved marketplace strategies,
+#     never inject arbitrary content.
+#   - Deliberately NOT behind _require_export_entitlement - a marketplace
+#     "buy"/free-weekly-strategy download is a different product surface
+#     than the builder's own free-export allowance, and must never consume
+#     it (explicit product decision, 2026-08-29 - see marketplace_strategies.py).
+#   - STAGING-ONLY as of this writing: no real purchase/ownership check
+#     happens server-side yet either (ownership is still a frontend-only
+#     localStorage mock - see assets/marketplace-data.js) - add one here
+#     (matching whatever the real Stripe-backed marketplace purchase record
+#     ends up looking like) before this ships to production.
+# --------------------------------------------------------------------------
+class MarketplaceDownloadRequest(BaseModel):
+    id: str
+
+
+def _marketplace_ir(strategy_id: str):
+    config_dict = get_marketplace_strategy_config(strategy_id)
+    if config_dict is None:
+        raise HTTPException(status_code=404, detail=f"Unknown marketplace strategy id: {strategy_id!r}")
+    config = WorkspaceConfig.model_validate(config_dict)
+    try:
+        return parse_strategy(config), config
+    except StrategyValidationError as e:
+        # A registry entry failing validation is a bug in
+        # marketplace_strategies.py, not a bad client request.
+        raise HTTPException(status_code=500, detail=f"Marketplace strategy {strategy_id!r} failed to parse: {e}")
+
+
+@app.post("/api/marketplace/download/mt5")
+async def marketplace_download_mt5(body: MarketplaceDownloadRequest):
+    ir, config = _marketplace_ir(body.id)
+    mql5_code = render_mql5(ir)
+    readme_text = generate_readme_mql5(ir)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("strategy.mq5", mql5_code)
+        zf.writestr("README.txt", readme_text)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer, media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="algopuzzle_{body.id}.zip"'},
+    )
+
+
+@app.post("/api/marketplace/download/ctrader")
+async def marketplace_download_ctrader(body: MarketplaceDownloadRequest):
+    ir, config = _marketplace_ir(body.id)
+    csharp_code = render_csharp(ir)
+    readme_text = generate_readme_csharp(ir)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("AlgoPuzzleBot.cs", csharp_code)
+        zf.writestr("README.txt", readme_text)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer, media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="algopuzzle_ctrader_{body.id}.zip"'},
+    )
+
+
+@app.post("/api/marketplace/download/mt4")
+async def marketplace_download_mt4(body: MarketplaceDownloadRequest):
+    ir, config = _marketplace_ir(body.id)
+    mql4_code = render_mql4(ir)
+    readme_text = generate_readme_mql4(ir)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("strategy.mq4", mql4_code)
+        zf.writestr("README.txt", readme_text)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer, media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="algopuzzle_mt4_{body.id}.zip"'},
     )
 
 

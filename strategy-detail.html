@@ -84,7 +84,7 @@
         <div class="text-xs text-gray-400 leading-relaxed space-y-1.5">
           <p class="font-semibold text-gray-300 text-sm">Before you buy</p>
           <p>Past performance does not guarantee future results.</p>
-          <p>This strategy was tested from Jul 26 to Aug 25, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
+          <p>This strategy was tested from Jul 29 to Aug 28, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
         </div>
       </div>
       <label class="mt-4 flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
@@ -100,6 +100,24 @@
 
 <script src="assets/marketplace-data.js"></script>
 <script>
+// Same hostname-based API_BASE convention as index_1.html (see that
+// file's own comment for the full reasoning) - kept as its own small copy
+// here rather than a shared module, since this page has no other need for
+// index_1.html's bundle. Only ever used for the marketplace download
+// endpoints (see handleDownloadClick below) - nothing else on this page
+// talks to the backend.
+const PRODUCTION_API_BASE = 'https://algopuzzle-api.onrender.com';
+const STAGING_API_BASE = 'https://algopuzzle-api-staging.onrender.com';
+const IS_STAGING = window.location.hostname === 'algopuzzle-frontend-staging.onrender.com';
+const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
+const API_BASE = IS_LOCAL_DEV
+  ? (window.location.origin.includes('null') || window.location.protocol === 'file:'
+      ? 'http://127.0.0.1:8000'
+      : window.location.origin.replace(/:\d+$/, ':8000'))
+  : IS_STAGING
+    ? STAGING_API_BASE
+    : PRODUCTION_API_BASE;
+
 const params = new URLSearchParams(window.location.search);
 const strategyId = params.get('id');
 const justPurchased = params.get('purchased') === '1';
@@ -169,23 +187,56 @@ function renderUnlocked() {
     </div>
   `;
   document.querySelectorAll('.download-btn').forEach((btn) => {
-    btn.addEventListener('click', () => handleDownloadClick(s));
+    btn.addEventListener('click', () => handleDownloadClick(s, btn.dataset.format, btn));
   });
 }
 
-// Real download mechanism (once a strategy has blockly_state): load the
-// stored Blockly workspace JSON into an off-canvas headless workspace,
-// re-use the SAME client-side serializeWorkspace()/exportStrategy() the
-// live builder already uses, and POST to /api/generate* - no new backend
-// endpoint needed. Not implemented yet because no strategy has real
-// blockly_state (see assets/marketplace-data.js) - this honestly says so
-// instead of pretending to work.
-function handleDownloadClick(s) {
-  if (!s.blockly_state) {
+// Real download mechanism (2026-08-29): POSTs just the strategy's `id` to
+// /api/marketplace/download/{platform} - the backend looks up the real
+// WorkspaceConfig server-side (marketplace_strategies.py) rather than
+// trusting anything from this page, so there's no client-side Blockly
+// round-trip needed for downloading (unlike "Load into Builder" in
+// index_1.html, which genuinely does need the real blockly_state).
+// STAGING-ONLY as of this writing: this endpoint isn't gated by a real
+// purchase check yet either - see marketplace_strategies.py's own
+// docstring for why, and what to add before this reaches production.
+async function handleDownloadClick(s, platform, btn) {
+  if (!s.strategy_config_id) {
     alert("This strategy's blueprint hasn't been added yet - content is being finalized. Check back soon.");
     return;
   }
-  alert('Download not implemented yet in this draft.');
+  const originalLabel = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/marketplace/download/${platform}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: s.strategy_config_id }),
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.detail || `Download failed (HTTP ${res.status}).`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `algopuzzle_${s.strategy_config_id}_${platform}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(`Could not download this strategy: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '';
+    }
+  }
 }
 
 let pendingStrategyId = null;
