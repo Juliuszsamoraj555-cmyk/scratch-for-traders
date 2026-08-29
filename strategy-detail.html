@@ -128,10 +128,256 @@ function fmtStat(v, suffix) {
   return (v === null || v === undefined) ? '—' : `${v}${suffix}`;
 }
 
+// Same real-equity-curve renderer as strategy-of-the-week.html (see that
+// file's own comment for the full reasoning - smoothed Catmull-Rom curve
+// through the real per-trade balances, not a raw jagged polyline) - kept
+// as its own small copy here rather than a shared module, matching this
+// page's existing API_BASE convention above. equityCurve is an array of
+// { date, balance } (a plain array of numbers is also accepted).
+function equityBalances(equityCurve) {
+  return equityCurve.map((p) => (typeof p === 'object' ? p.balance : p));
+}
+
+function smoothPath(points) {
+  if (points.length < 3) {
+    return `M ${points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L ')}`;
+  }
+  let d = `M ${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? 0 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+function equityCurveSvg(equityCurve, opts) {
+  const width = (opts && opts.width) || 320;
+  const height = (opts && opts.height) || 120;
+  if (!Array.isArray(equityCurve) || equityCurve.length < 2) return '';
+  const balances = equityBalances(equityCurve);
+  const min = Math.min(...balances);
+  const max = Math.max(...balances);
+  const range = max - min || 1;
+  const padY = height * 0.12;
+  const toXY = (v, i) => {
+    const x = (i / (balances.length - 1)) * width;
+    const y = height - padY - ((v - min) / range) * (height - padY * 2);
+    return [x, y];
+  };
+  const points = balances.map((v, i) => toXY(v, i));
+  const isUp = balances[balances.length - 1] >= balances[0];
+  const stroke = isUp ? '#34d399' : '#f87171';
+  const fillTop = isUp ? 'rgba(16,185,129,0.22)' : 'rgba(248,113,113,0.22)';
+  const fillBottom = isUp ? 'rgba(16,185,129,0)' : 'rgba(248,113,113,0)';
+  const linePath = smoothPath(points);
+  const gradId = `eqGrad${Math.random().toString(36).slice(2, 9)}`;
+  return `
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${fillTop}"/>
+          <stop offset="100%" stop-color="${fillBottom}"/>
+        </linearGradient>
+      </defs>
+      <path d="${linePath} L ${width},${height} L 0,${height} Z" fill="url(#${gradId})" stroke="none"/>
+      <path d="${linePath}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+}
+
+// Interactive version for the expandable "full performance chart" section
+// (2026-08-29 addition, explicit user request): a vertical crosshair that
+// follows the mouse, snapping to the nearest real data point, with a
+// tooltip showing that trade's real close date and account balance/return
+// at that point - not just a static picture. Built as an SVG + an
+// absolutely-positioned tooltip <div> over it (not native SVG <title>,
+// which can't be styled or positioned freely) - mousemove maps client X
+// back into the SVG's own viewBox units via getScreenCTM().inverse(), so
+// it stays correct regardless of how the SVG is scaled by its container.
+function interactiveEquityChart(equityCurve, opts) {
+  const width = (opts && opts.width) || 700;
+  const height = (opts && opts.height) || 280;
+  const wrapId = `eqInteractive${Math.random().toString(36).slice(2, 9)}`;
+  const staticSvg = equityCurveSvg(equityCurve, { width, height });
+  if (!staticSvg) return '';
+  return `
+    <div id="${wrapId}" class="relative select-none" style="max-width:${width}px">
+      ${staticSvg}
+      <div class="crosshair-line absolute top-0 bottom-0 w-px bg-gray-500/50 pointer-events-none hidden"></div>
+      <div class="crosshair-dot absolute w-2.5 h-2.5 rounded-full border-2 border-gray-950 pointer-events-none hidden" style="background:#34d399"></div>
+      <div class="crosshair-tooltip absolute pointer-events-none hidden bg-gray-950 border border-gray-700 rounded-md px-2.5 py-1.5 text-xs shadow-lg whitespace-nowrap z-10"></div>
+    </div>
+  `;
+}
+
+function wireInteractiveChart(container, equityCurve, startBalance) {
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+  const line = container.querySelector('.crosshair-line');
+  const dot = container.querySelector('.crosshair-dot');
+  const tooltip = container.querySelector('.crosshair-tooltip');
+  const balances = equityBalances(equityCurve);
+  const n = balances.length;
+  const min = Math.min(...balances);
+  const max = Math.max(...balances);
+  const range = max - min || 1;
+  const vb = svg.viewBox.baseVal;
+
+  function show(clientX, clientY) {
+    const pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let idx = Math.round((svgP.x / vb.width) * (n - 1));
+    idx = Math.max(0, Math.min(n - 1, idx));
+
+    const rect = svg.getBoundingClientRect();
+    const xFrac = idx / (n - 1);
+    const padY = vb.height * 0.12;
+    const yFrac = 1 - (((balances[idx] - min) / range) * (vb.height - padY * 2) + padY) / vb.height;
+    const pxX = xFrac * rect.width;
+    const pxY = (1 - yFrac) * rect.height;
+
+    line.style.left = `${pxX}px`;
+    line.classList.remove('hidden');
+    dot.style.left = `${pxX - 5}px`;
+    dot.style.top = `${pxY - 5}px`;
+    dot.classList.remove('hidden');
+
+    const point = equityCurve[idx];
+    const dateLabel = typeof point === 'object' ? point.date : `Trade ${idx}`;
+    const balance = balances[idx];
+    const returnPct = ((balance - startBalance) / startBalance * 100).toFixed(1);
+    const sign = returnPct >= 0 ? '+' : '';
+    tooltip.innerHTML = `<span class="text-gray-400">${dateLabel}</span><br>` +
+      `<span class="font-semibold text-gray-100">$${balance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span> ` +
+      `<span class="${returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}">${sign}${returnPct}%</span>`;
+    let tipX = pxX + 10;
+    if (tipX + 140 > rect.width) tipX = pxX - 150;
+    tooltip.style.left = `${tipX}px`;
+    tooltip.style.top = `${Math.max(0, pxY - 36)}px`;
+    tooltip.classList.remove('hidden');
+  }
+  function hide() {
+    line.classList.add('hidden');
+    dot.classList.add('hidden');
+    tooltip.classList.add('hidden');
+  }
+  svg.addEventListener('mousemove', (e) => show(e.clientX, e.clientY));
+  svg.addEventListener('mouseleave', hide);
+  svg.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) { show(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+  }, { passive: false });
+  svg.addEventListener('touchend', hide);
+}
+
 function renderNotFound() {
   contentEl.innerHTML = `
     <p class="text-sm text-gray-500">Strategy not found.</p>
     <a href="strategy-of-the-week.html" class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-emerald-400 hover:text-emerald-300">&larr; Back to Strategy of the Week</a>
+  `;
+}
+
+// Shown on BOTH the locked (pre-purchase) and unlocked view, on purpose
+// (2026-08-29 addition, explicit user request): a trader deciding whether
+// to buy needs max drawdown and the other numbers below BEFORE paying,
+// not just after - a paywall should never be the only thing standing
+// between a buyer and the risk profile of what they're about to buy.
+function keyStatsRow(s) {
+  return `
+    <div><div class="text-xl font-bold text-emerald-300">${fmtStat(s.stats.winRate, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
+    <div><div class="text-xl font-bold text-emerald-300">${s.stats.returnPct > 0 ? '+' : ''}${fmtStat(s.stats.returnPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
+    <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.trades, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
+    <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.profitFactor, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">profit factor</div></div>
+    <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.drawdownPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">max drawdown</div></div>
+  `;
+}
+
+// Secondary stats a trader needs to actually judge risk, not just headline
+// return - none of this is gated behind purchase either, same reasoning
+// as keyStatsRow above. avgWin/avgLoss sit next to each other on purpose:
+// a strategy can have a losing-majority win rate and still be sound if its
+// average win is bigger than its average loss (the profit-factor story,
+// made concrete in pips here) - same "don't show win rate without the
+// context that makes it legible" principle as strategy-of-the-week.html.
+function extraStatsGrid(s) {
+  const st = s.stats;
+  const rows = [
+    ['Max consecutive losses', fmtStat(st.maxConsecutiveLosses, '')],
+    ['Max consecutive wins', fmtStat(st.maxConsecutiveWins, '')],
+    ['Best trade', st.bestTradePips != null ? `+${st.bestTradePips} pips` : '—'],
+    ['Worst trade', st.worstTradePips != null ? `${st.worstTradePips} pips` : '—'],
+    ['Avg. win / avg. loss', (st.avgWinPips != null && st.avgLossPips != null) ? `+${st.avgWinPips} / -${st.avgLossPips} pips` : '—'],
+    ['Recovery factor', fmtStat(st.recoveryFactor, '')],
+    ['Long / short mix', st.pctLong != null ? `${st.pctLong}% long / ${100 - st.pctLong}% short` : '—'],
+  ];
+  return `
+    <div class="mt-4 bg-gray-900/40 border border-gray-800 rounded-xl p-5">
+      <h3 class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">More stats</h3>
+      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+        ${rows.map(([label, value]) => `
+          <div>
+            <dt class="text-[11px] text-gray-500">${label}</dt>
+            <dd class="text-sm font-semibold text-gray-100 mt-0.5">${value}</dd>
+          </div>
+        `).join('')}
+      </dl>
+    </div>
+  `;
+}
+
+// Expandable ("dropdown") full-size chart, collapsed by default so it
+// doesn't compete with the compact chart already shown up top - click to
+// expand into a larger, more readable equity curve. Re-rendered at a
+// bigger size (not just CSS-scaled) so the line stays crisp, and redrawn
+// on window resize while expanded so it keeps filling its container.
+let expandedChartResizeHandler = null;
+function renderExpandableChart(s, containerId) {
+  const container = document.getElementById(containerId);
+  const chartHost = container.querySelector('.expanded-chart-host');
+  const width = Math.max(320, Math.min(900, container.clientWidth - 48));
+  chartHost.innerHTML = interactiveEquityChart(s.stats.equityCurve, { width, height: 280 });
+  wireInteractiveChart(chartHost, s.stats.equityCurve, s.stats.equityCurve[0].balance ?? s.stats.equityCurve[0]);
+}
+function toggleChartSection(s, containerId) {
+  const container = document.getElementById(containerId);
+  const body = container.querySelector('.expanded-chart-body');
+  const chevron = container.querySelector('.expand-chevron');
+  const isOpen = !body.classList.contains('hidden');
+  if (isOpen) {
+    body.classList.add('hidden');
+    chevron.style.transform = '';
+    if (expandedChartResizeHandler) {
+      window.removeEventListener('resize', expandedChartResizeHandler);
+      expandedChartResizeHandler = null;
+    }
+  } else {
+    body.classList.remove('hidden');
+    chevron.style.transform = 'rotate(180deg)';
+    renderExpandableChart(s, containerId);
+    expandedChartResizeHandler = () => renderExpandableChart(s, containerId);
+    window.addEventListener('resize', expandedChartResizeHandler);
+  }
+}
+function expandableChartSection(s) {
+  const id = 'chartExpand';
+  return `
+    <div id="${id}" class="mt-4 bg-gray-900/40 border border-gray-800 rounded-xl overflow-hidden">
+      <button class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-800/40 transition" id="${id}Toggle">
+        <span class="text-sm font-semibold text-gray-200">View full performance chart</span>
+        <svg class="expand-chevron w-4 h-4 text-gray-400 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="expanded-chart-body hidden px-5 pb-5">
+        <div class="expanded-chart-host flex items-center justify-center bg-gray-950/40 rounded-lg p-4"></div>
+        <p class="mt-3 text-[11px] text-gray-500">Account balance after each closed trade, starting from a $10,000 baseline - real tick-precise backtest data, not the faster screening pass. Past performance does not guarantee future results.</p>
+      </div>
+    </div>
   `;
 }
 
@@ -141,19 +387,19 @@ function renderLocked() {
     <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">${s.style} &middot; ${s.timeframe}</span>
     <h1 class="mt-2 text-2xl font-bold text-gray-50">${s.name}</h1>
     <p class="mt-3 text-sm text-gray-400 leading-relaxed max-w-xl">${s.description}</p>
-    <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex items-center justify-between flex-wrap gap-4">
-      <div class="flex gap-6">
-        <div><div class="text-xl font-bold text-emerald-300">${fmtStat(s.stats.winRate, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
-        <div><div class="text-xl font-bold text-emerald-300">${s.stats.returnPct > 0 ? '+' : ''}${fmtStat(s.stats.returnPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
-        <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.trades, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
-      </div>
+    <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex items-center justify-between flex-wrap gap-6">
+      <div class="flex-1 min-w-[180px] flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 90 })}</div>
+      <div class="flex gap-6 flex-wrap">${keyStatsRow(s)}</div>
       <div class="flex items-center gap-4">
         <span class="text-2xl font-bold text-emerald-400">${s.priceLabel}</span>
         <button id="buyBtn" class="text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-5 py-2.5 rounded-md">Buy to unlock</button>
       </div>
     </div>
+    ${extraStatsGrid(s)}
+    ${expandableChartSection(s)}
   `;
   document.getElementById('buyBtn').addEventListener('click', () => openPurchaseModal(s.id));
+  document.getElementById('chartExpandToggle').addEventListener('click', () => toggleChartSection(s, 'chartExpand'));
 }
 
 function renderUnlocked() {
@@ -173,12 +419,12 @@ function renderUnlocked() {
     <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">${s.style} &middot; ${s.timeframe} &middot; unlocked</span>
     <h1 class="mt-2 text-2xl font-bold text-gray-50">${s.name}</h1>
     <p class="mt-3 text-sm text-gray-300 leading-relaxed max-w-xl">${s.description}</p>
-    <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex flex-wrap gap-8">
-      <div><div class="text-xl font-bold text-emerald-300">${fmtStat(s.stats.winRate, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
-      <div><div class="text-xl font-bold text-emerald-300">${s.stats.returnPct > 0 ? '+' : ''}${fmtStat(s.stats.returnPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
-      <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.trades, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
-      <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.drawdownPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">max drawdown</div></div>
+    <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex flex-wrap items-center gap-8">
+      <div class="flex-1 min-w-[180px] flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 100 })}</div>
+      <div class="flex gap-8 flex-wrap">${keyStatsRow(s)}</div>
     </div>
+    ${extraStatsGrid(s)}
+    ${expandableChartSection(s)}
     <div class="mt-8">
       <h2 class="text-sm font-bold text-gray-200 mb-3">Download the file for your platform</h2>
       <div class="flex flex-wrap gap-3">
@@ -189,6 +435,7 @@ function renderUnlocked() {
   document.querySelectorAll('.download-btn').forEach((btn) => {
     btn.addEventListener('click', () => handleDownloadClick(s, btn.dataset.format, btn));
   });
+  document.getElementById('chartExpandToggle').addEventListener('click', () => toggleChartSection(s, 'chartExpand'));
 }
 
 // Real download mechanism (2026-08-29): POSTs just the strategy's `id` to
