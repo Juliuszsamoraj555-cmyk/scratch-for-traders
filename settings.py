@@ -80,6 +80,16 @@ class Settings:
     # cancel redirect URLs. Update this the moment a real domain exists.
     SITE_URL: str = os.getenv("SITE_URL", "http://localhost:8080")
 
+    # --- MT5 export: install walkthrough video ---
+    # Hosted on YouTube rather than embedded in the zip - a raw video file
+    # was blowing every /api/generate (MT5) response up by ~40MB, which is
+    # what a strategy.mq5 + README.txt zip should never weigh. Instead the
+    # zip ships a tiny redirect page pointing here (see
+    # _add_mt5_tutorial_video() in main.py). Empty by default so nothing is
+    # added until a real link exists - set this in Render's env vars once
+    # the video is live.
+    MT5_TUTORIAL_VIDEO_URL: str = os.getenv("MT5_TUTORIAL_VIDEO_URL", "")
+
     # --- Pricing (cents = smallest USD unit, matches Stripe's integer
     # amounts - the actual charged amount always comes from the Stripe
     # Price objects themselves (STRIPE_PRICE_EXPORT/PASS below), these
