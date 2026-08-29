@@ -303,12 +303,23 @@ function renderFreeCard() {
   `;
 }
 
+// Both the featured card and each grid card (below) are clickable
+// (2026-08-29 addition, explicit user request): clicking the card itself
+// - anywhere except the Buy/owned-row buttons, which stopPropagation so
+// they still act immediately - opens strategy-detail.html for a closer
+// look (full stats, the expandable chart) BEFORE committing to buy,
+// instead of the only path being an immediate purchase from the list.
+function goToDetail(id, e) {
+  if (e) e.stopPropagation();
+  window.location.href = `strategy-detail.html?id=${id}`;
+}
+
 function renderFeaturedCard() {
   const strategy = MARKETPLACE_STRATEGIES.find((s) => s.featured);
   if (!strategy) return;
   const owned = isStrategyOwned(strategy.id);
   document.getElementById('featuredStrategyCard').innerHTML = `
-    <div class="relative bg-gray-900/60 border border-amber-700/50 hover:border-amber-600 rounded-xl p-7 transition">
+    <div class="relative bg-gray-900/60 border border-amber-700/50 hover:border-amber-600 rounded-xl p-7 transition cursor-pointer" id="featuredCardClick">
       <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide bg-amber-500 text-gray-900 rounded-full px-3 py-1.5">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a2 2 0 0 0 2 5M17 6h3a2 2 0 0 1-2 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Top performer this week
@@ -321,10 +332,12 @@ function renderFeaturedCard() {
         </div>
         <div class="flex-1 min-w-[140px] flex items-center justify-center">${equityCurveSvg(strategy.stats.equityCurve, { height: 90 })}</div>
         <div class="flex-1 min-w-[170px]">${statBlock(strategy)}</div>
-        <div class="flex-1 min-w-[160px]">${owned ? ownedRow(strategy) : buyRow(strategy)}</div>
+        <div class="flex-1 min-w-[160px]" id="featuredCardAction">${owned ? ownedRow(strategy) : buyRow(strategy)}</div>
       </div>
     </div>
   `;
+  document.getElementById('featuredCardClick').addEventListener('click', () => goToDetail(strategy.id));
+  document.getElementById('featuredCardAction').addEventListener('click', (e) => e.stopPropagation());
 }
 
 function renderGrid() {
@@ -332,15 +345,19 @@ function renderGrid() {
   document.getElementById('strategyGrid').innerHTML = strategies.map((strategy) => {
     const owned = isStrategyOwned(strategy.id);
     return `
-      <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+      <div class="bg-gray-900/60 border border-gray-800 hover:border-gray-700 rounded-xl p-5 cursor-pointer grid-card" data-id="${strategy.id}">
         <span class="text-xs font-medium text-gray-500">${strategy.style} &middot; ${strategy.timeframe}</span>
         <h4 class="mt-1.5 text-sm font-bold text-gray-100">${strategy.name}</h4>
         <div class="mt-3 flex items-center justify-center">${equityCurveSvg(strategy.stats.equityCurve, { height: 70 })}</div>
         <div class="mt-3">${statBlock(strategy)}</div>
-        <div class="mt-4">${owned ? ownedRow(strategy) : buyRow(strategy)}</div>
+        <div class="mt-4 grid-card-action">${owned ? ownedRow(strategy) : buyRow(strategy)}</div>
       </div>
     `;
   }).join('');
+  document.querySelectorAll('.grid-card').forEach((card) => {
+    card.addEventListener('click', () => goToDetail(card.dataset.id));
+    card.querySelector('.grid-card-action').addEventListener('click', (e) => e.stopPropagation());
+  });
 }
 
 function renderAll() {

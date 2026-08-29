@@ -218,8 +218,15 @@ function interactiveEquityChart(equityCurve, opts) {
 }
 
 function wireInteractiveChart(container, equityCurve, startBalance) {
+  // The overlay divs (crosshair-line/-dot/-tooltip) are `position:absolute`
+  // against the `.relative` wrapper interactiveEquityChart() renders them
+  // inside - NOT against `container` (the padded `.expanded-chart-host`
+  // div one level up). Using container's own rect for the pixel math below
+  // was exactly the "dot in random places" bug - offset by that padding,
+  // worse the further the chart was resized from its original render size.
+  const wrap = container.querySelector('.relative.select-none');
   const svg = container.querySelector('svg');
-  if (!svg) return;
+  if (!svg || !wrap) return;
   const line = container.querySelector('.crosshair-line');
   const dot = container.querySelector('.crosshair-dot');
   const tooltip = container.querySelector('.crosshair-tooltip');
@@ -229,20 +236,30 @@ function wireInteractiveChart(container, equityCurve, startBalance) {
   const max = Math.max(...balances);
   const range = max - min || 1;
   const vb = svg.viewBox.baseVal;
+  const padY = vb.height * 0.12;
 
   function show(clientX, clientY) {
+    // Mouse position -> nearest data index, via the SVG's own inverse
+    // transform (correct regardless of how preserveAspectRatio="meet"
+    // scales/letterboxes the SVG within its box).
     const pt = svg.createSVGPoint();
     pt.x = clientX; pt.y = clientY;
     const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
     let idx = Math.round((svgP.x / vb.width) * (n - 1));
     idx = Math.max(0, Math.min(n - 1, idx));
 
-    const rect = svg.getBoundingClientRect();
-    const xFrac = idx / (n - 1);
-    const padY = vb.height * 0.12;
-    const yFrac = 1 - (((balances[idx] - min) / range) * (vb.height - padY * 2) + padY) / vb.height;
-    const pxX = xFrac * rect.width;
-    const pxY = (1 - yFrac) * rect.height;
+    // That data point's EXACT position, forward-transformed back to real
+    // screen pixels (the correct inverse of the step above) - never
+    // hand-derived from rect.width/height, which is only right when the
+    // container's aspect ratio happens to exactly match the viewBox's.
+    const dataPt = svg.createSVGPoint();
+    dataPt.x = (idx / (n - 1)) * vb.width;
+    dataPt.y = vb.height - padY - ((balances[idx] - min) / range) * (vb.height - padY * 2);
+    const screenPt = dataPt.matrixTransform(svg.getScreenCTM());
+
+    const rect = wrap.getBoundingClientRect();
+    const pxX = screenPt.x - rect.left;
+    const pxY = screenPt.y - rect.top;
 
     line.style.left = `${pxX}px`;
     line.classList.remove('hidden');
