@@ -85,10 +85,9 @@ class Settings:
     # was blowing every /api/generate (MT5) response up by ~40MB, which is
     # what a strategy.mq5 + README.txt zip should never weigh. Instead the
     # zip ships a tiny redirect page pointing here (see
-    # _add_mt5_tutorial_video() in main.py). Empty by default so nothing is
-    # added until a real link exists - set this in Render's env vars once
-    # the video is live.
-    MT5_TUTORIAL_VIDEO_URL: str = os.getenv("MT5_TUTORIAL_VIDEO_URL", "")
+    # _add_mt5_tutorial_video() in main.py). Still overridable via env var
+    # (e.g. to point a specific deploy at a different/unlisted video).
+    MT5_TUTORIAL_VIDEO_URL: str = os.getenv("MT5_TUTORIAL_VIDEO_URL", "https://youtu.be/WBlWR5rCYMk")
 
     # --- Pricing (cents = smallest USD unit, matches Stripe's integer
     # amounts - the actual charged amount always comes from the Stripe
