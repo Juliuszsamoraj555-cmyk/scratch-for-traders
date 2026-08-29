@@ -2846,11 +2846,20 @@ async def _require_export_entitlement(
     settings.py for why a cleared cookie alone isn't enough to loop past
     this anymore.
 
-    If the request carries a valid login token AND that user has an
-    active 30-day pass, it wins immediately - checked before device_id
-    entitlement at all, since it's meant to work from any of the
+    If the request carries a valid login token AND that user has active
+    pro (a purchased 30-day pass, or a manual grant - see
+    has_active_pass() in schema.sql), it wins immediately - checked
+    before anything else, since it's meant to work from any of the
     trader's devices, not just this one (see schema.sql's header
     comment).
+
+    Otherwise, if logged in, that account's exports_available bucket is
+    checked next (2026-08-29 addition) - a separate, additive pool of
+    exports for this account specifically, manually grantable or funded
+    by a single-export purchase made while logged in. Only after both of
+    those come up empty (or the request isn't logged in at all) does this
+    fall through to the anonymous per-device free/paid flow, completely
+    unchanged for anyone not logged in.
 
     If DATABASE_URL isn't configured at all, billing is treated as not
     wired up yet (e.g. local dev without a Supabase project) and every
@@ -2861,9 +2870,12 @@ async def _require_export_entitlement(
         return
 
     user_id = get_current_user(request)
-    if user_id and await db.has_active_pass(user_id):
-        await db.log_user_pass_export(user_id, device_id, platform, strategy_meta)
-        return
+    if user_id:
+        if await db.has_active_pass(user_id):
+            await db.log_user_pass_export(user_id, device_id, platform, strategy_meta)
+            return
+        if await db.consume_account_export_credit(user_id, device_id, platform, strategy_meta):
+            return
 
     granted, _consumed_from = await db.consume_export(device_id, platform, get_client_ip(request), strategy_meta)
     if not granted:
@@ -3059,7 +3071,12 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
     this to show 'N free exports left' / paywall state without needing
     to attempt (and fail) an export first. If the request is also logged
     in, pass_active reflects that user's account-wide pass (which can be
-    true even on a brand new device that's never bought anything)."""
+    true even on a brand new device that's never bought anything, either
+    from a purchased pass or a manual grant - see has_active_pass() in
+    schema.sql), and account_exports_available surfaces that same
+    account's separate, additive export bucket (2026-08-29 addition) -
+    an existing frontend that doesn't read this new field yet keeps
+    working exactly as before, it just won't mention this bucket."""
     user_id = get_current_user(request)
     if not settings.DATABASE_URL:
         return {
@@ -3074,18 +3091,25 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
     status = await db.get_entitlement_status(device_id)
     status["billing_configured"] = True
     status["logged_in"] = bool(user_id)
-    if user_id and await db.has_active_pass(user_id):
-        status["pass_active"] = True
+    if user_id:
+        account_status = await db.get_account_status(user_id)
+        if account_status["pass_active"]:
+            status["pass_active"] = True
+        status["account_exports_available"] = account_status["exports_available"]
     return status
 
 
 @app.post("/api/billing/checkout/export")
-async def billing_checkout_export(device_id: str = Depends(get_device_id)):
+async def billing_checkout_export(request: Request, device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for a single export credit and
     returns its hosted URL for the frontend to redirect to. Anonymous -
-    no login involved, same as the free tier."""
+    no login required, same as the free tier - but if the caller happens
+    to be logged in, that's passed through so the credit lands on their
+    account instead of just this device (2026-08-29 addition - see
+    billing.create_checkout_session / db.grant_export_credits)."""
+    user_id = get_current_user(request)
     try:
-        url = billing.create_checkout_session(device_id, "export_credit")
+        url = billing.create_checkout_session(device_id, "export_credit", user_id=user_id)
     except billing.BillingNotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"url": url}

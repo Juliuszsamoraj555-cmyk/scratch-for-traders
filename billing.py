@@ -68,15 +68,18 @@ def create_checkout_session(device_id: str, kind: Kind, user_id: Optional[str] =
     kind="day_pass" requires user_id (a logged-in Supabase Auth user -
     see main.py's get_current_user): the pass is granted to the account,
     not the device, so it works across every device the trader logs
-    into. kind="export_credit" ignores user_id entirely and stays on
-    device_id, same as always - single exports don't need an account."""
+    into. kind="export_credit" never requires user_id - single exports
+    don't need an account - but if the buyer happens to be logged in,
+    passing it here attributes the credit to their account instead of
+    just this device (see db.grant_export_credits), so it also follows
+    them to any other browser (2026-08-29 addition)."""
     _require_configured()
     if kind == "day_pass" and not user_id:
         raise LoginRequired("Log in to buy the 30-day pass - it needs to work across your devices.")
 
     price_id = settings.STRIPE_PRICE_EXPORT if kind == "export_credit" else settings.STRIPE_PRICE_PASS
     metadata = {"device_id": device_id, "kind": kind}
-    if kind == "day_pass":
+    if user_id:
         metadata["user_id"] = user_id
 
     session = stripe.checkout.Session.create(
@@ -162,7 +165,13 @@ async def apply_completed_checkout(event: "stripe.Event") -> Optional[str]:
         device_id = metadata.get("device_id") or session.get("client_reference_id")
         if not device_id:
             return None
-        await db.grant_export_credits(device_id, 1, stripe_event_id, session_id, amount_total, currency, email)
+        # user_id is only present if the buyer was logged in at checkout
+        # (see create_checkout_session) - when set, grant_export_credits
+        # credits their ACCOUNT (exports_available) instead of the device.
+        user_id = metadata.get("user_id")
+        await db.grant_export_credits(
+            device_id, 1, stripe_event_id, session_id, amount_total, currency, email, user_id=user_id
+        )
     else:
         # day_pass: granted to the logged-in user_id, not device_id - see
         # create_checkout_session()/LoginRequired above.

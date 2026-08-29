@@ -227,21 +227,35 @@ def _grant_export_credits_sync(
     amount_cents: int,
     currency: str,
     email: Optional[str],
+    user_id: Optional[str],
 ) -> bool:
     with _conn() as conn, conn.cursor() as cur:
         if _event_already_applied(cur, stripe_event_id):
             return False
-        cur.execute(
-            "update devices set paid_export_credits = paid_export_credits + %s, "
-            "billing_email = coalesce(%s, billing_email) where device_id = %s",
-            (n, email, device_id),
-        )
+        if user_id:
+            # Buyer was logged in at checkout - credit the ACCOUNT
+            # (exports_available), not the device, so it follows them to
+            # any browser, same reasoning as why the 30-day pass is
+            # account-level. The row always exists by this point (every
+            # signup gets one via the auth.users trigger - see
+            # schema.sql), so a plain UPDATE is enough, no upsert needed.
+            cur.execute(
+                "update user_entitlements set exports_available = exports_available + %s "
+                "where user_id = %s",
+                (n, user_id),
+            )
+        else:
+            cur.execute(
+                "update devices set paid_export_credits = paid_export_credits + %s, "
+                "billing_email = coalesce(%s, billing_email) where device_id = %s",
+                (n, email, device_id),
+            )
         cur.execute(
             "insert into billing_events "
-            "(stripe_event_id, device_id, event_type, stripe_checkout_session_id, "
+            "(stripe_event_id, device_id, user_id, event_type, stripe_checkout_session_id, "
             " amount_total_cents, currency) "
-            "values (%s, %s, 'export_credit_purchase', %s, %s, %s)",
-            (stripe_event_id, device_id, session_id, amount_cents, currency),
+            "values (%s, %s, %s, 'export_credit_purchase', %s, %s, %s)",
+            (stripe_event_id, device_id, user_id, session_id, amount_cents, currency),
         )
         return True
 
@@ -254,9 +268,15 @@ async def grant_export_credits(
     amount_cents: int,
     currency: str,
     email: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> bool:
+    """device_id is always required (billing_events always logs which
+    browser bought this, regardless of login) - user_id is optional and,
+    when set, is ALSO who the credit is actually granted to (see
+    _grant_export_credits_sync): the buyer's account instead of their
+    device, so it works from any browser they log into afterward."""
     return await run_in_threadpool(
-        _grant_export_credits_sync, device_id, n, stripe_event_id, session_id, amount_cents, currency, email
+        _grant_export_credits_sync, device_id, n, stripe_event_id, session_id, amount_cents, currency, email, user_id
     )
 
 
@@ -272,16 +292,21 @@ def _grant_day_pass_sync(
     with _conn() as conn, conn.cursor() as cur:
         if _event_already_applied(cur, stripe_event_id):
             return False
-        # Upsert: first-ever pass for this user_id inserts a row, buying
-        # another one while active extends from the later of "now" or
-        # the current expiry (stacks the days instead of wasting whatever
-        # time was left) - same logic the old device-based version used,
-        # just keyed by user_id/user_entitlements now.
+        # Upsert: first-ever pass for this user_id inserts a row (belt-
+        # and-suspenders only - the auth.users trigger in schema.sql
+        # already creates one at signup), buying another one while active
+        # extends from the later of "now" or the current expiry (stacks
+        # the days instead of wasting whatever time was left) - same
+        # logic the old device-based version used, just keyed by
+        # user_id/user_entitlements now. is_pro is set true here too
+        # (2026-08-29 addition) since has_active_pass() now checks that
+        # flag, not just the date - see schema.sql.
         cur.execute(
-            "insert into user_entitlements (user_id, pass_expires_at, billing_email) "
-            "values (%s, now() + (%s || ' days')::interval, %s) "
+            "insert into user_entitlements (user_id, is_pro, is_pro_until, billing_email) "
+            "values (%s, true, now() + (%s || ' days')::interval, %s) "
             "on conflict (user_id) do update set "
-            "pass_expires_at = greatest(coalesce(user_entitlements.pass_expires_at, now()), now()) "
+            "is_pro = true, "
+            "is_pro_until = greatest(coalesce(user_entitlements.is_pro_until, now()), now()) "
             "  + (%s || ' days')::interval, "
             "billing_email = coalesce(excluded.billing_email, user_entitlements.billing_email)",
             (user_id, days, email, days),
@@ -327,6 +352,67 @@ def _has_active_pass_sync(user_id: str) -> bool:
 
 async def has_active_pass(user_id: str) -> bool:
     return await run_in_threadpool(_has_active_pass_sync, user_id)
+
+
+# --------------------------------------------------------------------------
+# Account-level status/credits (2026-08-29 addition) - see the "Manual
+# pro-status + email tracking" section of schema.sql. Distinct from
+# has_active_pass() above: that's a single boolean used to gate exports,
+# this is the fuller read used by /api/billing/status to also show a
+# logged-in trader (or the owner poking at Supabase by hand) their
+# account's exports_available balance.
+# --------------------------------------------------------------------------
+
+def _get_account_status_sync(user_id: str) -> dict:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "select is_pro, is_pro_until, exports_available, has_active_pass(%s) "
+            "from user_entitlements where user_id = %s",
+            (user_id, user_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            # Shouldn't happen once the auth.users trigger exists (every
+            # account gets a row at signup) - only reachable for a login
+            # token issued before this feature existed and never since
+            # refreshed, or a database that hasn't had the migration run
+            # yet. Treat as "nothing granted" rather than erroring.
+            return {"is_pro": False, "is_pro_until": None, "exports_available": 0, "pass_active": False}
+        is_pro, is_pro_until, exports_available, pass_active = row
+        return {
+            "is_pro": is_pro,
+            "is_pro_until": is_pro_until.isoformat() if is_pro_until else None,
+            "exports_available": exports_available,
+            "pass_active": bool(pass_active),
+        }
+
+
+async def get_account_status(user_id: str) -> dict:
+    return await run_in_threadpool(_get_account_status_sync, user_id)
+
+
+def _consume_account_export_credit_sync(
+    user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict]
+) -> bool:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "select consume_account_export_credit(%s, %s, %s, %s)",
+            (user_id, device_id, platform, Jsonb(strategy_meta) if strategy_meta is not None else None),
+        )
+        return bool(cur.fetchone()[0])
+
+
+async def consume_account_export_credit(
+    user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict] = None
+) -> bool:
+    """Spends one unit of this ACCOUNT's exports_available bucket (see
+    consume_account_export_credit() in schema.sql) - the tier checked
+    between an active pro grant (has_active_pass, unlimited) and the
+    anonymous per-device free/paid flow (consume_export). Returns False
+    (never raises) when the account has none left, so the caller falls
+    through to the device-based check exactly as if this tier didn't
+    exist."""
+    return await run_in_threadpool(_consume_account_export_credit_sync, user_id, device_id, platform, strategy_meta)
 
 
 def _log_user_pass_export_sync(user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict]) -> None:

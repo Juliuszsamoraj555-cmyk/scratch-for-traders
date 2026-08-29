@@ -16,12 +16,20 @@
 -- -f supabase/schema.sql`) - safe to re-run any time after too, every
 -- statement is idempotent (create if not exists / create or replace).
 --
--- Entitlement model:
---   1. Logged-in user with an active pass (user_entitlements) - checked
---      first, works from any device once logged in.
---   2. Per-device_id: first 2 exports free (free_exports_used, capped at
+-- Entitlement model (checked in this order, see _require_export_entitlement
+-- in main.py):
+--   1. Logged-in user with active pro (user_entitlements.is_pro, see the
+--      "Manual pro-status + email tracking" section below) - works from
+--      any device once logged in. True either from a purchased 30-day
+--      pass or a manual grant (e.g. the owner's own account).
+--   2. Logged-in user with account-level exports_available > 0 (same
+--      table) - a separate, additive bucket, manually grantable or
+--      credited by a single-export purchase made while logged in.
+--   3. Per-device_id: first 2 exports free (free_exports_used, capped at
 --      FREE_EXPORT_LIMIT), then pay-per-export credits (5 zl each,
---      paid_export_credits counts down). Both anonymous, one browser.
+--      paid_export_credits counts down). Both anonymous, one browser -
+--      completely untouched by steps 1-2, so nothing about being
+--      logged out ever gets worse.
 -- ============================================================
 
 create extension if not exists pgcrypto; -- for gen_random_uuid()
@@ -51,9 +59,26 @@ create index if not exists idx_devices_ip_hash on devices (ip_hash);
 -- own recommended pattern). Deliberately separate from `devices`: a
 -- pass needs to work from every browser/device this person logs into,
 -- not just the one that happened to buy it.
+-- is_pro/is_pro_until/email/exports_available (2026-08-29 addition, see
+-- the "Manual pro-status + email tracking" section further down) are
+-- declared directly here so a from-scratch install matches the live
+-- schema in one place - that section's ALTER/rename statements are what
+-- actually bring an existing production table up to this shape.
 create table if not exists user_entitlements (
     user_id       uuid primary key references auth.users (id) on delete cascade,
-    pass_expires_at timestamptz,
+    -- Manual on/off switch, e.g. for the owner's own account or a future
+    -- comped account - see the "Manual pro-status + email tracking"
+    -- section for exactly how this interacts with is_pro_until.
+    is_pro         boolean not null default false,
+    is_pro_until   timestamptz,
+    -- Login email, denormalized from auth.users (kept in sync by trigger)
+    -- so this table is browsable/editable in the Supabase Table Editor
+    -- without joining to auth.users.
+    email          text,
+    -- Additive bucket of exports for THIS account specifically - manually
+    -- grantable, and what a single-export purchase credits when the
+    -- buyer is logged in. Independent of devices.paid_export_credits.
+    exports_available integer not null default 0,
     -- Same purpose as devices.billing_email - Stripe Checkout captures
     -- it, used for future re-engagement, never required. Usually the
     -- same as the trader's login email but kept separately since Stripe
@@ -204,22 +229,10 @@ from analytics_events
 group by 1, 2
 order by 1 desc, 3 desc;
 
--- ============================================================
--- has_active_pass: does this logged-in user currently have a paid,
--- unexpired 30-day pass? No row-locking needed (unlike the function
--- below) - a pass is unlimited-while-active, there's no shared counter
--- to race on, just a read. main.py calls this FIRST, before ever
--- touching device_id-based entitlement, whenever the request carries a
--- valid Supabase Auth token - see get_current_user() in main.py.
--- ============================================================
-create or replace function has_active_pass(p_user_id uuid) returns boolean as $$
-    select exists(
-        select 1 from user_entitlements
-         where user_id = p_user_id
-           and pass_expires_at is not null
-           and pass_expires_at > now()
-    );
-$$ language sql stable;
+-- has_active_pass() used to be defined here, checking pass_expires_at
+-- directly. It's now defined further down (2026-08-29 addition, see the
+-- "Manual pro-status + email tracking" section), after is_pro/
+-- is_pro_until exist, since it now also accounts for manual pro grants.
 
 -- ============================================================
 -- consume_export_entitlement: the one place that decides "can this
@@ -245,6 +258,174 @@ $$ language sql stable;
 -- consumed_from is 'free' | 'credit' | 'pass' when granted, or
 -- 'none' when not granted (out of everything - app should 402).
 -- ============================================================
+-- Manual pro-status + email tracking (2026-08-29 addition).
+--
+-- user_entitlements grows from "one row per past pass-buyer" into "one
+-- row per account, period" - every signup gets a row from now on (see
+-- the auth.users trigger below), carrying its login email so this table
+-- can be browsed/edited directly in the Supabase Table Editor without
+-- joining to auth.users.
+--
+-- is_pro is a manual on/off switch, is_pro_until an optional expiry:
+--   - is_pro = true, is_pro_until = null   -> pro forever (e.g. the
+--     owner's own account, flipped by hand for demo/promo purposes).
+--   - is_pro = true, is_pro_until = <date> -> pro until that date, then
+--     automatically not-pro again with nobody having to flip anything
+--     back by hand. This is exactly how a purchased 30-day pass works
+--     (grant_day_pass sets both).
+-- has_active_pass() below is the ONLY place this is evaluated - nothing
+-- else should read is_pro directly.
+--
+-- exports_available is a separate, additive bucket of exports for a
+-- LOGGED-IN account specifically (manually grantable, and what a
+-- single-export purchase credits when the buyer is logged in - see
+-- grant_export_credits in db.py) - it does not touch or replace the
+-- anonymous per-device free/paid counting in `devices`, which keeps
+-- working exactly as before for anyone not logged in.
+--
+-- The table's own CREATE TABLE (further up) already declares these
+-- columns for a from-scratch install - everything below this point is
+-- what actually migrates an existing production table into that shape.
+-- ============================================================
+
+-- 1) pass_expires_at -> is_pro_until (same column, clearer name now that
+-- it's driven by manual grants too, not only purchased passes). No-op on
+-- a fresh install, where the column is already named is_pro_until.
+do $$
+begin
+    if exists (
+        select 1 from information_schema.columns
+         where table_name = 'user_entitlements' and column_name = 'pass_expires_at'
+    ) then
+        alter table user_entitlements rename column pass_expires_at to is_pro_until;
+    end if;
+end $$;
+
+alter table user_entitlements add column if not exists is_pro boolean not null default false;
+alter table user_entitlements add column if not exists email text;
+alter table user_entitlements add column if not exists exports_available integer not null default 0;
+
+-- Backfill is_pro for any row that already has an expiry date set (i.e.
+-- previously bought a pass, even a since-expired one) - this restates
+-- exactly what has_active_pass() already computed from that date alone,
+-- so it grants nothing new; it just makes is_pro consistent with
+-- is_pro_until for rows that predate this column.
+update user_entitlements set is_pro = true where is_pro_until is not null and not is_pro;
+
+-- Backfill email from auth.users for rows that predate this column.
+update user_entitlements ue set email = au.email
+  from auth.users au
+ where au.id = ue.user_id and ue.email is null;
+
+-- 2) Auto-create a row for every signup (not just pass buyers), so this
+-- table becomes the single place with every account's email. Standard
+-- Supabase pattern: security definer, since triggers on auth.users need
+-- elevated privilege to write into the public schema.
+create or replace function public.handle_new_auth_user() returns trigger
+  security definer set search_path = public
+  language plpgsql as $$
+begin
+    insert into public.user_entitlements (user_id, email)
+    values (new.id, new.email)
+    on conflict (user_id) do nothing;
+    return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+    after insert on auth.users
+    for each row execute function public.handle_new_auth_user();
+
+-- Keeps user_entitlements.email in sync if a trader ever changes their
+-- login email - otherwise this table would silently go stale for them.
+create or replace function public.handle_auth_user_email_change() returns trigger
+  security definer set search_path = public
+  language plpgsql as $$
+begin
+    if new.email is distinct from old.email then
+        update public.user_entitlements set email = new.email where user_id = new.id;
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_email_updated on auth.users;
+create trigger on_auth_user_email_updated
+    after update of email on auth.users
+    for each row execute function public.handle_auth_user_email_change();
+
+-- One-time backfill: every account that exists TODAY (not just past
+-- buyers, and not only new signups going forward) gets a row immediately.
+insert into user_entitlements (user_id, email)
+select id, email from auth.users
+on conflict (user_id) do nothing;
+
+-- ============================================================
+-- has_active_pass: does this logged-in user currently have pro access
+-- right now - whether from a manual grant or a purchased pass? No
+-- row-locking needed (unlike consume_export_entitlement/
+-- consume_account_export_credit below) - this is a read, there's no
+-- shared counter to race on. main.py calls this FIRST, before ever
+-- touching device_id-based or account-credit-based entitlement, whenever
+-- the request carries a valid Supabase Auth token - see
+-- get_current_user() in main.py.
+-- (Replaces the earlier pass_expires_at-only version of this function -
+-- `create or replace` below is enough, no drop needed since the
+-- signature is unchanged.)
+-- ============================================================
+create or replace function has_active_pass(p_user_id uuid) returns boolean as $$
+    select exists(
+        select 1 from user_entitlements
+         where user_id = p_user_id
+           and is_pro
+           and (is_pro_until is null or is_pro_until > now())
+    );
+$$ language sql stable;
+
+-- ============================================================
+-- consume_account_export_credit: atomic decrement of a logged-in
+-- account's exports_available bucket - the middle tier checked between
+-- "does this account have an active pro grant" (has_active_pass, above)
+-- and the anonymous per-device free/paid flow (consume_export_entitlement,
+-- below). Row-locked (FOR UPDATE) for the same reason as
+-- consume_export_entitlement: two near-simultaneous exports from the
+-- same account shouldn't both slip through on the last credit.
+--
+-- p_device_id is still required even though this is account-keyed -
+-- export_log.device_id is NOT NULL (every request already carries one,
+-- logged in or not), so this is just which browser the export happened
+-- to be delivered to, not which entitlement paid for it.
+-- ============================================================
+create or replace function consume_account_export_credit(
+    p_user_id uuid,
+    p_device_id uuid,
+    p_platform text,
+    p_strategy_meta jsonb default null
+) returns boolean as $$
+declare
+    v_remaining integer;
+begin
+    select exports_available into v_remaining
+      from user_entitlements
+     where user_id = p_user_id
+     for update;
+
+    if not found or v_remaining <= 0 then
+        return false;
+    end if;
+
+    update user_entitlements
+       set exports_available = exports_available - 1
+     where user_id = p_user_id;
+
+    insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta)
+    values (p_device_id, p_user_id, p_platform, 'account_credit', p_strategy_meta);
+
+    return true;
+end;
+$$ language plpgsql;
+
 create or replace function consume_export_entitlement(
     p_device_id uuid,
     p_platform text,

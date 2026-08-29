@@ -127,8 +127,12 @@ Either way, once deployed you'll have two URLs, e.g.:
    — you should see a `checkout.session.completed` event with a 200
    response logged.
 5. Check Supabase → **Table Editor → devices** — the row for your
-   browser should show `paid_export_credits` incremented (or
-   `pass_expires_at` set, if you tested the pass instead).
+   browser should show `paid_export_credits` incremented (or, if you
+   tested the pass instead, check **Table Editor → user_entitlements**
+   for your account's row: `is_pro` should be `true` and `is_pro_until`
+   ~30 days out — see `supabase/schema.sql`'s "Manual pro-status + email
+   tracking" section for what these two columns mean and how to edit
+   them by hand, e.g. to grant yourself pro).
 
 ## 7. Domain (whenever you've picked one)
 
