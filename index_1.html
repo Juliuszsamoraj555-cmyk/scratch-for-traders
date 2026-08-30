@@ -128,6 +128,14 @@
     </div>
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
+        <button id="openHowToRunBtn" title="How to run your strategy?"
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 9.5v5l4.5-2.5-4.5-2.5z" fill="currentColor" stroke="none"/>
+          </svg>
+          <span class="hidden sm:inline">How to run?</span>
+        </button>
         <button id="newStrategyBtn" title="Start a new, blank strategy"
           class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -514,6 +522,46 @@
         <button id="closeStrategiesBtn" class="text-gray-400 hover:text-gray-200 text-xl leading-none px-1" title="Close">&times;</button>
       </div>
       <div id="strategiesList" class="overflow-y-auto p-2 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- "How to run your strategy?" panel - a trader who's just exported a
+       zip and isn't sure what to do with it shouldn't have to go dig
+       through the blog to find this; every link here matches exactly
+       what's actually bundled in an export (see main.py's
+       _add_mt5_tutorial_video / _add_mt4_tutorial_video and the
+       README.txt each zip ships with) - no cTrader entry yet because
+       that tutorial doesn't exist yet, not because it's an oversight. -->
+  <!-- z-index 100 - see the comment on paywallOverlay above. -->
+  <div id="howToRunOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+        <h2 class="font-semibold text-gray-100">How to run your strategy?</h2>
+        <button id="closeHowToRunBtn" class="text-gray-400 hover:text-gray-200 text-xl leading-none px-1" title="Close">&times;</button>
+      </div>
+      <div class="p-4 space-y-3">
+        <p class="text-sm text-gray-400">Every export also ships with a README.txt inside the zip covering the same steps in writing - these are just the video version.</p>
+        <a href="https://youtu.be/WBlWR5rCYMk" target="_blank" rel="noopener"
+          class="flex items-center gap-3 bg-gray-800/60 hover:bg-gray-800 border border-gray-700 rounded-lg p-3 transition">
+          <span class="shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-linecap="round"/><path d="M10 9.5v5l4.5-2.5-4.5-2.5z" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-gray-100">Installing on MetaTrader 5</span>
+            <span class="block text-xs text-gray-500">Video walkthrough on YouTube</span>
+          </span>
+        </a>
+        <a href="https://youtu.be/H8TopJ7nVg0" target="_blank" rel="noopener"
+          class="flex items-center gap-3 bg-gray-800/60 hover:bg-gray-800 border border-gray-700 rounded-lg p-3 transition">
+          <span class="shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-linecap="round"/><path d="M10 9.5v5l4.5-2.5-4.5-2.5z" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-gray-100">Installing on MetaTrader 4</span>
+            <span class="block text-xs text-gray-500">Video walkthrough on YouTube</span>
+          </span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -1814,6 +1862,23 @@ document.getElementById('strategiesOverlay').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('strategiesOverlay').classList.contains('hidden')) {
     closeStrategiesPanel();
+  }
+});
+
+function openHowToRunPanel() {
+  document.getElementById('howToRunOverlay').classList.remove('hidden');
+}
+function closeHowToRunPanel() {
+  document.getElementById('howToRunOverlay').classList.add('hidden');
+}
+document.getElementById('openHowToRunBtn').addEventListener('click', openHowToRunPanel);
+document.getElementById('closeHowToRunBtn').addEventListener('click', closeHowToRunPanel);
+document.getElementById('howToRunOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'howToRunOverlay') closeHowToRunPanel(); // click outside the card
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('howToRunOverlay').classList.contains('hidden')) {
+    closeHowToRunPanel();
   }
 });
 
