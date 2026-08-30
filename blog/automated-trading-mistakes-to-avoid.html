@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>7 Automated Trading Mistakes to Avoid - AlgoPuzzle</title>
+<meta name="description" content="Seven real, avoidable mistakes that break automated trading strategies - from skipping the demo account to fighting your own platform's execution model." />
+<link rel="canonical" href="https://algopuzzle.com/blog/automated-trading-mistakes-to-avoid.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="7 Automated Trading Mistakes to Avoid" />
+<meta property="og:description" content="The operational mistakes that turn a genuinely sound strategy into a losing one - and how to fix each one in minutes." />
+<meta property="og:url" content="https://algopuzzle.com/blog/automated-trading-mistakes-to-avoid.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "7 Automated Trading Mistakes to Avoid",
+  "description": "Seven real, avoidable mistakes that break automated trading strategies - from skipping the demo account to fighting your own platform's execution model.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-08-30",
+  "dateModified": "2026-08-30",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/automated-trading-mistakes-to-avoid.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What's the most common mistake in automated trading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Skipping the demo account. A backtest runs on historical data and can't surface real execution problems - a rejected stop loss, a symbol name mismatch, a platform toggle left off - that only show up once a strategy is actually running against a live feed." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need a demo account if my backtest already looks profitable?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. A profitable backtest confirms the logic is sound on historical data - it says nothing about execution: whether the broker accepts the stop distance you configured, whether the symbol name resolves correctly, or whether spread behaves the way the backtest assumed. Those only surface live." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does my EA behave differently live than in backtesting?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Most historical data used for backtesting doesn't model real spread widening, slippage, or requotes - a backtest can show whether the logic is sound, but the real edge only gets confirmed once it's trading against a live feed with real execution conditions." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does position sizing still matter if I already have a stop loss set?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes - they solve different problems. A stop loss decides how far away the exit sits; position sizing decides how large the trade is given that distance. A fixed lot size on every trade means the same lot can risk very different dollar amounts depending on how wide the stop happens to be." }
+    },
+    {
+      "@type": "Question",
+      "name": "What's the difference between netting and hedging for an automated strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "On a netting account (MT5's default), two separate orders on the same symbol merge into one blended position, which changes how stop loss and take profit apply even though the strategy's logic didn't change. On a hedging account, or on MT4 (which has no netting mode at all), each order stays fully independent." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "7 Automated Trading Mistakes to Avoid", "item": "https://algopuzzle.com/blog/automated-trading-mistakes-to-avoid.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul, article ol { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">7 Automated Trading Mistakes to Avoid</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Most automated trading strategies don't fail because the logic is wrong - they fail because of a handful of operational mistakes that have nothing to do with the strategy itself. The seven below show up constantly, across every platform and every level of complexity: never testing on a demo account before going live, using a fixed-pip stop loss on every instrument regardless of volatility, risking a fixed lot size instead of a fixed percentage of the account, judging profitability purely from backtest numbers that don't model real spread and slippage, over-fitting a strategy until it only "works" on the exact chart it was built against, assuming every platform handles the same order the same way, and simply forgetting to flip the platform's global auto-trading switch before walking away. None of these are exotic - they are the mistakes that turn a genuinely sound rule set into a losing one, and every one of them is fixable in minutes once it's actually on your radar.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">1. Skipping the Demo Account</h2>
+      <p>A demo account is the only place to catch execution problems before they cost real money. A backtest runs on historical data - it can't show a rejected stop distance, a symbol name your broker spells differently, or a platform toggle left off. See <a href="backtesting-vs-demo-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a> for what each one actually proves.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">2. A Fixed-Pip Stop on Every Instrument</h2>
+      <p>A stop distance that never changes protects a calm instrument and fails a volatile one - the same 20 pips can be too tight or too wide depending only on what's being traded, not on anything about the strategy itself. Sizing the stop from the instrument's own recent volatility (an <a href="atr-stop-loss-sizing.html" class="text-emerald-400 hover:text-emerald-300 underline">ATR-based stop</a>) fixes this automatically instead of guessing a number once and reusing it everywhere.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">3. Risking a Fixed Lot Size Instead of a Fixed Percentage</h2>
+      <p>A fixed lot size ignores the stop distance entirely, which means the same 0.10 lots can risk a very different dollar amount from one trade to the next. <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">Position sizing</a> and stop placement solve two different problems - the stop decides how far away the exit sits, sizing decides how large the trade is given that distance - and skipping one undoes the other.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">4. Judging Everything by Backtest Numbers Alone</h2>
+      <p>Most historical data used for backtesting doesn't model real spread widening, slippage, or requotes, so a backtest can confirm the logic is sound without proving it's actually tradeable. That last part only gets confirmed live.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">5. Over-Fitting a Strategy to Its Own Backtest</h2>
+      <p>A strategy tuned until it perfectly explains every swing on one historical chart is usually not describing the market - it's describing that one chart, and the gap shows up the moment new data arrives. Testing a few candidate parameters against each other, rather than endlessly optimizing one until the equity curve looks flawless, is what keeps a strategy's logic honest instead of memorized.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">6. Assuming Every Platform Trades an Order the Same Way</h2>
+      <p>MT5's netting account mode can merge two separate orders on the same symbol into one blended position, changing how stop loss and take profit apply even though the strategy's own logic didn't change. MT4 has no netting mode at all. Neither behavior is a bug - not knowing which one your account uses is the actual mistake. See <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs. MT5 vs. cTrader</a> for the fuller picture.</p>
+
+      <table>
+        <thead><tr><th></th><th>Netting (MT5 default)</th><th>Hedging / MT4</th></tr></thead>
+        <tbody>
+          <tr><td>Two orders, same symbol</td><td>Merged into one position at a blended price</td><td>Stay fully independent</td></tr>
+          <tr><td>SL/TP after a 2nd order</td><td>Recalculated from the combined position</td><td>Each order keeps its own</td></tr>
+          <tr><td>Available on</td><td>MT5 (default mode)</td><td>MT4 (always), MT5 (hedging mode)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">7. Forgetting to Enable Auto Trading</h2>
+      <p>An Expert Advisor sitting on a chart does nothing at all until the platform's global auto-trading switch is turned on - one toggle that silently overrides every rule attached to every chart, on every symbol. It's the last step in setup precisely because it's the easiest one to forget once everything else is already configured.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What's the most common mistake in automated trading?</p>
+          <p class="mt-1">Skipping the demo account. A backtest runs on historical data and can't surface real execution problems - a rejected stop loss, a symbol name mismatch, a platform toggle left off - that only show up once a strategy is actually running against a live feed.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Do I need a demo account if my backtest already looks profitable?</p>
+          <p class="mt-1">Yes. A profitable backtest confirms the logic is sound on historical data - it says nothing about execution: whether the broker accepts the stop distance you configured, whether the symbol name resolves correctly, or whether spread behaves the way the backtest assumed. Those only surface live.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why does my EA behave differently live than in backtesting?</p>
+          <p class="mt-1">Most historical data used for backtesting doesn't model real spread widening, slippage, or requotes - a backtest can show whether the logic is sound, but the real edge only gets confirmed once it's trading against a live feed with real execution conditions.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Does position sizing still matter if I already have a stop loss set?</p>
+          <p class="mt-1">Yes - they solve different problems. A stop loss decides how far away the exit sits; position sizing decides how large the trade is given that distance. A fixed lot size on every trade means the same lot can risk very different dollar amounts depending on how wide the stop happens to be.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What's the difference between netting and hedging for an automated strategy?</p>
+          <p class="mt-1">On a netting account (MT5's default), two separate orders on the same symbol merge into one blended position, which changes how stop loss and take profit apply even though the strategy's logic didn't change. On a hedging account, or on MT4 (which has no netting mode at all), each order stays fully independent.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a strategy that avoids these - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
