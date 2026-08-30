@@ -2708,11 +2708,18 @@ type at all, so two rules trading the same asset always get fully
 independent tickets.
 """
 
+    _video_note = (
+        ' - or open "Installation_Tutorial.html" in this zip, which takes'
+        " you straight to a video walking through the same steps on screen"
+        if settings.MT4_TUTORIAL_VIDEO_URL
+        else ""
+    )
+
     return f"""ALGOPUZZLE - MT4 Setup Guide
 =========================================
 
 Your strategy has been compiled into a MetaTrader 4 Expert Advisor
-(strategy.mq4). Follow the steps below to install and run it.
+(strategy.mq4). Follow the steps below to install and run it{_video_note}.
 
 {_summary_heading}
 {"-" * len(_summary_heading)}
@@ -2859,6 +2866,38 @@ def _add_mt5_tutorial_video(zf: zipfile.ZipFile) -> None:
     if not url:
         return
     zf.writestr(MT5_TUTORIAL_VIDEO_ZIP_NAME, _mt5_tutorial_video_redirect_html(url))
+
+
+# --------------------------------------------------------------------------
+# MT4 install walkthrough video - same rationale and mechanism as the MT5
+# one above (a redirect page, not an embedded file - see that block's
+# comment for the full "why"), bundled into /api/generate/mt4.
+# --------------------------------------------------------------------------
+MT4_TUTORIAL_VIDEO_ZIP_NAME = "Installation_Tutorial.html"
+
+
+def _mt4_tutorial_video_redirect_html(url: str) -> str:
+    safe_url = html.escape(url, quote=True)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url={safe_url}">
+<title>MT4 Installation Tutorial</title>
+</head>
+<body>
+<p>Opening the installation tutorial in your browser&hellip;</p>
+<p>If nothing happens, <a href="{safe_url}">click here to watch it</a>.</p>
+</body>
+</html>
+"""
+
+
+def _add_mt4_tutorial_video(zf: zipfile.ZipFile) -> None:
+    url = settings.MT4_TUTORIAL_VIDEO_URL
+    if not url:
+        return
+    zf.writestr(MT4_TUTORIAL_VIDEO_ZIP_NAME, _mt4_tutorial_video_redirect_html(url))
 
 
 def _asset_slug_for_filename(config: WorkspaceConfig) -> str:
@@ -3033,6 +3072,7 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig, request: Request,
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("strategy.mq4", mql4_code)
         zf.writestr("README.txt", readme_text)
+        _add_mt4_tutorial_video(zf)
     buffer.seek(0)
 
     filename = f"algopuzzle_mt4_{_asset_slug_for_filename(config)}.zip"

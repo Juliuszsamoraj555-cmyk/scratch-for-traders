@@ -89,6 +89,10 @@ class Settings:
     # (e.g. to point a specific deploy at a different/unlisted video).
     MT5_TUTORIAL_VIDEO_URL: str = os.getenv("MT5_TUTORIAL_VIDEO_URL", "https://youtu.be/WBlWR5rCYMk")
 
+    # --- MT4 export: install walkthrough video --- same rationale as the
+    # MT5 one above (see _add_mt4_tutorial_video() in main.py).
+    MT4_TUTORIAL_VIDEO_URL: str = os.getenv("MT4_TUTORIAL_VIDEO_URL", "https://youtu.be/H8TopJ7nVg0")
+
     # --- Pricing (cents = smallest USD unit, matches Stripe's integer
     # amounts - the actual charged amount always comes from the Stripe
     # Price objects themselves (STRIPE_PRICE_EXPORT/PASS below), these
