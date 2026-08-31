@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- ============================================================
+     One shared template for every strategy's detail/unlock page rather
+     than a hand-authored file per strategy (there could be dozens of
+     these over time - a static per-item file doesn't scale the way a
+     hand-written blog article does). Reads ?id=<strategy-id> and looks
+     it up in MARKETPLACE_STRATEGIES.
+
+     This IS the real Stripe success_url for a strategy purchase
+     (?id=<id>&purchased=1 - see billing.py's create_checkout_session,
+     kind="strategy_purchase") - unlike export/pass (dedicated thank-you/
+     pages), a strategy buyer's very next step is "download the file",
+     and that's exactly where this page's unlocked view already lives.
+     Still noindex (separate decision from "is the content real") - see
+     index.html's own comment on why.
+     ============================================================ -->
+<title>Strategy detail - AlgoPuzzle</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#030712" />
+
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<link rel="stylesheet" href="assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400">
+        <a href="strategy-of-the-week.html" class="hover:text-gray-100 transition">&larr; Strategy of the Week</a>
+        <a href="my-purchases.html" class="hover:text-gray-100 transition">My Purchases</a>
+      </nav>
+      <a href="index_1.html" class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <div id="purchasedBanner" class="hidden bg-emerald-950 border-b border-emerald-800">
+    <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-2.5 text-sm font-semibold text-emerald-300">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Purchase confirmed. This strategy is now fully unlocked and yours to keep.
+    </div>
+  </div>
+
+  <!-- Coming back from a cancelled Stripe Checkout (2026-08-31) - see
+       billing.py's create_checkout_session cancel_url and the
+       ?checkout=cancel handling near the bottom of this file's script,
+       same pattern as index_1.html's handleCheckoutReturn(). -->
+  <div id="cancelledBanner" class="hidden bg-gray-900 border-b border-gray-800">
+    <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-2.5 text-sm font-medium text-gray-400">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Payment cancelled - no charge was made.
+    </div>
+  </div>
+
+  <main id="content" class="max-w-3xl mx-auto px-6 py-14"></main>
+
+  <footer class="border-t border-gray-800">
+    <div class="max-w-3xl mx-auto px-6 py-8 text-xs text-gray-500 leading-relaxed">
+      Past performance does not guarantee future results. This strategy is provided for informational purposes only and does not constitute investment advice.
+    </div>
+  </footer>
+
+  <!-- Purchase confirmation modal - identical to strategy-of-the-week.html's,
+       kept in sync manually for now (two small static pages); if a third
+       place ever needs this, factor it into a shared partial. -->
+  <div id="purchaseOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md p-6">
+      <span class="text-xs font-bold uppercase tracking-wide text-gray-500">Purchase confirmation</span>
+      <h3 id="purchaseTitle" class="mt-2 text-lg font-bold text-gray-50"></h3>
+      <div class="mt-1 text-2xl font-bold text-emerald-400">
+        <span id="purchasePrice"></span>
+        <span class="text-xs font-medium text-gray-500">&middot; one-time, yours forever</span>
+      </div>
+      <div class="mt-5 bg-gray-800/40 border border-gray-700 rounded-lg p-4 flex gap-3">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.5" fill="#9ca3af"/></svg>
+        <div class="text-xs text-gray-400 leading-relaxed space-y-1.5">
+          <p class="font-semibold text-gray-300 text-sm">Before you buy</p>
+          <p>Past performance does not guarantee future results.</p>
+          <p>This strategy was tested from Jul 29 to Aug 28, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
+        </div>
+      </div>
+      <label class="mt-4 flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
+        <input id="purchaseAck" type="checkbox" checked class="mt-0.5 accent-emerald-500" />
+        <span>I understand this is not a guarantee of profit, and I want to proceed to payment.</span>
+      </label>
+      <div class="mt-5 flex gap-2.5">
+        <button id="purchaseCancelBtn" class="flex-1 text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2.5 rounded-md">Cancel</button>
+        <button id="purchaseConfirmBtn" class="flex-[2] text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-4 py-2.5 rounded-md">Proceed to payment</button>
+      </div>
+    </div>
+  </div>
+
+<script src="assets/marketplace-data.js"></script>
+<script>
+// Same hostname-based API_BASE convention as index_1.html (see that
+// file's own comment for the full reasoning) - kept as its own small copy
+// here rather than a shared module, since this page has no other need for
+// index_1.html's bundle. Only ever used for the marketplace download
+// endpoints (see handleDownloadClick below) - nothing else on this page
+// talks to the backend.
+const PRODUCTION_API_BASE = 'https://algopuzzle-api.onrender.com';
+const STAGING_API_BASE = 'https://algopuzzle-api-staging.onrender.com';
+const IS_STAGING = window.location.hostname === 'algopuzzle-frontend-staging.onrender.com';
+const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
+const API_BASE = IS_LOCAL_DEV
+  ? (window.location.origin.includes('null') || window.location.protocol === 'file:'
+      ? 'http://127.0.0.1:8000'
+      : window.location.origin.replace(/:\d+$/, ':8000'))
+  : IS_STAGING
+    ? STAGING_API_BASE
+    : PRODUCTION_API_BASE;
+
+const params = new URLSearchParams(window.location.search);
+const strategyId = params.get('id');
+const justPurchased = params.get('purchased') === '1';
+const strategy = strategyId ? getMarketplaceStrategy(strategyId) : null;
+const contentEl = document.getElementById('content');
+
+// Coming back from a cancelled Stripe Checkout - cancel_url (see
+// billing.py's create_checkout_session) tags the return with
+// ?checkout=cancel, same pattern as index_1.html's handleCheckoutReturn().
+// Cleans the query string after so a page refresh doesn't re-show the banner.
+if (params.get('checkout') === 'cancel') {
+  document.getElementById('cancelledBanner').classList.remove('hidden');
+  const cleanParams = new URLSearchParams(params);
+  cleanParams.delete('checkout');
+  const cleanUrl = window.location.pathname + (cleanParams.toString() ? `?${cleanParams}` : '');
+  window.history.replaceState({}, '', cleanUrl);
+}
+
+function fmtStat(v, suffix) {
+  return (v === null || v === undefined) ? '—' : `${v}${suffix}`;
+}
+
+// Same real-equity-curve renderer as strategy-of-the-week.html (see that
+// file's own comment for the full reasoning - smoothed Catmull-Rom curve
+// through the real per-trade balances, not a raw jagged polyline) - kept
+// as its own small copy here rather than a shared module, matching this
+// page's existing API_BASE convention above. equityCurve is an array of
+// { date, balance } (a plain array of numbers is also accepted).
+function equityBalances(equityCurve) {
+  return equityCurve.map((p) => (typeof p === 'object' ? p.balance : p));
+}
+
+function smoothPath(points) {
+  if (points.length < 3) {
+    return `M ${points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L ')}`;
+  }
+  let d = `M ${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? 0 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+function equityCurveSvg(equityCurve, opts) {
+  const width = (opts && opts.width) || 320;
+  const height = (opts && opts.height) || 120;
+  if (!Array.isArray(equityCurve) || equityCurve.length < 2) return '';
+  const balances = equityBalances(equityCurve);
+  const min = Math.min(...balances);
+  const max = Math.max(...balances);
+  const range = max - min || 1;
+  const padY = height * 0.12;
+  const toXY = (v, i) => {
+    const x = (i / (balances.length - 1)) * width;
+    const y = height - padY - ((v - min) / range) * (height - padY * 2);
+    return [x, y];
+  };
+  const points = balances.map((v, i) => toXY(v, i));
+  const isUp = balances[balances.length - 1] >= balances[0];
+  const stroke = isUp ? '#34d399' : '#f87171';
+  const fillTop = isUp ? 'rgba(16,185,129,0.22)' : 'rgba(248,113,113,0.22)';
+  const fillBottom = isUp ? 'rgba(16,185,129,0)' : 'rgba(248,113,113,0)';
+  const linePath = smoothPath(points);
+  const gradId = `eqGrad${Math.random().toString(36).slice(2, 9)}`;
+  return `
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${fillTop}"/>
+          <stop offset="100%" stop-color="${fillBottom}"/>
+        </linearGradient>
+      </defs>
+      <path d="${linePath} L ${width},${height} L 0,${height} Z" fill="url(#${gradId})" stroke="none"/>
+      <path d="${linePath}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+}
+
+// Interactive version for the expandable "full performance chart" section
+// (2026-08-29 addition, explicit user request): a vertical crosshair that
+// follows the mouse, snapping to the nearest real data point, with a
+// tooltip showing that trade's real close date and account balance/return
+// at that point - not just a static picture. Built as an SVG + an
+// absolutely-positioned tooltip <div> over it (not native SVG <title>,
+// which can't be styled or positioned freely) - mousemove maps client X
+// back into the SVG's own viewBox units via getScreenCTM().inverse(), so
+// it stays correct regardless of how the SVG is scaled by its container.
+function interactiveEquityChart(equityCurve, opts) {
+  const width = (opts && opts.width) || 700;
+  const height = (opts && opts.height) || 280;
+  const wrapId = `eqInteractive${Math.random().toString(36).slice(2, 9)}`;
+  const staticSvg = equityCurveSvg(equityCurve, { width, height });
+  if (!staticSvg) return '';
+  return `
+    <div id="${wrapId}" class="relative select-none" style="max-width:${width}px">
+      ${staticSvg}
+      <div class="crosshair-line absolute top-0 bottom-0 w-px bg-gray-500/50 pointer-events-none hidden"></div>
+      <div class="crosshair-dot absolute w-2.5 h-2.5 rounded-full border-2 border-gray-950 pointer-events-none hidden" style="background:#34d399"></div>
+      <div class="crosshair-tooltip absolute pointer-events-none hidden bg-gray-950 border border-gray-700 rounded-md px-2.5 py-1.5 text-xs shadow-lg whitespace-nowrap z-10"></div>
+    </div>
+  `;
+}
+
+function wireInteractiveChart(container, equityCurve, startBalance) {
+  // The overlay divs (crosshair-line/-dot/-tooltip) are `position:absolute`
+  // against the `.relative` wrapper interactiveEquityChart() renders them
+  // inside - NOT against `container` (the padded `.expanded-chart-host`
+  // div one level up). Using container's own rect for the pixel math below
+  // was exactly the "dot in random places" bug - offset by that padding,
+  // worse the further the chart was resized from its original render size.
+  const wrap = container.querySelector('.relative.select-none');
+  const svg = container.querySelector('svg');
+  if (!svg || !wrap) return;
+  const line = container.querySelector('.crosshair-line');
+  const dot = container.querySelector('.crosshair-dot');
+  const tooltip = container.querySelector('.crosshair-tooltip');
+  const balances = equityBalances(equityCurve);
+  const n = balances.length;
+  const min = Math.min(...balances);
+  const max = Math.max(...balances);
+  const range = max - min || 1;
+  const vb = svg.viewBox.baseVal;
+  const padY = vb.height * 0.12;
+
+  function show(clientX, clientY) {
+    // Mouse position -> nearest data index, via the SVG's own inverse
+    // transform (correct regardless of how preserveAspectRatio="meet"
+    // scales/letterboxes the SVG within its box).
+    const pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let idx = Math.round((svgP.x / vb.width) * (n - 1));
+    idx = Math.max(0, Math.min(n - 1, idx));
+
+    // That data point's EXACT position, forward-transformed back to real
+    // screen pixels (the correct inverse of the step above) - never
+    // hand-derived from rect.width/height, which is only right when the
+    // container's aspect ratio happens to exactly match the viewBox's.
+    const dataPt = svg.createSVGPoint();
+    dataPt.x = (idx / (n - 1)) * vb.width;
+    dataPt.y = vb.height - padY - ((balances[idx] - min) / range) * (vb.height - padY * 2);
+    const screenPt = dataPt.matrixTransform(svg.getScreenCTM());
+
+    const rect = wrap.getBoundingClientRect();
+    const pxX = screenPt.x - rect.left;
+    const pxY = screenPt.y - rect.top;
+
+    line.style.left = `${pxX}px`;
+    line.classList.remove('hidden');
+    dot.style.left = `${pxX - 5}px`;
+    dot.style.top = `${pxY - 5}px`;
+    dot.classList.remove('hidden');
+
+    const point = equityCurve[idx];
+    const dateLabel = typeof point === 'object' ? point.date : `Trade ${idx}`;
+    const balance = balances[idx];
+    const returnPct = ((balance - startBalance) / startBalance * 100).toFixed(1);
+    const sign = returnPct >= 0 ? '+' : '';
+    tooltip.innerHTML = `<span class="text-gray-400">${dateLabel}</span><br>` +
+      `<span class="font-semibold text-gray-100">$${balance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span> ` +
+      `<span class="${returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}">${sign}${returnPct}%</span>`;
+    let tipX = pxX + 10;
+    if (tipX + 140 > rect.width) tipX = pxX - 150;
+    tooltip.style.left = `${tipX}px`;
+    tooltip.style.top = `${Math.max(0, pxY - 36)}px`;
+    tooltip.classList.remove('hidden');
+  }
+  function hide() {
+    line.classList.add('hidden');
+    dot.classList.add('hidden');
+    tooltip.classList.add('hidden');
+  }
+  svg.addEventListener('mousemove', (e) => show(e.clientX, e.clientY));
+  svg.addEventListener('mouseleave', hide);
+  svg.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) { show(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+  }, { passive: false });
+  svg.addEventListener('touchend', hide);
+}
+
+function renderNotFound() {
+  contentEl.innerHTML = `
+    <p class="text-sm text-gray-500">Strategy not found.</p>
+    <a href="strategy-of-the-week.html" class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-emerald-400 hover:text-emerald-300">&larr; Back to Strategy of the Week</a>
+  `;
+}
+
+// Shown on BOTH the locked (pre-purchase) and unlocked view, on purpose
+// (2026-08-29 addition, explicit user request): a trader deciding whether
+// to buy needs max drawdown and the other numbers below BEFORE paying,
+// not just after - a paywall should never be the only thing standing
+// between a buyer and the risk profile of what they're about to buy.
+function keyStatsRow(s) {
+  return `
+    <div><div class="text-xl font-bold text-emerald-300">${fmtStat(s.stats.winRate, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
+    <div><div class="text-xl font-bold text-emerald-300">${s.stats.returnPct > 0 ? '+' : ''}${fmtStat(s.stats.returnPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
+    <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.trades, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
+    <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.profitFactor, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">profit factor</div></div>
+    <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.stats.drawdownPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">max drawdown</div></div>
+  `;
+}
+
+// Secondary stats a trader needs to actually judge risk, not just headline
+// return - none of this is gated behind purchase either, same reasoning
+// as keyStatsRow above. avgWin/avgLoss sit next to each other on purpose:
+// a strategy can have a losing-majority win rate and still be sound if its
+// average win is bigger than its average loss (the profit-factor story,
+// made concrete in pips here) - same "don't show win rate without the
+// context that makes it legible" principle as strategy-of-the-week.html.
+function extraStatsGrid(s) {
+  const st = s.stats;
+  const rows = [
+    ['Max consecutive losses', fmtStat(st.maxConsecutiveLosses, '')],
+    ['Max consecutive wins', fmtStat(st.maxConsecutiveWins, '')],
+    ['Best trade', st.bestTradePips != null ? `+${st.bestTradePips} pips` : '—'],
+    ['Worst trade', st.worstTradePips != null ? `${st.worstTradePips} pips` : '—'],
+    ['Avg. win / avg. loss', (st.avgWinPips != null && st.avgLossPips != null) ? `+${st.avgWinPips} / -${st.avgLossPips} pips` : '—'],
+    ['Recovery factor', fmtStat(st.recoveryFactor, '')],
+    ['Long / short mix', st.pctLong != null ? `${st.pctLong}% long / ${100 - st.pctLong}% short` : '—'],
+  ];
+  return `
+    <div class="mt-4 bg-gray-900/40 border border-gray-800 rounded-xl p-5">
+      <h3 class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">More stats</h3>
+      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+        ${rows.map(([label, value]) => `
+          <div>
+            <dt class="text-[11px] text-gray-500">${label}</dt>
+            <dd class="text-sm font-semibold text-gray-100 mt-0.5">${value}</dd>
+          </div>
+        `).join('')}
+      </dl>
+    </div>
+  `;
+}
+
+// Expandable ("dropdown") full-size chart, collapsed by default so it
+// doesn't compete with the compact chart already shown up top - click to
+// expand into a larger, more readable equity curve. Re-rendered at a
+// bigger size (not just CSS-scaled) so the line stays crisp, and redrawn
+// on window resize while expanded so it keeps filling its container.
+let expandedChartResizeHandler = null;
+function renderExpandableChart(s, containerId) {
+  const container = document.getElementById(containerId);
+  const chartHost = container.querySelector('.expanded-chart-host');
+  const width = Math.max(320, Math.min(900, container.clientWidth - 48));
+  chartHost.innerHTML = interactiveEquityChart(s.stats.equityCurve, { width, height: 280 });
+  wireInteractiveChart(chartHost, s.stats.equityCurve, s.stats.equityCurve[0].balance ?? s.stats.equityCurve[0]);
+}
+function toggleChartSection(s, containerId) {
+  const container = document.getElementById(containerId);
+  const body = container.querySelector('.expanded-chart-body');
+  const chevron = container.querySelector('.expand-chevron');
+  const isOpen = !body.classList.contains('hidden');
+  if (isOpen) {
+    body.classList.add('hidden');
+    chevron.style.transform = '';
+    if (expandedChartResizeHandler) {
+      window.removeEventListener('resize', expandedChartResizeHandler);
+      expandedChartResizeHandler = null;
+    }
+  } else {
+    body.classList.remove('hidden');
+    chevron.style.transform = 'rotate(180deg)';
+    renderExpandableChart(s, containerId);
+    expandedChartResizeHandler = () => renderExpandableChart(s, containerId);
+    window.addEventListener('resize', expandedChartResizeHandler);
+  }
+}
+function expandableChartSection(s) {
+  const id = 'chartExpand';
+  return `
+    <div id="${id}" class="mt-4 bg-gray-900/40 border border-gray-800 rounded-xl overflow-hidden">
+      <button class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-800/40 transition" id="${id}Toggle">
+        <span class="text-sm font-semibold text-gray-200">View full performance chart</span>
+        <svg class="expand-chevron w-4 h-4 text-gray-400 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="expanded-chart-body hidden px-5 pb-5">
+        <div class="expanded-chart-host flex items-center justify-center bg-gray-950/40 rounded-lg p-4"></div>
+        <p class="mt-3 text-[11px] text-gray-500">Account balance after each closed trade, starting from a $10,000 baseline - real tick-precise backtest data, not the faster screening pass. Past performance does not guarantee future results.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderLocked() {
+  const s = strategy;
+  contentEl.innerHTML = `
+    <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">${s.style} &middot; ${s.timeframe}</span>
+    <h1 class="mt-2 text-2xl font-bold text-gray-50">${s.name}</h1>
+    <p class="mt-3 text-sm text-gray-400 leading-relaxed max-w-xl">${s.description}</p>
+    <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex items-center justify-between flex-wrap gap-6">
+      <div class="flex-1 min-w-[180px] flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 90 })}</div>
+      <div class="flex gap-6 flex-wrap">${keyStatsRow(s)}</div>
+      <div class="flex items-center gap-4">
+        <!-- Neutral white, not emerald - same reasoning as buyRow() in
+             strategy-of-the-week.html: keyStatsRow above already uses
+             emerald for win rate/return, so a green price here would blend
+             into the same blob it does there. -->
+        <span class="text-2xl font-bold text-gray-50">${s.priceLabel}</span>
+        <button id="buyBtn" class="text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-5 py-2.5 rounded-md">Buy to unlock</button>
+      </div>
+    </div>
+    ${extraStatsGrid(s)}
+    ${expandableChartSection(s)}
+  `;
+  document.getElementById('buyBtn').addEventListener('click', () => openPurchaseModal(s.id));
+  document.getElementById('chartExpandToggle').addEventListener('click', () => toggleChartSection(s, 'chartExpand'));
+}
+
+function renderUnlocked() {
+  const s = strategy;
+  document.getElementById('purchasedBanner').classList.toggle('hidden', !justPurchased);
+  // Same button anatomy as the real builder's export buttons
+  // (index_1.html #exportMt5Btn/#exportMt4Btn/#exportCtraderBtn) -
+  // bg-{color}-500 hover:bg-{color}-400, text-gray-900, rounded-md, real
+  // platform icon - so "download my purchased strategy" and "export
+  // from the builder" read as the same action everywhere in the app.
+  const formats = [
+    { key: 'mt5', label: 'Export to MT5', icon: 'assets/mt5_icon.png', color: 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600' },
+    { key: 'mt4', label: 'Export to MT4', icon: 'assets/mt4_icon.png', color: 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600' },
+    { key: 'ctrader', label: 'Export to cTrader', icon: 'assets/ctrader_icon.png', color: 'bg-sky-500 hover:bg-sky-400 active:bg-sky-600' },
+  ];
+  contentEl.innerHTML = `
+    <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">${s.style} &middot; ${s.timeframe} &middot; unlocked</span>
+    <h1 class="mt-2 text-2xl font-bold text-gray-50">${s.name}</h1>
+    <p class="mt-3 text-sm text-gray-300 leading-relaxed max-w-xl">${s.description}</p>
+    <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex flex-wrap items-center gap-8">
+      <div class="flex-1 min-w-[180px] flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 100 })}</div>
+      <div class="flex gap-8 flex-wrap">${keyStatsRow(s)}</div>
+    </div>
+    ${extraStatsGrid(s)}
+    ${expandableChartSection(s)}
+    <div class="mt-8">
+      <h2 class="text-sm font-bold text-gray-200 mb-3">Download the file for your platform</h2>
+      <div class="flex flex-wrap gap-3">
+        ${formats.map((f) => `<button class="download-btn ${f.color} text-gray-900 font-semibold px-4 py-2 rounded-md shadow transition flex items-center gap-2" data-format="${f.key}"><img src="${f.icon}" alt="" class="w-5 h-5 object-contain shrink-0" /><span>${f.label}</span></button>`).join('')}
+      </div>
+    </div>
+  `;
+  document.querySelectorAll('.download-btn').forEach((btn) => {
+    btn.addEventListener('click', () => handleDownloadClick(s, btn.dataset.format, btn));
+  });
+  document.getElementById('chartExpandToggle').addEventListener('click', () => toggleChartSection(s, 'chartExpand'));
+}
+
+// Real download mechanism (2026-08-29): POSTs just the strategy's `id` to
+// /api/marketplace/download/{platform} - the backend looks up the real
+// WorkspaceConfig server-side (marketplace_strategies.py) rather than
+// trusting anything from this page, so there's no client-side Blockly
+// round-trip needed for downloading (unlike "Load into Builder" in
+// index_1.html, which genuinely does need the real blockly_state).
+// Gated server-side by a real purchase check as of 2026-08-31 (see
+// _require_strategy_ownership in main.py) - a paid strategy this device/
+// account hasn't actually bought 402s here, surfaced via the catch below
+// same as any other failure (this page never reaches this button for an
+// unpurchased strategy under normal use - renderLocked() shows "Buy to
+// unlock" instead - so a 402 here in practice means the purchase record
+// hasn't landed yet, e.g. right after paying, see the justPurchased
+// handling further down).
+async function handleDownloadClick(s, platform, btn) {
+  if (!s.strategy_config_id) {
+    alert("This strategy's blueprint hasn't been added yet - content is being finalized. Check back soon.");
+    return;
+  }
+  const originalLabel = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/marketplace/download/${platform}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: s.strategy_config_id }),
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.detail || `Download failed (HTTP ${res.status}).`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `algopuzzle_${s.strategy_config_id}_${platform}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(`Could not download this strategy: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '';
+    }
+  }
+}
+
+let pendingStrategyId = null;
+function openPurchaseModal(id) {
+  const s = getMarketplaceStrategy(id);
+  if (!s) return;
+  pendingStrategyId = id;
+  document.getElementById('purchaseTitle').textContent = s.name;
+  document.getElementById('purchasePrice').textContent = s.priceLabel;
+  document.getElementById('purchaseAck').checked = true;
+  document.getElementById('purchaseOverlay').classList.remove('hidden');
+}
+function closePurchaseModal() {
+  document.getElementById('purchaseOverlay').classList.add('hidden');
+  pendingStrategyId = null;
+}
+document.getElementById('purchaseCancelBtn').addEventListener('click', closePurchaseModal);
+document.getElementById('purchaseOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'purchaseOverlay') closePurchaseModal();
+});
+document.getElementById('purchaseConfirmBtn').addEventListener('click', async () => {
+  if (!pendingStrategyId || !document.getElementById('purchaseAck').checked) return;
+  const btn = document.getElementById('purchaseConfirmBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Redirecting to payment…';
+  try {
+    const url = await createStrategyCheckoutUrl(pendingStrategyId);
+    window.location.href = url; // hands off to Stripe's own hosted Checkout page
+  } catch (err) {
+    alert(`Could not start checkout: ${err.message}`);
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
+
+// Real ownership check (2026-08-31) - see initMarketplaceOwnership() /
+// _require_strategy_ownership in main.py. justPurchased (this page IS the
+// Stripe success_url, ?purchased=1 - see billing.py's create_checkout_session)
+// renders unlocked straight away rather than waiting on a fresh ownership
+// fetch: Stripe only redirects here after payment_status=paid, and the
+// webhook that actually records the purchase runs essentially
+// simultaneously but is NOT guaranteed to have landed in the database by
+// the time this page loads - gating on it here would risk showing a
+// just-paid buyer the LOCKED view. The download buttons' own server-side
+// check (has_purchased_strategy, authoritative) is the real backstop if
+// the webhook is ever genuinely still lagging.
+if (!strategy) {
+  renderNotFound();
+} else if (strategy.tier === 'free' || justPurchased) {
+  renderUnlocked();
+} else {
+  initMarketplaceOwnership().then((ownedIds) => {
+    if (ownedIds.includes(strategy.id)) renderUnlocked();
+    else renderLocked();
+  });
+}
+</script>
+</body>
+</html>

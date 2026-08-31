@@ -76,6 +76,33 @@ git push -u origin main
 5. Webhook signing secret comes in step 5 below (needs the backend's
    live URL first, which doesn't exist until step 4).
 
+**Multiple Stripe accounts, same display name (2026-08-31 lesson):** if
+your Stripe login has access to more than one account, it's easy to
+create a product on the wrong one without noticing - two different
+accounts can both legitimately be named "AlgoPuzzle" (or similar), and
+the dashboard gives no obvious warning. Symptom: a real, active Price ID
+from the dashboard comes back `stripe._error.InvalidRequestError: No
+such price: ...` when the app tries to use it. Confirm you're on the
+right account by pasting a Price ID you KNOW is already live (e.g.
+`STRIPE_PRICE_PASS`'s value) into the dashboard's search bar - if it's
+not found, you're on the wrong account. `stripe.Account.retrieve()`
+against your configured `STRIPE_SECRET_KEY` also tells you exactly which
+account (name + id + email) that key actually belongs to.
+
+**Marketplace "Strategy of the Week" purchases (2026-08-31 addition)** -
+two more one-time Prices, same flow as step 2 above:
+- "Strategy of the Week - Top performer" — $7.99, one-time
+- "Strategy of the Week - Standard" — $4.99, one-time
+
+Copy their Price IDs → `STRIPE_PRICE_STRATEGY_FEATURED` /
+`STRIPE_PRICE_STRATEGY_STANDARD` (see `.env.example`). One Price per
+TIER, not per strategy — the weekly lineup rotates by editing
+`marketplace_strategies.py`'s `MARKETPLACE_STRATEGY_TIERS` (backend,
+authoritative for pricing) and `assets/marketplace-data.js`'s
+`MARKETPLACE_STRATEGIES` (frontend, display/catalog) together; the price
+itself never needs to change week to week. The free strategy of the
+week never goes through Stripe at all.
+
 ## 4. Render — deploy both services
 
 **Option A (recommended): Blueprint.** Render dashboard → **New +** →
@@ -123,6 +150,13 @@ Either way, once deployed you'll have two URLs, e.g.:
    (`4242 4242 4242 4242`, any future date, any CVC).
 3. Should redirect back with a "Payment received" toast, and the next
    export should go through without hitting the paywall again.
+4. **Marketplace strategy purchase** (2026-08-31 addition, same webhook -
+   no separate endpoint needed): open `strategy-of-the-week.html`, click
+   "Buy" on any paid strategy → Proceed to payment → same Stripe test
+   card as above. Should land back on `strategy-detail.html?purchased=1`
+   unlocked, with real "Export to MT5/MT4/cTrader" buttons. Re-open the
+   same strategy later (or check `my-purchases.html`) - should still show
+   as owned, no repurchase needed.
 4. Check **Stripe dashboard → Developers → Webhooks → (your endpoint)**
    — you should see a `checkout.session.completed` event with a 200
    response logged.
@@ -160,3 +194,76 @@ Only after step 6 passes cleanly in Test mode:
    `STRIPE_WEBHOOK_SECRET` in Render to the Live-mode values.
 3. Do one real, small, real-money test purchase yourself before telling
    anyone else the shop is open.
+
+## 9. Staging environment (2026-08-26 addition)
+
+Set up once, ahead of building the strategy-marketplace feature (see
+`mockups/strategy-of-the-week.html`) — a second, disposable pair of
+Render services that deploy from the `staging` git branch instead of
+`main`, so new features get a real end-to-end test against a real
+deployed URL before ever touching `main`/production.
+
+**Deliberate scope decision (2026-08-26): Render only, nothing else,
+for now.** No Supabase, no Stripe — not even Test mode — get configured
+on staging at this point. There's no marketplace code yet to test that
+would need either of them, so wiring them up now would just be
+unused config to maintain. This isn't a workaround: `billing.py`/`db.py`
+are already built to run with neither configured — see
+`BillingNotConfigured`/`_require_configured()` in `billing.py` and the
+`if settings.DATABASE_URL:` branch in `device_identity.py` — missing
+`DATABASE_URL`/`STRIPE_SECRET_KEY` just logs a warning and exports stay
+unlimited, no crash. That's exactly the mode staging runs in until a
+feature actually needs billing to test against. When that day comes,
+revisit this section and decide then (Stripe Test mode is cheap - one
+account, no duplication needed; Supabase needs an explicit choice
+between the shared prod project and a dedicated one, see the git history
+of this section for the fuller writeup of that tradeoff).
+
+1. **Push the `staging` branch** (already created locally as of this
+   doc update): `git push -u origin staging`.
+2. **Render → New + → Web Service** (NOT via Blueprint — Blueprint sync
+   is tied to one branch for every service in `render.yaml`, so the
+   second environment has to be created by hand):
+   - Name: **exactly** `algopuzzle-api-staging` (the name determines the
+     default `*.onrender.com` hostname, which `index_1.html`'s
+     `STAGING_API_BASE`/`IS_STAGING` check — see that file — hardcodes;
+     if Render appends a suffix because the name's taken, update that
+     constant to match).
+   - Branch: `staging`
+   - Runtime: Python, Region: Frankfurt (matches everything else, so
+     latency stays comparable if/when this does start talking to
+     Supabase)
+   - Build command: `pip install -r requirements.txt`
+   - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Plan: Free
+3. **Render → New + → Static Site**:
+   - Name: **exactly** `algopuzzle-frontend-staging`
+   - Branch: `staging`
+   - Build command: (leave empty), Publish directory: `.`
+   - Plan: Free
+4. **Env vars on `algopuzzle-api-staging`** (Environment tab) — just
+   one, for now:
+   - `PYTHON_VERSION` = `3.12.8`
+
+   That's it. Leave `DATABASE_URL`, every `STRIPE_*`/`SUPABASE_*` var,
+   `COOKIE_SIGNING_SECRET`, `ALLOWED_ORIGINS`, `SITE_URL` all unset -
+   `settings.py`'s `os.getenv(...)` defaults handle every one of them
+   safely (device cookies still work, they just use an insecure default
+   signing secret - fine for a throwaway staging environment with no
+   real payment data ever flowing through it; revisit if that stops
+   being true).
+5. **No env vars needed on `algopuzzle-frontend-staging`** — static
+   site; `index_1.html`'s `IS_STAGING` check picks the right backend
+   automatically based on its own hostname (see step 2's name note
+   above).
+6. **Test it:** open the staging frontend URL, build a strategy, export
+   it - should work end-to-end (unlimited exports, no paywall, since
+   billing is unconfigured). That's the whole test for now.
+7. **Promoting to production:** once a feature built on `staging` is
+   verified here, merge `staging` → `main` and push. Render's production
+   services (still wired to `main`) redeploy automatically; the staging
+   services keep running independently for the next round of work.
+8. **Whenever marketplace work actually needs Stripe/Supabase to test
+   against:** come back to this section and make that call explicitly
+   then - don't silently add it because it seemed like the "complete"
+   thing to do. Ask first.

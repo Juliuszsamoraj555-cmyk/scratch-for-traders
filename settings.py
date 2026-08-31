@@ -41,6 +41,17 @@ class Settings:
     # Subscription Prices - these are one-time-purchase Price IDs.
     STRIPE_PRICE_EXPORT: str | None = os.getenv("STRIPE_PRICE_EXPORT")
     STRIPE_PRICE_PASS: str | None = os.getenv("STRIPE_PRICE_PASS")
+    # Marketplace "Strategy of the Week" purchases (2026-08-31 addition) -
+    # two price tiers, not one per strategy: the featured/"top performer"
+    # pick is $7.99, every other paid strategy that week is $4.99 - see
+    # marketplace_strategies.py's MARKETPLACE_STRATEGY_TIERS for which
+    # strategy_id currently maps to which tier. Only required once a
+    # marketplace purchase is actually attempted (billing.py checks these
+    # separately from _require_configured's three vars above, so export/
+    # pass checkout keeps working even on a deploy that hasn't set these
+    # two yet).
+    STRIPE_PRICE_STRATEGY_FEATURED: str | None = os.getenv("STRIPE_PRICE_STRATEGY_FEATURED")
+    STRIPE_PRICE_STRATEGY_STANDARD: str | None = os.getenv("STRIPE_PRICE_STRATEGY_STANDARD")
 
     # --- Supabase Auth (email+password login, for the 30-day pass only -
     # the free tier and single-export purchases stay anonymous/device_id

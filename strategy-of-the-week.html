@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- ============================================================
+     Strategy content, stats and pricing are all real (see
+     assets/marketplace-data.js) and the purchase flow hands off to a
+     real Stripe Checkout Session (2026-08-31) - see
+     createStrategyCheckoutUrl() in that same file. Still noindex for now
+     (separate decision from "is the content real") - see index.html's
+     own comment on why, flip it deliberately when ready to be crawled.
+     ============================================================ -->
+<title>Strategy of the Week - AlgoPuzzle</title>
+<meta name="description" content="A new, independently backtested trading strategy every week. One is always free, five more are available to buy individually." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#030712" />
+
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<link rel="stylesheet" href="assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  details:not([open]) .faq-a { display: none; }
+
+  /* Scroll-reveal + card lift/glow (2026-08-31) - same recipe as
+     index.html's #features section (see that file's own comment) so this
+     page stops reading as the static, un-animated one next to an
+     otherwise "alive" site. */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease, transform 600ms ease; }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+
+  .sotw-card {
+    transition: transform 300ms ease, opacity 600ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  }
+  .sotw-card:hover {
+    transform: translateY(-4px);
+    border-color: #047857;
+    background-color: rgba(6, 78, 59, 0.18);
+    box-shadow: 0 10px 30px -12px rgba(16, 185, 129, 0.35);
+  }
+  #strategyGrid .sotw-card:nth-child(1) { transition-delay: 0ms; }
+  #strategyGrid .sotw-card:nth-child(2) { transition-delay: 80ms; }
+  #strategyGrid .sotw-card:nth-child(3) { transition-delay: 160ms; }
+  #strategyGrid .sotw-card:nth-child(4) { transition-delay: 240ms; }
+
+  /* "Top performer" medal badge nudge on hover, same spirit as
+     #features .feature-icon's hover rotate. */
+  .sotw-medal { transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .sotw-card:hover .sotw-medal,
+  .sotw-featured-card:hover .sotw-medal { transform: scale(1.12) rotate(-4deg); }
+
+  /* Featured card gets its own amber-toned glow (not the emerald one
+     above) - it's already visually "the special one" via the amber
+     medal/border, the hover state should agree. */
+  .sotw-featured-card {
+    transition: transform 300ms ease, opacity 600ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  }
+  .sotw-featured-card:hover {
+    transform: translateY(-4px);
+    border-color: #b45309;
+    background-color: rgba(120, 53, 15, 0.18);
+    box-shadow: 0 10px 30px -12px rgba(245, 158, 11, 0.35);
+  }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <!-- ============================================================
+       NAV (same shell as index.html, "Strategy of the Week" current)
+       ============================================================ -->
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400">
+        <a href="index.html#how-it-works" class="hover:text-gray-100 transition">How it works</a>
+        <a href="index.html#features" class="hover:text-gray-100 transition">Features</a>
+        <a href="strategy-of-the-week.html" class="text-emerald-400 font-medium">Strategy of the Week</a>
+        <a href="my-purchases.html" class="hover:text-gray-100 transition">My Purchases</a>
+        <a href="blog/index.html" class="hover:text-gray-100 transition">Blog</a>
+      </nav>
+      <a href="index_1.html" class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="max-w-6xl mx-auto px-6 pt-16 pb-10">
+    <div class="reveal flex items-center gap-3">
+      <!-- Same composed mark as index.html's homepage teaser (2026-08-31
+           redesign) - one signature illustration reused in both places,
+           same idea as the puzzle-piece hero mark doubling as the nav
+           logo elsewhere on the site. -->
+      <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="5" y="9" width="38" height="30" rx="6" fill="#059669"/>
+        <rect x="12" y="26" width="6" height="8" rx="1.5" fill="#a7f3d0"/>
+        <rect x="21" y="19" width="6" height="15" rx="1.5" fill="#a7f3d0"/>
+        <rect x="30" y="13" width="6" height="21" rx="1.5" fill="#f0fdf4"/>
+        <circle cx="38" cy="10" r="9" fill="#f59e0b"/>
+        <path d="M38 5.2l1.7 3.5 3.8.55-2.75 2.68.65 3.82L38 14l-3.4 1.78.65-3.82-2.75-2.68 3.8-.55L38 5.2Z" fill="#fffbeb"/>
+      </svg>
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
+    </div>
+    <p class="reveal mt-4 text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually.</p>
+    <div class="reveal mt-5 flex items-center gap-3 text-sm text-gray-500">
+      <span>Tested <span class="text-gray-300 font-medium">Jul 29 &ndash; Aug 28, 2026</span> &middot; published Aug 29</span>
+      <span class="text-gray-700">&middot;</span>
+      <a href="#how-we-test" class="text-emerald-400 hover:text-emerald-300 transition">How we test our strategies &rarr;</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FREE STRATEGY OF THE WEEK
+       ============================================================ -->
+  <section class="max-w-6xl mx-auto px-6 pb-10">
+    <div id="freeStrategyCard" class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-7 flex flex-wrap gap-8 items-stretch"></div>
+  </section>
+
+  <!-- ============================================================
+       PAID STRATEGIES
+       ============================================================ -->
+  <section class="max-w-6xl mx-auto px-6 pb-20">
+    <div class="reveal flex items-baseline justify-between flex-wrap gap-2 mb-1">
+      <h2 class="text-lg font-bold text-gray-100">5 strategies this week</h2>
+      <span class="text-sm text-gray-500">One-time purchase &middot; yours forever</span>
+    </div>
+    <div id="featuredStrategyCard" class="mt-5 mb-4"></div>
+    <div id="strategyGrid" class="grid sm:grid-cols-2 gap-4"></div>
+  </section>
+
+  <!-- ============================================================
+       HOW WE TEST (2026-08-31 addition) - the "How we test our
+       strategies" link up in the hero pointed at #how-we-test with no
+       matching id anywhere on the page (a dead anchor - click did
+       nothing). Real methodology, not filler: mirrors what
+       assets/marketplace-data.js's own comments already say about where
+       these numbers come from (strategy-lab's tick-precise engine), just
+       surfaced here for a buyer deciding whether to trust them.
+       ============================================================ -->
+  <section id="how-we-test" class="border-t border-gray-800 bg-gray-900/40">
+    <div class="max-w-6xl mx-auto px-6 py-16">
+      <h2 class="reveal text-xl font-bold text-gray-100 text-center">How we test our strategies</h2>
+      <p class="reveal mt-2.5 text-sm text-gray-400 text-center max-w-xl mx-auto">Every number on this page comes from the same pipeline, before a strategy is ever listed for sale.</p>
+      <div class="mt-12 grid sm:grid-cols-3 gap-6">
+        <div class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+          <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="4" y="10" width="40" height="30" rx="4" fill="#0891b2"/>
+            <rect x="9" y="16" width="30" height="4" rx="2" fill="#ecfeff"/>
+            <rect x="9" y="24" width="20" height="4" rx="2" fill="#a5f3fc"/>
+            <rect x="9" y="32" width="24" height="4" rx="2" fill="#a5f3fc"/>
+          </svg>
+          <h3 class="mt-4 font-semibold text-gray-100">Real tick data, not bars</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Every listed strategy is re-validated against real MT5 tick data - the same tick-precise engine as our own builder's backtests - not a faster, more optimistic bar-based screen.</p>
+        </div>
+        <div class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+          <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="4" y="8" width="8" height="8" rx="2" fill="#f87171"/>
+            <rect x="20" y="8" width="8" height="8" rx="2" fill="#f87171"/>
+            <rect x="36" y="8" width="8" height="8" rx="2" fill="#f87171"/>
+            <line x1="8" y1="24" x2="40" y2="24" stroke="#374151" stroke-width="2" stroke-dasharray="3 3"/>
+            <circle cx="8" cy="24" r="5" fill="#34d399"/>
+            <circle cx="24" cy="24" r="5" fill="#34d399"/>
+            <circle cx="40" cy="24" r="5" fill="#34d399"/>
+          </svg>
+          <h3 class="mt-4 font-semibold text-gray-100">Weak picks get dropped</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Candidates come from a much larger fast screen, then only the ones that hold up under tick-precise, real-execution testing make the cut - a pick that flips negative under real conditions is replaced, not listed anyway.</p>
+        </div>
+        <div class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+          <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="4" y="16" width="16" height="16" rx="4" fill="#0891b2"/>
+            <circle cx="34" cy="24" r="9" fill="#d97706"/>
+            <circle cx="24" cy="24" r="13" fill="none" stroke="#f87171" stroke-width="2.5"/>
+            <line x1="15" y1="15" x2="33" y2="33" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <h3 class="mt-4 font-semibold text-gray-100">Full numbers up front</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Win rate never shown without profit factor and max drawdown next to it - the numbers that show whether it actually makes money, not just how often it wins.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="border-t border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 py-10 text-xs text-gray-500 leading-relaxed">
+      Past performance does not guarantee future results. Strategies are provided for informational purposes only and do not constitute investment advice.
+    </div>
+    <div class="max-w-6xl mx-auto px-6 pb-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500 border-t border-gray-900 pt-6">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <a href="index.html" class="hover:text-emerald-300 transition">algopuzzle.com</a>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       PURCHASE CONFIRMATION MODAL
+       ============================================================ -->
+  <div id="purchaseOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md p-6">
+      <span class="text-xs font-bold uppercase tracking-wide text-gray-500">Purchase confirmation</span>
+      <h3 id="purchaseTitle" class="mt-2 text-lg font-bold text-gray-50"></h3>
+      <div class="mt-1 text-2xl font-bold text-emerald-400">
+        <span id="purchasePrice"></span>
+        <span class="text-xs font-medium text-gray-500">&middot; one-time, yours forever</span>
+      </div>
+
+      <div class="mt-5 bg-gray-800/40 border border-gray-700 rounded-lg p-4 flex gap-3">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.5" fill="#9ca3af"/></svg>
+        <div class="text-xs text-gray-400 leading-relaxed space-y-1.5">
+          <p class="font-semibold text-gray-300 text-sm">Before you buy</p>
+          <p>Past performance does not guarantee future results.</p>
+          <p>This strategy was tested from Jul 29 to Aug 28, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
+        </div>
+      </div>
+
+      <label class="mt-4 flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
+        <input id="purchaseAck" type="checkbox" checked class="mt-0.5 accent-emerald-500" />
+        <span>I understand this is not a guarantee of profit, and I want to proceed to payment.</span>
+      </label>
+
+      <!-- Real Stripe Checkout hand-off (2026-08-31) - see
+           createStrategyCheckoutUrl() in assets/marketplace-data.js and
+           the purchaseConfirmBtn handler below. The free strategy never
+           shows this button with "proceed to payment" wording reaching
+           Stripe - see that handler's tier==='free' branch. -->
+      <div class="mt-5 flex gap-2.5">
+        <button id="purchaseCancelBtn" class="flex-1 text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2.5 rounded-md">Cancel</button>
+        <button id="purchaseConfirmBtn" class="flex-[2] text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-4 py-2.5 rounded-md inline-flex items-center justify-center gap-2">
+          Proceed to payment
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between flex-wrap gap-2 text-[11px] text-gray-500">
+        <span class="flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure payments by Stripe</span>
+        <span class="flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>Instant access</span>
+        <span class="flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>No subscription</span>
+      </div>
+    </div>
+  </div>
+
+<script src="assets/marketplace-data.js"></script>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+function fmtStat(v, suffix) {
+  return (v === null || v === undefined) ? '—' : `${v}${suffix}`;
+}
+
+// Profit factor sits right next to win rate on purpose: a strategy can have
+// a win rate well under 50% and still be solidly profitable if its average
+// win is bigger than its average loss (common for trend/momentum systems
+// with a wide Take Profit and a tight Stop Loss) - profit factor (gross
+// profit / gross loss) is what actually answers "does this make money",
+// win rate alone can look alarming in isolation even when the strategy is
+// fine. Both numbers come from the same tick-precise backtest (see
+// strategy-lab/docs/HANDOFF.md), never shown one without the other here.
+// grid sm:grid-cols-2 (2026-08-31 fix), not flex flex-wrap - at the
+// featured card's narrower stat column, 4 flex items with no fixed width
+// would wrap unevenly (3 on one line, "profit factor" alone on the next,
+// visibly misaligned under the other three). A 2-column grid always lands
+// as a clean 2x2 on any real desktop/tablet viewport (bare, unprefixed
+// grid-cols-2 isn't in the compiled CSS - see docs/DEPLOYMENT.md step 0 -
+// sm: is, and this squeeze only ever happens well above that breakpoint
+// since the outer cards already stack to one column below it).
+function statBlock(strategy) {
+  const s = strategy.stats;
+  return `
+    <div class="grid sm:grid-cols-2 gap-6">
+      <div><div class="text-xl font-bold text-emerald-300">${fmtStat(s.winRate, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
+      <div><div class="text-xl font-bold text-emerald-300">${s.returnPct > 0 ? '+' : ''}${fmtStat(s.returnPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
+      <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.trades, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
+      <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.profitFactor, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">profit factor</div></div>
+    </div>
+  `;
+}
+
+// Real equity curve (2026-08-29) - replaces a previous hardcoded, identical
+// decorative SVG path that was the same for every strategy regardless of
+// its actual performance. `equityCurve` is the running account balance
+// after each closed trade from strategy-lab's tick-precise backtest (real
+// MT5 tick data, not the faster/more optimistic bar-based screen - see
+// strategy-lab/docs/HANDOFF.md), starting at the $10,000 baseline. Scaled
+// per-strategy (each curve's own min/max), not against a shared axis -
+// these are meant to show SHAPE (steady climb vs. choppy vs. a big
+// drawdown), not to be compared value-for-value against each other at a
+// glance.
+// Catmull-Rom -> cubic-Bezier smoothing: a raw point-to-point polyline
+// through real per-trade balances reads as jagged noise at small preview
+// sizes (the exact complaint that sent this back for a redo) - this draws
+// the same real values as a smooth flowing curve instead, without
+// inventing or smoothing away any data point itself (every original value
+// still sits exactly on the curve, only the connectors between them are
+// curved instead of straight).
+function smoothPath(points) {
+  if (points.length < 3) {
+    return `M ${points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L ')}`;
+  }
+  let d = `M ${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? 0 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+// equityCurve is an array of { date, balance } (real trade close
+// timestamps paired with the real running balance at that point - see
+// strategy-lab's tick_engine.py Trade.close_time/balance_after) - a plain
+// array of numbers is also accepted for backward compatibility.
+function equityBalances(equityCurve) {
+  return equityCurve.map((p) => (typeof p === 'object' ? p.balance : p));
+}
+
+function equityCurveSvg(equityCurve, opts) {
+  const width = (opts && opts.width) || 320;
+  const height = (opts && opts.height) || 140;
+  if (!Array.isArray(equityCurve) || equityCurve.length < 2) return '';
+  const balances = equityBalances(equityCurve);
+  const min = Math.min(...balances);
+  const max = Math.max(...balances);
+  const range = max - min || 1;
+  const padY = height * 0.12; // keep the line off the very top/bottom edge
+  const toXY = (v, i) => {
+    const x = (i / (balances.length - 1)) * width;
+    const y = height - padY - ((v - min) / range) * (height - padY * 2);
+    return [x, y];
+  };
+  const points = balances.map((v, i) => toXY(v, i));
+  const isUp = balances[balances.length - 1] >= balances[0];
+  const stroke = isUp ? '#34d399' : '#f87171';
+  const fillTop = isUp ? 'rgba(16,185,129,0.22)' : 'rgba(248,113,113,0.22)';
+  const fillBottom = isUp ? 'rgba(16,185,129,0)' : 'rgba(248,113,113,0)';
+  const linePath = smoothPath(points);
+  const gradId = `eqGrad${Math.random().toString(36).slice(2, 9)}`;
+  return `
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${fillTop}"/>
+          <stop offset="100%" stop-color="${fillBottom}"/>
+        </linearGradient>
+      </defs>
+      <path d="${linePath} L ${width},${height} L 0,${height} Z" fill="url(#${gradId})" stroke="none"/>
+      <path d="${linePath}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+}
+
+// Small per-style glyph (2026-08-31 addition) prefixing every card's
+// "Style · Timeframe" tag - purely decorative texture (no new information;
+// style/timeframe stay in the text), matching how #features on the
+// homepage never shows a bare label without a small illustrated mark next
+// to it. New style values just fall through to the trend glyph rather
+// than showing nothing.
+function styleIcon(style) {
+  if (style === 'Momentum') {
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="#fbbf24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>`;
+  }
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18v-3h4v-4h4v-4h4V4h4"/></svg>`;
+}
+
+function ownedRow(strategy) {
+  return `
+    <div class="flex items-center justify-between gap-3 pt-1">
+      <span class="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        You own this
+      </span>
+      <a href="strategy-detail.html?id=${strategy.id}" class="text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3.5 py-2 rounded-md">View &amp; download</a>
+    </div>
+  `;
+}
+
+// Price is deliberately NOT emerald here (2026-08-31 fix, reported: it
+// blended into win rate/return right above it and the Buy button right
+// next to it - three emerald elements in one small area reading as one
+// indistinct green blob instead of three separate pieces of information).
+// Bright neutral white gives the price its own visual identity - emerald
+// stays reserved for "this is a performance number" (stats, equity curve)
+// and "this is the action" (the button) - the price is neither.
+function buyRow(strategy) {
+  return `
+    <div class="flex items-center justify-between pt-1">
+      <span class="text-2xl font-bold text-gray-50">${strategy.priceLabel}</span>
+      <button class="buy-btn text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-5 py-2.5 rounded-md" data-id="${strategy.id}">Buy</button>
+    </div>
+  `;
+}
+
+function renderFreeCard() {
+  const strategy = MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free');
+  if (!strategy) return;
+  const owned = isStrategyOwned(strategy.id);
+  document.getElementById('freeStrategyCard').innerHTML = `
+    <div class="flex-1 min-w-[280px]">
+      <span class="text-xs font-bold uppercase tracking-wide text-emerald-400">${strategy.badge}</span>
+      <h3 class="mt-2.5 text-xl font-bold text-gray-50">${strategy.name}</h3>
+      <p class="mt-2.5 text-sm text-gray-300 leading-relaxed max-w-md">${strategy.description}</p>
+      <div class="mt-5">${statBlock(strategy)}</div>
+      <div class="mt-5">
+        ${owned
+          ? `<a href="strategy-detail.html?id=${strategy.id}" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md">View &amp; download</a>`
+          : `<button class="buy-btn inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md" data-id="${strategy.id}">Download for free</button>`}
+      </div>
+    </div>
+    <div class="flex-1 min-w-[220px] flex items-center justify-center">
+      ${equityCurveSvg(strategy.stats.equityCurve)}
+    </div>
+  `;
+}
+
+// Both the featured card and each grid card (below) are clickable
+// (2026-08-29 addition, explicit user request): clicking the card itself
+// - anywhere except the Buy/owned-row buttons, which stopPropagation so
+// they still act immediately - opens strategy-detail.html for a closer
+// look (full stats, the expandable chart) BEFORE committing to buy,
+// instead of the only path being an immediate purchase from the list.
+function goToDetail(id, e) {
+  if (e) e.stopPropagation();
+  window.location.href = `strategy-detail.html?id=${id}`;
+}
+
+// Medal badge (2026-08-31 redesign) - replaces the old rounded-full amber
+// pill + generic trophy stroke icon (a textbook "AI SaaS dashboard" tell)
+// with an actual illustrated medal: a filled star badge with two ribbon
+// tails, same composed-shapes idiom as #features' icons on the homepage.
+// Reuses the .sotw-medal class so it gets the same hover nudge as the
+// hero mark's badge.
+function medalBadge() {
+  return `
+    <span class="inline-flex items-center gap-2">
+      <svg class="sotw-medal" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8.5 12.5 5.5 21l6.5-3.2 6.5 3.2-3-8.5" fill="#b45309"/>
+        <circle cx="12" cy="9" r="7.2" fill="#f59e0b"/>
+        <path d="M12 4.9l1.55 3.15 3.47.5-2.51 2.45.59 3.46L12 12.83l-3.1 1.63.59-3.46-2.51-2.45 3.47-.5L12 4.9Z" fill="#fffbeb"/>
+      </svg>
+      <!-- Inline color, not a text-amber-* class - none of that shade
+           family is in the precompiled Tailwind CSS (see docs/DEPLOYMENT.md
+           step 0) and this project has no Node.js available to rebuild it
+           right now; same #fbbf24 amber-400 the medal icon's badge uses. -->
+      <span class="text-xs font-bold uppercase tracking-wide" style="color:#fbbf24">Top performer this week</span>
+    </span>
+  `;
+}
+
+function renderFeaturedCard() {
+  const strategy = MARKETPLACE_STRATEGIES.find((s) => s.featured);
+  if (!strategy) return;
+  const owned = isStrategyOwned(strategy.id);
+  document.getElementById('featuredStrategyCard').innerHTML = `
+    <div class="reveal sotw-featured-card relative bg-gray-900/60 border border-amber-700/50 rounded-xl p-7 cursor-pointer" id="featuredCardClick">
+      ${medalBadge()}
+      <div class="mt-4 flex flex-wrap gap-6 items-center">
+        <div class="flex-[2] min-w-[260px]">
+          <span class="text-xs font-medium text-gray-500 inline-flex items-center gap-1.5">${styleIcon(strategy.style)}${strategy.style} &middot; ${strategy.timeframe}</span>
+          <h4 class="mt-1.5 text-xl font-bold text-gray-50">${strategy.symbol} &mdash; ${strategy.name.split('—')[1] || strategy.name}</h4>
+          <p class="mt-1.5 text-sm text-gray-400 leading-relaxed max-w-md">${strategy.description}</p>
+        </div>
+        <div class="flex-1 min-w-[140px] flex items-center justify-center">${equityCurveSvg(strategy.stats.equityCurve, { height: 90 })}</div>
+        <div class="flex-1 min-w-[170px]">${statBlock(strategy)}</div>
+        <div class="flex-1 min-w-[160px]" id="featuredCardAction">${owned ? ownedRow(strategy) : buyRow(strategy)}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('featuredCardClick').addEventListener('click', () => goToDetail(strategy.id));
+  document.getElementById('featuredCardAction').addEventListener('click', (e) => e.stopPropagation());
+}
+
+function renderGrid() {
+  const strategies = MARKETPLACE_STRATEGIES.filter((s) => s.tier === 'paid' && !s.featured);
+  document.getElementById('strategyGrid').innerHTML = strategies.map((strategy) => `
+      <div class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-5 cursor-pointer grid-card" data-id="${strategy.id}">
+        <span class="text-xs font-medium text-gray-500 inline-flex items-center gap-1.5">${styleIcon(strategy.style)}${strategy.style} &middot; ${strategy.timeframe}</span>
+        <h4 class="mt-1.5 text-sm font-bold text-gray-100">${strategy.name}</h4>
+        <div class="mt-3 flex items-center justify-center">${equityCurveSvg(strategy.stats.equityCurve, { height: 70 })}</div>
+        <div class="mt-3">${statBlock(strategy)}</div>
+        <div class="mt-4 grid-card-action">${isStrategyOwned(strategy.id) ? ownedRow(strategy) : buyRow(strategy)}</div>
+      </div>
+    `).join('');
+  document.querySelectorAll('.grid-card').forEach((card) => {
+    card.addEventListener('click', () => goToDetail(card.dataset.id));
+    card.querySelector('.grid-card-action').addEventListener('click', (e) => e.stopPropagation());
+  });
+}
+
+// IntersectionObserver-driven scroll-reveal (2026-08-31) - same mechanism
+// as index.html's own (see that file's comment). Observing the STATIC
+// .reveal elements (hero, "how we test") happens immediately below, at
+// script-load time - NOT deferred until renderAll() finishes, unlike an
+// earlier version of this (bug found the same day): renderAll() only
+// finishes after the async initMarketplaceOwnership() fetch resolves, and
+// gating even the already-in-HTML hero section's reveal on that meant a
+// slow/failed fetch left the whole page sitting at opacity:0 with nothing
+// observed yet to bring it back - a blank-looking page, worse than having
+// no animation at all. The free/featured/grid cards below are still only
+// observed once renderAll() actually builds them (they don't exist before
+// that), but everything already in the HTML doesn't need to wait.
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('in-view');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+
+function renderAll() {
+  renderFreeCard();
+  renderFeaturedCard();
+  renderGrid();
+  document.querySelectorAll('.buy-btn').forEach((btn) => {
+    btn.addEventListener('click', () => openPurchaseModal(btn.dataset.id));
+  });
+  document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+}
+
+/* ---- purchase modal (real Stripe Checkout, 2026-08-31) ---- */
+let pendingStrategyId = null;
+
+function openPurchaseModal(id) {
+  const strategy = getMarketplaceStrategy(id);
+  if (!strategy) return;
+  pendingStrategyId = id;
+  document.getElementById('purchaseTitle').textContent = strategy.name;
+  document.getElementById('purchasePrice').textContent = strategy.priceLabel;
+  document.getElementById('purchaseAck').checked = true;
+  document.getElementById('purchaseOverlay').classList.remove('hidden');
+}
+
+function closePurchaseModal() {
+  document.getElementById('purchaseOverlay').classList.add('hidden');
+  pendingStrategyId = null;
+}
+
+document.getElementById('purchaseCancelBtn').addEventListener('click', closePurchaseModal);
+document.getElementById('purchaseOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'purchaseOverlay') closePurchaseModal();
+});
+document.getElementById('purchaseConfirmBtn').addEventListener('click', async () => {
+  if (!pendingStrategyId) return;
+  if (!document.getElementById('purchaseAck').checked) return;
+  const strategy = getMarketplaceStrategy(pendingStrategyId);
+  if (strategy && strategy.tier === 'free') {
+    // Free strategy: nothing to charge - straight to the unlocked/
+    // download view, same destination a real Stripe success_url uses.
+    window.location.href = `strategy-detail.html?id=${pendingStrategyId}`;
+    return;
+  }
+  const btn = document.getElementById('purchaseConfirmBtn');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Redirecting to payment…';
+  try {
+    const url = await createStrategyCheckoutUrl(pendingStrategyId);
+    window.location.href = url; // hands off to Stripe's own hosted Checkout page
+  } catch (err) {
+    alert(`Could not start checkout: ${err.message}`);
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+});
+
+(async () => {
+  await initMarketplaceOwnership();
+  renderAll();
+})();
+</script>
+</body>
+</html>

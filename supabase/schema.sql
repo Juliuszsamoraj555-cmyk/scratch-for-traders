@@ -118,6 +118,52 @@ begin
     end if;
 end $$;
 
+-- BUG FIX (found 2026-08-29, live in production until this line): billing_events
+-- already existed in production from before user_id was added to this table's
+-- CREATE TABLE above (for day-pass purchases, logged-in) - same gap as
+-- export_log's strategy_meta below, just never given the matching ALTER TABLE.
+-- Concretely: EVERY real Stripe webhook for a day-pass purchase, and every
+-- logged-in single-export-credit purchase (2026-08-29 addition), was hitting
+-- "column user_id of relation billing_events does not exist" and rolling back
+-- the WHOLE grant (see db.py's _conn() - one failed statement rolls back the
+-- entire transaction, including the user_entitlements upsert that ran first)
+-- - i.e. these purchases silently never actually got granted. This is what
+-- actually adds the column on a database that predates it.
+alter table billing_events add column if not exists user_id uuid references auth.users (id);
+
+-- ============================================================
+-- Marketplace strategy purchases (2026-08-31 addition) - a third product
+-- line alongside export credits / the 30-day pass above: buying one of the
+-- rotating "Strategy of the Week" strategies (marketplace_strategies.py on
+-- the backend, MARKETPLACE_STRATEGIES in assets/marketplace-data.js on the
+-- frontend) for a one-time price, yours forever. Same device_id-primary/
+-- user_id-optional shape as export-credit purchases (NOT the pass's
+-- login-required model) - a single strategy buy should never be gated
+-- behind creating an account. See billing.create_checkout_session(kind=
+-- "strategy_purchase"), db.grant_strategy_purchase/get_owned_strategy_ids/
+-- has_purchased_strategy, and main.py's POST /api/billing/checkout/strategy
+-- + GET /api/marketplace/purchases.
+--
+-- Deliberately NOT its own table: ownership is only ever checked as "does
+-- a purchase event exist for this device/user + strategy_id", never
+-- counted or decremented like paid_export_credits/exports_available are -
+-- so billing_events (already the append-only ledger for the two purchase
+-- types above) doubles as the source of truth here too, one less table to
+-- keep in sync. strategy_id is free text, not a foreign key - the
+-- strategy catalog lives in Python/JS, not its own DB table.
+alter table billing_events add column if not exists strategy_id text;
+create index if not exists idx_billing_events_strategy_lookup
+    on billing_events (strategy_id) where strategy_id is not null;
+
+-- Buyer's email, captured from Stripe Checkout same as devices.billing_email
+-- / user_entitlements.billing_email are for the other two purchase types -
+-- there's no per-buyer entitlement row for strategy purchases to hang this
+-- off of (see above), so it lives directly on the event row instead.
+-- Nullable and only ever populated for event_type = 'strategy_purchase'
+-- as of this writing; general-purpose enough to reuse for the other two
+-- event types later if that's ever useful.
+alter table billing_events add column if not exists email text;
+
 -- Append-only log of every export actually delivered - lets you see
 -- where a device's entitlement went (useful for support questions like
 -- "I paid but it says I have 0 credits") and for basic abuse monitoring.
@@ -158,6 +204,19 @@ create table if not exists export_log (
 -- Without it, the very first export after deploying the code that writes
 -- to this column would fail outright with "column does not exist".
 alter table export_log add column if not exists strategy_meta jsonb;
+
+-- BUG FIX (found 2026-08-29, live in production until this line): user_id
+-- had the exact same gap as strategy_meta above - present in the CREATE TABLE
+-- (added alongside the pass feature, 2026-08-14/15) but never given its own
+-- ALTER TABLE for the production table that already existed by then.
+-- Concretely: EVERY export by a logged-in user with an active pass
+-- (log_user_pass_export -> consumed_from='pass') or an account-level export
+-- credit (consume_account_export_credit -> consumed_from='account_credit',
+-- 2026-08-29 addition) was hitting "column user_id of relation export_log
+-- does not exist" and raising a 500 - anonymous/device-only exports were
+-- never affected, which is why this went unnoticed until someone with a
+-- real pass tried to export.
+alter table export_log add column if not exists user_id uuid references auth.users (id);
 
 create index if not exists idx_export_log_device on export_log (device_id, created_at desc);
 -- Powers "which assets do exports actually target" without a jsonb scan

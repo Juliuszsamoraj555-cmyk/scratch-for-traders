@@ -516,12 +516,32 @@
   <!-- "My Strategies" panel -->
   <!-- z-index 100 - see the comment on paywallOverlay above. -->
   <div id="strategiesOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-md max-h-[75vh] flex flex-col">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-xl max-h-[82vh] flex flex-col">
       <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800 shrink-0">
         <h2 class="font-semibold text-gray-100">My Strategies</h2>
         <button id="closeStrategiesBtn" class="text-gray-400 hover:text-gray-200 text-xl leading-none px-1" title="Close">&times;</button>
       </div>
+      <!-- Drafts / Purchases sub-tabs (2026-08-26 addition, real purchases
+           since 2026-08-31) - see assets/marketplace-data.js. Purchases
+           are tied to this same device/browser (or, if logged in, the
+           account - see GET /api/marketplace/purchases in main.py), no
+           login required - consistent with everything else in this
+           panel. -->
+      <div class="flex gap-5 px-4 border-b border-gray-800 shrink-0">
+        <button id="draftsSubtabBtn" class="strategies-subtab text-sm font-semibold py-2.5 border-b-2 border-emerald-500 text-gray-100">Saved</button>
+        <button id="purchasesSubtabBtn" class="strategies-subtab text-sm font-semibold py-2.5 border-b-2 border-transparent text-gray-500 hover:text-gray-300">Purchases</button>
+      </div>
       <div id="strategiesList" class="overflow-y-auto p-2 flex-1"></div>
+      <div id="purchasesList" class="hidden overflow-y-auto p-2 flex-1"></div>
+      <!-- Only shown on the Purchases sub-tab - a way back to the
+           marketplace for someone who's already bought once and is
+           looking for what else is on offer. -->
+      <div id="purchasesFooter" class="hidden justify-end px-3 py-2.5 border-t border-gray-800 shrink-0">
+        <a href="strategy-of-the-week.html" class="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-800 text-emerald-400 rounded-md px-3 py-1.5">
+          Go to Marketplace
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -590,6 +610,11 @@
      below) only runs once these three have executed anyway, so moving
      them down here doesn't change execution order - it just lets the
      page shell render first instead of blocking on them. -->
+<!-- Marketplace catalog + mock-ownership layer (2026-08-26, staging) -
+     shared with strategy-of-the-week.html / strategy-detail.html. Small,
+     no Blockly dependency, so it doesn't need to wait behind the vendor
+     scripts below. -->
+<script src="assets/marketplace-data.js"></script>
 <script src="assets/vendor/blockly/blockly_compressed.js"></script>
 <script src="assets/vendor/blockly/blocks_compressed.js"></script>
 <script src="assets/vendor/blockly/msg/en.js"></script>
@@ -1844,8 +1869,110 @@ function renderStrategiesList() {
   });
 }
 
+// ---- Purchases sub-tab (2026-08-26, real purchases since 2026-08-31) -
+// see assets/marketplace-data.js for the real ownership fetch this reads
+// from (initMarketplaceOwnership/getOwnedMarketplaceStrategies). Mirrors
+// renderStrategiesList()'s shape/markup so the two tabs feel like one
+// panel, not two different UIs bolted together.
+function formatPurchasedAt(strategy) {
+  // Still no per-purchase timestamp surfaced here - billing_events.created_at
+  // has the real one server-side (see schema.sql), but GET /api/marketplace/
+  // purchases only returns strategy_ids today (see main.py) - plumbing the
+  // date through is a small, separate follow-up, not done here.
+  return 'Purchased';
+}
+
+async function renderPurchasesList() {
+  const listEl = document.getElementById('purchasesList');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="text-sm text-gray-500 text-center py-8 px-4">Loading…</p>';
+  await initMarketplaceOwnership();
+  const owned = getOwnedMarketplaceStrategies();
+
+  if (owned.length === 0) {
+    listEl.innerHTML = '<p class="text-sm text-gray-500 text-center py-8 px-4">No purchases yet. Browse <a href="strategy-of-the-week.html" class="text-emerald-400 hover:text-emerald-300 underline">Strategy of the Week</a> to find one.</p>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  owned.forEach((entry) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-2 px-3 py-2.5 rounded-md hover:bg-gray-800';
+
+    const info = document.createElement('div');
+    info.className = 'min-w-0 flex-1';
+    const returnLabel = entry.stats.returnPct > 0 ? `+${entry.stats.returnPct}%` : `${entry.stats.returnPct}%`;
+    const returnColor = entry.stats.returnPct > 0 ? 'text-emerald-400' : 'text-gray-400';
+    info.innerHTML = `
+      <div class="text-sm font-medium text-gray-100 truncate">${escapeHtml(entry.name)}</div>
+      <div class="text-xs text-gray-500">${formatPurchasedAt(entry)} &middot; <span class="${returnColor}">${returnLabel} return</span></div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'flex items-center gap-1 shrink-0';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.textContent = 'Load into Builder';
+    loadBtn.className = 'text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded';
+    loadBtn.addEventListener('click', () => handleLoadPurchasedStrategy(entry.id));
+
+    const detailsBtn = document.createElement('button');
+    detailsBtn.textContent = 'Details';
+    detailsBtn.className = 'text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-2.5 py-1.5 rounded';
+    detailsBtn.addEventListener('click', () => { window.location.href = `strategy-detail.html?id=${entry.id}`; });
+
+    actions.append(loadBtn, detailsBtn);
+    row.append(info, actions);
+    listEl.appendChild(row);
+  });
+}
+
+// Real loading - every current marketplace strategy has real blockly_state
+// (see assets/marketplace-data.js, since the 2026-08-29 real-content
+// update) - reuses the exact same Blockly.serialization.workspaces.load()
+// path handleLoadStrategy() already uses for the free-tier drafts library,
+// no separate mechanism needed. The `if (!entry.blockly_state)` guard below
+// stays as a defensive fallback for a future strategy added without one.
+async function handleLoadPurchasedStrategy(id) {
+  const entry = getMarketplaceStrategy(id);
+  if (!entry) return;
+  if (!entry.blockly_state) {
+    showToast("This strategy's blueprint hasn't been added yet - check back soon.", true);
+    return;
+  }
+  if (!(await confirmDiscardIfNeeded(`Load "${entry.name}"`))) return;
+  workspace.getTopBlocks(false).forEach(b => b.dispose(false));
+  Blockly.serialization.workspaces.load(entry.blockly_state, workspace);
+  currentStrategyId = null; // purchased strategies aren't part of the Drafts library
+  markSynced();
+  saveWorkspaceToLocalStorage();
+  closeStrategiesPanel();
+  showToast(`Loaded "${entry.name}".`, false);
+}
+
+let activeStrategiesSubtab = 'drafts';
+function setStrategiesSubtab(tab) {
+  activeStrategiesSubtab = tab;
+  const isDrafts = tab === 'drafts';
+  document.getElementById('strategiesList').classList.toggle('hidden', !isDrafts);
+  document.getElementById('purchasesList').classList.toggle('hidden', isDrafts);
+  document.getElementById('purchasesFooter').classList.toggle('hidden', isDrafts);
+  document.getElementById('purchasesFooter').classList.toggle('flex', !isDrafts);
+  document.getElementById('draftsSubtabBtn').classList.toggle('border-emerald-500', isDrafts);
+  document.getElementById('draftsSubtabBtn').classList.toggle('text-gray-100', isDrafts);
+  document.getElementById('draftsSubtabBtn').classList.toggle('border-transparent', !isDrafts);
+  document.getElementById('draftsSubtabBtn').classList.toggle('text-gray-500', !isDrafts);
+  document.getElementById('purchasesSubtabBtn').classList.toggle('border-emerald-500', !isDrafts);
+  document.getElementById('purchasesSubtabBtn').classList.toggle('text-gray-100', !isDrafts);
+  document.getElementById('purchasesSubtabBtn').classList.toggle('border-transparent', isDrafts);
+  document.getElementById('purchasesSubtabBtn').classList.toggle('text-gray-500', isDrafts);
+  if (isDrafts) renderStrategiesList(); else renderPurchasesList();
+}
+document.getElementById('draftsSubtabBtn').addEventListener('click', () => setStrategiesSubtab('drafts'));
+document.getElementById('purchasesSubtabBtn').addEventListener('click', () => setStrategiesSubtab('purchases'));
+
 function openStrategiesPanel() {
-  renderStrategiesList();
+  setStrategiesSubtab(activeStrategiesSubtab);
   document.getElementById('strategiesOverlay').classList.remove('hidden');
 }
 function closeStrategiesPanel() {
@@ -2565,13 +2692,29 @@ authSubmitBtn.addEventListener('click', async () => {
 // value, so there's no need to touch it while developing locally.
 const PRODUCTION_API_BASE = 'https://algopuzzle-api.onrender.com';
 
+// STAGING_API_BASE / IS_STAGING (2026-08-26 addition): lets this exact
+// same file, deployed unchanged to BOTH the prod and staging Render
+// static sites, talk to the correct backend automatically - no per-
+// branch edit to this line required (that pattern already bit this repo
+// once: the "add a post in 3 places, don't forget one" footgun
+// documented elsewhere in the codebase). Only fires when actually
+// served from the staging frontend's own onrender.com hostname; every
+// other hostname (prod, or a future custom staging subdomain someone
+// points here later) falls through to PRODUCTION_API_BASE unchanged.
+// If the Render staging frontend service is ever renamed, update the
+// hostname string below to match its new default onrender.com host.
+const STAGING_API_BASE = 'https://algopuzzle-api-staging.onrender.com';
+const IS_STAGING = window.location.hostname === 'algopuzzle-frontend-staging.onrender.com';
+
 const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
 
 const API_BASE = IS_LOCAL_DEV
   ? (window.location.origin.includes('null') || window.location.protocol === 'file:'
       ? 'http://127.0.0.1:8000'
       : window.location.origin.replace(/:\d+$/, ':8000'))
-  : PRODUCTION_API_BASE;
+  : IS_STAGING
+    ? STAGING_API_BASE
+    : PRODUCTION_API_BASE;
 
 // Fire-and-forget site-behavior event logging (2026-08-15 addition) - see
 // ALLOWED_ANALYTICS_EVENTS in main.py for the fixed set of event_type

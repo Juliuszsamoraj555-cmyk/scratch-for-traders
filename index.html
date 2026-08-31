@@ -180,6 +180,19 @@
   #features .feature-card:hover .feature-icon { transform: scale(1.1) rotate(-3deg); }
   #features .feature-icon { transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
+  /* Strategy of the Week teaser card - same lift/glow recipe as
+     .feature-card above (2026-08-31), so this section stops reading as
+     the one static, un-animated block on an otherwise "alive" page. */
+  #sotwTeaserCard {
+    transition: transform 300ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  }
+  #sotwTeaserCard:hover {
+    transform: translateY(-4px);
+    border-color: #047857;
+    background-color: rgba(6, 78, 59, 0.18);
+    box-shadow: 0 10px 30px -12px rgba(16, 185, 129, 0.35);
+  }
+
   /* Tailwind's Preflight reset apparently overrides the browser's native
      "hide everything but <summary> inside a closed <details>" rule (that
      native rule is itself just a low-specificity UA stylesheet rule, so
@@ -262,6 +275,13 @@
         <a href="#how-it-works" class="hover:text-gray-100 transition">How it works</a>
         <a href="#features" class="hover:text-gray-100 transition">Features</a>
         <a href="#platforms" class="hover:text-gray-100 transition">Platforms</a>
+        <!-- 2026-08-26 (staging): anchors to the teaser section below,
+             same pattern as the Blog nav item -> #blog. The teaser links
+             on to strategy-of-the-week.html, a placeholder-content page
+             (see its own header comment) - fine to leave in staging's
+             nav since that page is noindex, nofollow, but don't merge
+             either into main until real content/prices replace them. -->
+        <a href="#strategy-of-the-week" class="hover:text-gray-100 transition">Strategy of the Week</a>
         <a href="#blog" class="hover:text-gray-100 transition">Blog</a>
         <a href="#faq" class="hover:text-gray-100 transition">FAQ</a>
       </nav>
@@ -479,6 +499,47 @@
           <img src="assets/ctrader_icon.png" alt="cTrader" class="w-8 h-8 object-contain" />
           <span class="font-medium text-gray-200">cTrader</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       STRATEGY OF THE WEEK (2026-08-26, staging)
+       Teaser mirroring the BLOG section's own pattern below (short
+       intro + a peek at the content + a "see everything" link to the
+       real page, not the full listing inlined here). Data-driven from
+       assets/marketplace-data.js so the free strategy shown here can
+       never drift out of sync with the real page - placeholder content
+       until the marketplace's real content/prices/Stripe land (see
+       that file's header comment).
+       ============================================================ -->
+  <section id="strategy-of-the-week" class="border-t border-gray-800 bg-gray-900/40">
+    <div class="max-w-5xl mx-auto px-6 py-20">
+      <div class="flex items-center justify-center gap-3">
+        <!-- Same composed mark as strategy-of-the-week.html's own hero
+             (2026-08-31 redesign) - a small strategy card with a rising
+             bar chart and a gold "picked this week" medal overlapping the
+             corner, built from filled shapes the same way #features'
+             feature-icon SVGs are (not a generic stroke-icon-in-a-chip). -->
+        <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="5" y="9" width="38" height="30" rx="6" fill="#059669"/>
+          <rect x="12" y="26" width="6" height="8" rx="1.5" fill="#a7f3d0"/>
+          <rect x="21" y="19" width="6" height="15" rx="1.5" fill="#a7f3d0"/>
+          <rect x="30" y="13" width="6" height="21" rx="1.5" fill="#f0fdf4"/>
+          <circle cx="38" cy="10" r="9" fill="#f59e0b"/>
+          <path d="M38 5.2l1.7 3.5 3.8.55-2.75 2.68.65 3.82L38 14l-3.4 1.78.65-3.82-2.75-2.68 3.8-.55L38 5.2Z" fill="#fffbeb"/>
+        </svg>
+        <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">Strategy of the Week</h2>
+      </div>
+      <p class="reveal mt-3 text-gray-400 text-center max-w-xl mx-auto">A new, independently backtested strategy every week. One is always free.</p>
+
+      <div id="sotwTeaserCard" class="reveal mt-12 bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-7 flex flex-wrap gap-8 items-stretch transition"></div>
+
+      <div class="reveal mt-8 text-center">
+        <a href="strategy-of-the-week.html" class="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition">
+          Show more
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
       </div>
     </div>
   </section>
@@ -734,8 +795,42 @@
 
 </div>
 
+<script src="assets/marketplace-data.js"></script>
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Strategy of the Week teaser card - see the section's own header
+  // comment above. Renders the free strategy from the shared catalog
+  // (assets/marketplace-data.js) so this can never drift out of sync
+  // with the real listing page.
+  (function renderStrategyOfTheWeekTeaser() {
+    const strategy = typeof MARKETPLACE_STRATEGIES !== 'undefined'
+      ? MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free')
+      : null;
+    const el = document.getElementById('sotwTeaserCard');
+    if (!strategy || !el) return;
+    el.innerHTML = `
+      <div class="flex-1 min-w-[280px]">
+        <span class="text-xs font-bold uppercase tracking-wide text-emerald-400">${strategy.badge}</span>
+        <h3 class="mt-2.5 text-xl font-bold text-gray-50">${strategy.name}</h3>
+        <p class="mt-2.5 text-sm text-gray-300 leading-relaxed max-w-md">${strategy.description}</p>
+        <div class="mt-5 flex gap-6 flex-wrap">
+          <div><div class="text-xl font-bold text-emerald-300">${strategy.stats.winRate}%</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
+          <div><div class="text-xl font-bold text-emerald-300">+${strategy.stats.returnPct}%</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
+          <div><div class="text-xl font-bold text-gray-100">${strategy.stats.trades}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
+        </div>
+        <div class="mt-5">
+          <a href="strategy-detail.html?id=${strategy.id}" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md">Download for free</a>
+        </div>
+      </div>
+      <div class="flex-1 min-w-[220px] flex items-center justify-center">
+        <svg viewBox="0 0 320 140" width="100%" height="140" style="max-width:340px" preserveAspectRatio="none" aria-hidden="true">
+          <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16 320,140 0,140" fill="rgba(16,185,129,0.10)" stroke="none"/>
+        </svg>
+      </div>
+    `;
+  })();
 
   // Fade the page out before handing off to the builder, so the jump
   // feels like one motion instead of a hard cut. Falls back to an

@@ -355,6 +355,106 @@ async def has_active_pass(user_id: str) -> bool:
 
 
 # --------------------------------------------------------------------------
+# Marketplace strategy purchases (2026-08-31 addition) - see the
+# "Marketplace strategy purchases" section of schema.sql for why this is
+# just billing_events rows (event_type='strategy_purchase'), not its own
+# entitlement table: ownership is only ever checked as "does a purchase
+# event exist for this device/user + strategy_id", never counted/
+# decremented, so there's no mutable state to keep anywhere else.
+# --------------------------------------------------------------------------
+
+def _grant_strategy_purchase_sync(
+    device_id: str,
+    strategy_id: str,
+    stripe_event_id: str,
+    session_id: str,
+    amount_cents: int,
+    currency: str,
+    email: Optional[str],
+    user_id: Optional[str],
+) -> bool:
+    with _conn() as conn, conn.cursor() as cur:
+        if _event_already_applied(cur, stripe_event_id):
+            return False
+        cur.execute(
+            "insert into billing_events "
+            "(stripe_event_id, device_id, user_id, event_type, strategy_id, "
+            " stripe_checkout_session_id, amount_total_cents, currency, email) "
+            "values (%s, %s, %s, 'strategy_purchase', %s, %s, %s, %s, %s)",
+            (stripe_event_id, device_id, user_id, strategy_id, session_id, amount_cents, currency, email),
+        )
+        return True
+
+
+async def grant_strategy_purchase(
+    device_id: str,
+    strategy_id: str,
+    stripe_event_id: str,
+    session_id: str,
+    amount_cents: int,
+    currency: str,
+    email: Optional[str] = None,
+    user_id: Optional[str] = None,
+) -> bool:
+    """device_id is always required (same as grant_export_credits) - user_id
+    is optional and, when set, ALSO makes the purchase visible from any
+    device the buyer logs into (see get_owned_strategy_ids below)."""
+    return await run_in_threadpool(
+        _grant_strategy_purchase_sync,
+        device_id, strategy_id, stripe_event_id, session_id, amount_cents, currency, email, user_id,
+    )
+
+
+def _get_owned_strategy_ids_sync(device_id: str, user_id: Optional[str]) -> list[str]:
+    with _conn() as conn, conn.cursor() as cur:
+        if user_id:
+            cur.execute(
+                "select distinct strategy_id from billing_events "
+                "where event_type = 'strategy_purchase' and (device_id = %s or user_id = %s)",
+                (device_id, user_id),
+            )
+        else:
+            cur.execute(
+                "select distinct strategy_id from billing_events "
+                "where event_type = 'strategy_purchase' and device_id = %s",
+                (device_id,),
+            )
+        return [row[0] for row in cur.fetchall()]
+
+
+async def get_owned_strategy_ids(device_id: str, user_id: Optional[str] = None) -> list[str]:
+    """Every marketplace strategy_id this device (or, if logged in, this
+    account from ANY device) has purchased - powers GET /api/marketplace/
+    purchases in main.py, which is what assets/marketplace-data.js's
+    initMarketplaceOwnership() calls to replace the old localStorage mock."""
+    return await run_in_threadpool(_get_owned_strategy_ids_sync, device_id, user_id)
+
+
+def _has_purchased_strategy_sync(device_id: str, strategy_id: str, user_id: Optional[str]) -> bool:
+    with _conn() as conn, conn.cursor() as cur:
+        if user_id:
+            cur.execute(
+                "select exists(select 1 from billing_events where event_type = 'strategy_purchase' "
+                "and strategy_id = %s and (device_id = %s or user_id = %s))",
+                (strategy_id, device_id, user_id),
+            )
+        else:
+            cur.execute(
+                "select exists(select 1 from billing_events where event_type = 'strategy_purchase' "
+                "and strategy_id = %s and device_id = %s)",
+                (strategy_id, device_id),
+            )
+        return bool(cur.fetchone()[0])
+
+
+async def has_purchased_strategy(device_id: str, strategy_id: str, user_id: Optional[str] = None) -> bool:
+    """The real, server-side gate for the marketplace download endpoints
+    (see _require_strategy_ownership in main.py) - authoritative regardless
+    of what the frontend's cached ownership list currently shows."""
+    return await run_in_threadpool(_has_purchased_strategy_sync, device_id, strategy_id, user_id)
+
+
+# --------------------------------------------------------------------------
 # Account-level status/credits (2026-08-29 addition) - see the "Manual
 # pro-status + email tracking" section of schema.sql. Distinct from
 # has_active_pass() above: that's a single boolean used to gate exports,
