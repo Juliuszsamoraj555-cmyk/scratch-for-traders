@@ -173,7 +173,13 @@ async function initMarketplaceOwnership(forceRefresh) {
   if (_ownedStrategyIdsPromise && !forceRefresh) return _ownedStrategyIdsPromise;
   _ownedStrategyIdsPromise = (async () => {
     try {
-      const res = await fetch(`${MARKETPLACE_API_BASE}/api/marketplace/purchases`, { credentials: 'include' });
+      // Ownership is account-based now (2026-08-31, see marketplace-auth.js's
+      // header comment) - the Authorization header IS the query, not just
+      // an optional extra. Not logged in -> getValidAccessToken() resolves
+      // null -> no header sent -> backend correctly returns owned_ids: [].
+      const token = typeof getValidAccessToken === 'function' ? await getValidAccessToken() : null;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${MARKETPLACE_API_BASE}/api/marketplace/purchases`, { credentials: 'include', headers });
       const data = res.ok ? await res.json() : {};
       _ownedStrategyIdsCache = Array.isArray(data.owned_ids) ? data.owned_ids : [];
     } catch (err) {
@@ -217,15 +223,27 @@ function getOwnedMarketplaceStrategies() {
    were called for one).
    ------------------------------------------------------------ */
 async function createStrategyCheckoutUrl(strategyId) {
+  // Requires login as of 2026-08-31 (see marketplace-auth.js's header
+  // comment) - the caller is expected to have already confirmed a valid
+  // session before calling this (see strategy-of-the-week.html /
+  // strategy-detail.html's purchaseConfirmBtn handlers), but a 401 is
+  // still handled explicitly here (session could have expired between
+  // page load and click) by throwing with `.isAuthRequired = true` so the
+  // caller can show the login modal and retry, rather than a raw error.
+  const token = await getValidAccessToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${MARKETPLACE_API_BASE}/api/billing/checkout/strategy`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ strategy_id: strategyId }),
   });
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
-    throw new Error(detail.detail || `Could not start checkout (HTTP ${res.status}).`);
+    const err = new Error(detail.detail || `Could not start checkout (HTTP ${res.status}).`);
+    if (res.status === 401) err.isAuthRequired = true;
+    throw err;
   }
   const data = await res.json();
   if (!data.url) throw new Error('Stripe did not return a checkout URL.');

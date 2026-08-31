@@ -89,26 +89,36 @@ def create_checkout_session(
     returns its hosted URL - the caller (main.py) redirects/returns this
     to the frontend, which sends the browser there.
 
-    kind="day_pass" requires user_id (a logged-in Supabase Auth user -
-    see main.py's get_current_user): the pass is granted to the account,
-    not the device, so it works across every device the trader logs
-    into. kind="export_credit" and kind="strategy_purchase" never require
-    user_id - neither needs an account - but if the buyer happens to be
-    logged in, passing it here attributes the purchase to their account
-    instead of just this device (see db.grant_export_credits /
-    db.grant_strategy_purchase), so it also follows them to any other
-    browser (2026-08-29 addition, extended to strategy_purchase 2026-08-31).
+    kind="day_pass" and kind="strategy_purchase" both require user_id (a
+    logged-in Supabase Auth user - see main.py's get_current_user): both
+    are granted to the ACCOUNT, not the device, so ownership follows the
+    trader across every browser/device they log into rather than being
+    stuck to whichever one happened to complete checkout. kind=
+    "strategy_purchase" used to be anonymous/device-based like
+    export_credit still is below - changed 2026-08-31 (explicit product
+    decision: something a trader paid for and expects to keep needs to
+    survive clearing cookies or switching devices, which device-only
+    ownership never could). kind="export_credit" is the one exception
+    that still never requires login - a single $2 credit is small enough
+    that account-gating it isn't worth the friction - but attributes to
+    the account when the buyer happens to be logged in anyway (see
+    db.grant_export_credits).
 
-    kind="strategy_purchase" requires strategy_id, and only for one of the
-    five PAID marketplace strategies (see marketplace_strategies.
+    kind="strategy_purchase" also requires strategy_id, and only for one
+    of the five PAID marketplace strategies (see marketplace_strategies.
     MARKETPLACE_STRATEGY_TIERS) - the free strategy of the week never goes
-    through Stripe at all (see main.py's _require_strategy_ownership),
-    and an unknown/non-purchasable id raises ValueError rather than ever
-    reaching Stripe, same "never trust the client with price" reasoning as
-    marketplace_strategies.py's own module docstring."""
+    through Stripe (or requires login) at all - see main.py's
+    _require_strategy_ownership - and an unknown/non-purchasable id raises
+    ValueError rather than ever reaching Stripe, same "never trust the
+    client with price" reasoning as marketplace_strategies.py's own module
+    docstring."""
     _require_configured()
-    if kind == "day_pass" and not user_id:
-        raise LoginRequired("Log in to buy the 30-day pass - it needs to work across your devices.")
+    if kind in ("day_pass", "strategy_purchase") and not user_id:
+        raise LoginRequired(
+            "Log in to buy the 30-day pass - it needs to work across your devices."
+            if kind == "day_pass"
+            else "Log in to buy this strategy - it needs to work across your devices."
+        )
 
     tier: Optional[str] = None
     if kind == "strategy_purchase":
@@ -135,7 +145,7 @@ def create_checkout_session(
     session = stripe.checkout.Session.create(
         mode="payment",
         line_items=[{"price": price_id, "quantity": 1}],
-        client_reference_id=(user_id if kind == "day_pass" else device_id),
+        client_reference_id=(user_id if kind in ("day_pass", "strategy_purchase") else device_id),
         metadata=metadata,
         # Dedicated per-kind confirmation pages/states (see thank-you/export/
         # and thank-you/pass/ for the first two), not the homepage. This
@@ -235,16 +245,20 @@ async def apply_completed_checkout(event: "stripe.Event") -> Optional[str]:
             device_id, 1, stripe_event_id, session_id, amount_total, currency, email, user_id=user_id
         )
     elif kind == "strategy_purchase":
-        device_id = metadata.get("device_id") or session.get("client_reference_id")
+        # Granted to the logged-in user_id, not device_id - see
+        # create_checkout_session()/LoginRequired above (2026-08-31: this
+        # used to be optional/device-based like export_credit still is,
+        # changed so ownership survives clearing cookies or switching
+        # devices). device_id is still recorded (metadata always carries
+        # it - see create_checkout_session) purely for the audit trail in
+        # billing_events, never used to decide ownership.
+        user_id = metadata.get("user_id") or session.get("client_reference_id")
         strategy_id = metadata.get("strategy_id")
-        if not device_id or not strategy_id:
+        device_id = metadata.get("device_id")
+        if not user_id or not strategy_id:
             return None
-        # Same optional-attribution pattern as export_credit above - never
-        # required, but follows the buyer to any device if they happened
-        # to be logged in at checkout.
-        user_id = metadata.get("user_id")
         await db.grant_strategy_purchase(
-            device_id, strategy_id, stripe_event_id, session_id, amount_total, currency, email, user_id=user_id
+            user_id, strategy_id, stripe_event_id, session_id, amount_total, currency, email, device_id=device_id
         )
     else:
         # day_pass: granted to the logged-in user_id, not device_id - see

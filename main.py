@@ -3125,15 +3125,17 @@ def _marketplace_ir(strategy_id: str):
         raise HTTPException(status_code=500, detail=f"Marketplace strategy {strategy_id!r} failed to parse: {e}")
 
 
-async def _require_strategy_ownership(strategy_id: str, device_id: str, request: Request) -> None:
+async def _require_strategy_ownership(strategy_id: str, request: Request) -> None:
     """The real, server-side purchase gate for the three download endpoints
-    below - mirrors _require_export_entitlement's shape (device_id first,
-    logged-in user_id also checked) but against db.has_purchased_strategy
-    instead, since a marketplace purchase is a one-time "own it forever"
-    record, not a consumable counter. 402, same convention as the export
-    paywall, for "strategy exists but isn't purchased" - 404 stays for
-    "strategy_id isn't real at all" (tier is None), matching _marketplace_ir
-    above."""
+    below, against db.has_purchased_strategy - a marketplace purchase is a
+    one-time "own it forever" record, not a consumable counter. Keyed by
+    user_id only (2026-08-31: strategy purchases now require login, same
+    as the 30-day pass - see billing.LoginRequired) - device_id plays no
+    role in ownership here, unlike _require_export_entitlement's device-
+    first model. 401 for "not logged in at all" (can't possibly own a
+    paid strategy anonymously anymore), 402 for "logged in but hasn't
+    bought this one", 404 for "strategy_id isn't real at all" (tier is
+    None), matching _marketplace_ir above."""
     tier = get_marketplace_strategy_tier(strategy_id)
     if tier is None:
         raise HTTPException(status_code=404, detail=f"Unknown marketplace strategy id: {strategy_id!r}")
@@ -3146,13 +3148,15 @@ async def _require_strategy_ownership(strategy_id: str, device_id: str, request:
         print(f"[marketplace] WARNING: DATABASE_URL not set - allowing paid strategy '{strategy_id}' download with no purchase check.")
         return
     user_id = get_current_user(request)
-    if not await db.has_purchased_strategy(device_id, strategy_id, user_id):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Log in to access strategies you've purchased.")
+    if not await db.has_purchased_strategy(user_id, strategy_id):
         raise HTTPException(status_code=402, detail="This strategy hasn't been purchased yet.")
 
 
 @app.post("/api/marketplace/download/mt5")
-async def marketplace_download_mt5(body: MarketplaceDownloadRequest, request: Request, device_id: str = Depends(get_device_id)):
-    await _require_strategy_ownership(body.id, device_id, request)
+async def marketplace_download_mt5(body: MarketplaceDownloadRequest, request: Request):
+    await _require_strategy_ownership(body.id, request)
     ir, config = _marketplace_ir(body.id)
     mql5_code = render_mql5(ir)
     readme_text = generate_readme_mql5(ir)
@@ -3169,8 +3173,8 @@ async def marketplace_download_mt5(body: MarketplaceDownloadRequest, request: Re
 
 
 @app.post("/api/marketplace/download/ctrader")
-async def marketplace_download_ctrader(body: MarketplaceDownloadRequest, request: Request, device_id: str = Depends(get_device_id)):
-    await _require_strategy_ownership(body.id, device_id, request)
+async def marketplace_download_ctrader(body: MarketplaceDownloadRequest, request: Request):
+    await _require_strategy_ownership(body.id, request)
     ir, config = _marketplace_ir(body.id)
     csharp_code = render_csharp(ir)
     readme_text = generate_readme_csharp(ir)
@@ -3186,8 +3190,8 @@ async def marketplace_download_ctrader(body: MarketplaceDownloadRequest, request
 
 
 @app.post("/api/marketplace/download/mt4")
-async def marketplace_download_mt4(body: MarketplaceDownloadRequest, request: Request, device_id: str = Depends(get_device_id)):
-    await _require_strategy_ownership(body.id, device_id, request)
+async def marketplace_download_mt4(body: MarketplaceDownloadRequest, request: Request):
+    await _require_strategy_ownership(body.id, request)
     ir, config = _marketplace_ir(body.id)
     mql4_code = render_mql4(ir)
     readme_text = generate_readme_mql4(ir)
@@ -3346,16 +3350,19 @@ async def billing_checkout_strategy(
     body: StrategyCheckoutRequest, request: Request, device_id: str = Depends(get_device_id)
 ):
     """Creates a Stripe Checkout Session for one paid marketplace strategy
-    and returns its hosted URL for the frontend to redirect to. Anonymous -
-    no login required, same as export_credit - but if the caller happens to
-    be logged in, the purchase is also attributed to their account (see
-    billing.create_checkout_session). 400 for a free/unknown strategy_id
-    (ValueError from billing.py - never reaches Stripe with a bad id)."""
+    and returns its hosted URL for the frontend to redirect to. Requires
+    login (401 if not) - see billing.LoginRequired: strategy ownership is
+    account-based (2026-08-31), same as the 30-day pass, so it survives
+    clearing cookies or switching devices. 400 for a free/unknown
+    strategy_id (ValueError from billing.py - never reaches Stripe with a
+    bad id)."""
     user_id = get_current_user(request)
     try:
         url = billing.create_checkout_session(
             device_id, "strategy_purchase", user_id=user_id, strategy_id=body.strategy_id
         )
+    except billing.LoginRequired as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except billing.BillingNotConfigured as e:
@@ -3364,17 +3371,18 @@ async def billing_checkout_strategy(
 
 
 @app.get("/api/marketplace/purchases")
-async def marketplace_purchases(request: Request, device_id: str = Depends(get_device_id)):
-    """Every marketplace strategy_id this browser (or, if logged in, this
-    account from any browser) has purchased - what assets/marketplace-data.js's
+async def marketplace_purchases(request: Request):
+    """Every marketplace strategy_id this ACCOUNT (any device/browser it
+    logs into) has purchased - what assets/marketplace-data.js's
     initMarketplaceOwnership() calls to replace the old localStorage mock.
-    Same DATABASE_URL-not-set fallback shape as /api/billing/status: an
-    empty list (nothing owned) rather than an error, so the marketplace
-    pages still render in local dev without a Supabase project configured."""
-    if not settings.DATABASE_URL:
-        return {"owned_ids": []}
+    Account-based (2026-08-31), same as billing_checkout_strategy above -
+    not logged in means nothing owned, full stop, no device_id fallback
+    (there's nothing anonymous left to check - see db.py's
+    get_owned_strategy_ids)."""
     user_id = get_current_user(request)
-    owned_ids = await db.get_owned_strategy_ids(device_id, user_id)
+    if not user_id or not settings.DATABASE_URL:
+        return {"owned_ids": []}
+    owned_ids = await db.get_owned_strategy_ids(user_id)
     return {"owned_ids": owned_ids}
 
 

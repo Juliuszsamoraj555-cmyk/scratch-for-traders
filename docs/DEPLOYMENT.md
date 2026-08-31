@@ -152,11 +152,18 @@ Either way, once deployed you'll have two URLs, e.g.:
    export should go through without hitting the paywall again.
 4. **Marketplace strategy purchase** (2026-08-31 addition, same webhook -
    no separate endpoint needed): open `strategy-of-the-week.html`, click
-   "Buy" on any paid strategy → Proceed to payment → same Stripe test
-   card as above. Should land back on `strategy-detail.html?purchased=1`
-   unlocked, with real "Export to MT5/MT4/cTrader" buttons. Re-open the
-   same strategy later (or check `my-purchases.html`) - should still show
-   as owned, no repurchase needed.
+   "Buy" on any paid strategy → Proceed to payment. **Requires login as
+   of the same day** - ownership is account-based (same reasoning as the
+   30-day pass, see `assets/marketplace-auth.js`'s header comment), so a
+   login/signup modal appears first if you're not already logged in
+   (same Supabase project as the pass - already logged in on
+   `index_1.html`? you're already logged in here too, same origin,
+   shared `localStorage` session). Only after that does it hand off to
+   Stripe → same test card as above. Should land back on
+   `strategy-detail.html?purchased=1` unlocked, with real "Export to
+   MT5/MT4/cTrader" buttons. Re-open the same strategy later (or check
+   `my-purchases.html`), **logged in as the same account** - should still
+   show as owned, no repurchase needed, from any device/browser.
 4. Check **Stripe dashboard → Developers → Webhooks → (your endpoint)**
    — you should see a `checkout.session.completed` event with a 200
    response logged.

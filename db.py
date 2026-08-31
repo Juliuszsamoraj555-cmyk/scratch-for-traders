@@ -355,23 +355,30 @@ async def has_active_pass(user_id: str) -> bool:
 
 
 # --------------------------------------------------------------------------
-# Marketplace strategy purchases (2026-08-31 addition) - see the
-# "Marketplace strategy purchases" section of schema.sql for why this is
-# just billing_events rows (event_type='strategy_purchase'), not its own
+# Marketplace strategy purchases (2026-08-31 addition, account-required as
+# of the same day - see billing.LoginRequired) - see the "Marketplace
+# strategy purchases" section of schema.sql for why this is just
+# billing_events rows (event_type='strategy_purchase'), not its own
 # entitlement table: ownership is only ever checked as "does a purchase
-# event exist for this device/user + strategy_id", never counted/
-# decremented, so there's no mutable state to keep anywhere else.
+# event exist for this user + strategy_id", never counted/decremented, so
+# there's no mutable state to keep anywhere else. Keyed by user_id, NOT
+# device_id - a strategy purchase used to be anonymous/device-based, like
+# export credits still are, but that meant clearing cookies or switching
+# devices could lose access to something already paid for. device_id is
+# still recorded on the row (grant_strategy_purchase's device_id param)
+# purely as an audit trail of which browser completed checkout - never
+# consulted when deciding ownership.
 # --------------------------------------------------------------------------
 
 def _grant_strategy_purchase_sync(
-    device_id: str,
+    user_id: str,
     strategy_id: str,
     stripe_event_id: str,
     session_id: str,
     amount_cents: int,
     currency: str,
     email: Optional[str],
-    user_id: Optional[str],
+    device_id: Optional[str],
 ) -> bool:
     with _conn() as conn, conn.cursor() as cur:
         if _event_already_applied(cur, stripe_event_id):
@@ -387,71 +394,60 @@ def _grant_strategy_purchase_sync(
 
 
 async def grant_strategy_purchase(
-    device_id: str,
+    user_id: str,
     strategy_id: str,
     stripe_event_id: str,
     session_id: str,
     amount_cents: int,
     currency: str,
     email: Optional[str] = None,
-    user_id: Optional[str] = None,
+    device_id: Optional[str] = None,
 ) -> bool:
-    """device_id is always required (same as grant_export_credits) - user_id
-    is optional and, when set, ALSO makes the purchase visible from any
-    device the buyer logs into (see get_owned_strategy_ids below)."""
+    """user_id is required (checkout itself requires login for this kind -
+    see billing.create_checkout_session/LoginRequired) - device_id is
+    optional, audit-trail-only (see this section's header comment)."""
     return await run_in_threadpool(
         _grant_strategy_purchase_sync,
-        device_id, strategy_id, stripe_event_id, session_id, amount_cents, currency, email, user_id,
+        user_id, strategy_id, stripe_event_id, session_id, amount_cents, currency, email, device_id,
     )
 
 
-def _get_owned_strategy_ids_sync(device_id: str, user_id: Optional[str]) -> list[str]:
+def _get_owned_strategy_ids_sync(user_id: str) -> list[str]:
     with _conn() as conn, conn.cursor() as cur:
-        if user_id:
-            cur.execute(
-                "select distinct strategy_id from billing_events "
-                "where event_type = 'strategy_purchase' and (device_id = %s or user_id = %s)",
-                (device_id, user_id),
-            )
-        else:
-            cur.execute(
-                "select distinct strategy_id from billing_events "
-                "where event_type = 'strategy_purchase' and device_id = %s",
-                (device_id,),
-            )
+        cur.execute(
+            "select distinct strategy_id from billing_events "
+            "where event_type = 'strategy_purchase' and user_id = %s",
+            (user_id,),
+        )
         return [row[0] for row in cur.fetchall()]
 
 
-async def get_owned_strategy_ids(device_id: str, user_id: Optional[str] = None) -> list[str]:
-    """Every marketplace strategy_id this device (or, if logged in, this
+async def get_owned_strategy_ids(user_id: str) -> list[str]:
+    """Every marketplace strategy_id this ACCOUNT (any device it logs into) has
     account from ANY device) has purchased - powers GET /api/marketplace/
     purchases in main.py, which is what assets/marketplace-data.js's
-    initMarketplaceOwnership() calls to replace the old localStorage mock."""
-    return await run_in_threadpool(_get_owned_strategy_ids_sync, device_id, user_id)
+    initMarketplaceOwnership() calls to replace the old localStorage mock.
+    Callers must already know user_id is set (not logged in => nothing
+    owned => don't call this at all, see main.py)."""
+    return await run_in_threadpool(_get_owned_strategy_ids_sync, user_id)
 
 
-def _has_purchased_strategy_sync(device_id: str, strategy_id: str, user_id: Optional[str]) -> bool:
+def _has_purchased_strategy_sync(user_id: str, strategy_id: str) -> bool:
     with _conn() as conn, conn.cursor() as cur:
-        if user_id:
-            cur.execute(
-                "select exists(select 1 from billing_events where event_type = 'strategy_purchase' "
-                "and strategy_id = %s and (device_id = %s or user_id = %s))",
-                (strategy_id, device_id, user_id),
-            )
-        else:
-            cur.execute(
-                "select exists(select 1 from billing_events where event_type = 'strategy_purchase' "
-                "and strategy_id = %s and device_id = %s)",
-                (strategy_id, device_id),
-            )
+        cur.execute(
+            "select exists(select 1 from billing_events where event_type = 'strategy_purchase' "
+            "and strategy_id = %s and user_id = %s)",
+            (strategy_id, user_id),
+        )
         return bool(cur.fetchone()[0])
 
 
-async def has_purchased_strategy(device_id: str, strategy_id: str, user_id: Optional[str] = None) -> bool:
+async def has_purchased_strategy(user_id: str, strategy_id: str) -> bool:
     """The real, server-side gate for the marketplace download endpoints
     (see _require_strategy_ownership in main.py) - authoritative regardless
-    of what the frontend's cached ownership list currently shows."""
-    return await run_in_threadpool(_has_purchased_strategy_sync, device_id, strategy_id, user_id)
+    of what the frontend's cached ownership list currently shows. Callers
+    must already know user_id is set - see get_owned_strategy_ids above."""
+    return await run_in_threadpool(_has_purchased_strategy_sync, user_id, strategy_id)
 
 
 # --------------------------------------------------------------------------
