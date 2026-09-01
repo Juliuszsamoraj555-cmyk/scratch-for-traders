@@ -16,8 +16,13 @@
      kind="strategy_purchase") - unlike export/pass (dedicated thank-you/
      pages), a strategy buyer's very next step is "download the file",
      and that's exactly where this page's unlocked view already lives.
-     Still noindex (separate decision from "is the content real") - see
-     index.html's own comment on why.
+     Stays noindex (2026-09-01: now a deliberate, final decision, not a
+     placeholder-content one - see strategy-of-the-week.html's own
+     comment, flipped to indexable the same day) - six near-identical
+     templated pages differing only by ?id= would read as thin/duplicate
+     content to a crawler; the listing page is the one real entry point
+     worth indexing, this one is reached by clicking through it (or
+     landing here as a real Stripe success_url, see below).
      ============================================================ -->
 <title>Strategy detail - AlgoPuzzle</title>
 <meta name="robots" content="noindex, nofollow" />

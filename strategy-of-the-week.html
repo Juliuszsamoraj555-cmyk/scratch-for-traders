@@ -5,17 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <!-- ============================================================
-     Strategy content, stats and pricing are all real (see
-     assets/marketplace-data.js) and the purchase flow hands off to a
-     real Stripe Checkout Session (2026-08-31) - see
-     createStrategyCheckoutUrl() in that same file. Still noindex for now
-     (separate decision from "is the content real") - see index.html's
-     own comment on why, flip it deliberately when ready to be crawled.
+     Strategy content, stats, pricing, and the purchase flow (real Stripe
+     Checkout, account-based ownership) are all real and live on main as
+     of 2026-08-31 - the noindex that used to sit here was a deliberate
+     placeholder-content decision, not a permanent one (see index.html's
+     old comment on it), and that precondition is now satisfied. Flipped
+     to indexable 2026-09-01, alongside the blog article that promotes
+     this page (see blog/free-backtested-trading-strategies.html) - full
+     canonical/OG tags added below to match every other real page on the
+     site. strategy-detail.html (per-strategy, ?id=... query string) and
+     my-purchases.html (personal, per-account) stay noindex - this
+     listing page is the one worth search/AI-answer-engine visibility.
      ============================================================ -->
-<title>Strategy of the Week - AlgoPuzzle</title>
-<meta name="description" content="A new, independently backtested trading strategy every week. One is always free, five more are available to buy individually." />
-<meta name="robots" content="noindex, nofollow" />
+<title>Strategy of the Week: Free & Paid Backtested Strategies - AlgoPuzzle</title>
+<meta name="description" content="A new, independently backtested trading strategy every week. One is always free, five more are available to buy individually - real stats shown before you pay for anything." />
+<link rel="canonical" href="https://algopuzzle.com/strategy-of-the-week.html" />
 <meta name="theme-color" content="#030712" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Strategy of the Week: Free & Paid Backtested Strategies" />
+<meta property="og:description" content="A new, independently backtested trading strategy every week. One is always free, five more are available to buy individually." />
+<meta property="og:url" content="https://algopuzzle.com/strategy-of-the-week.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
 
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 <link rel="stylesheet" href="assets/vendor/tailwind/tailwind-compiled.css" />

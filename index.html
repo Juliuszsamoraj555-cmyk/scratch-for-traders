@@ -275,12 +275,10 @@
         <a href="#how-it-works" class="hover:text-gray-100 transition">How it works</a>
         <a href="#features" class="hover:text-gray-100 transition">Features</a>
         <a href="#platforms" class="hover:text-gray-100 transition">Platforms</a>
-        <!-- 2026-08-26 (staging): anchors to the teaser section below,
-             same pattern as the Blog nav item -> #blog. The teaser links
-             on to strategy-of-the-week.html, a placeholder-content page
-             (see its own header comment) - fine to leave in staging's
-             nav since that page is noindex, nofollow, but don't merge
-             either into main until real content/prices replace them. -->
+        <!-- Anchors to the teaser section below, same pattern as the Blog
+             nav item -> #blog. Links on to strategy-of-the-week.html -
+             real content, real Stripe checkout, and indexable as of
+             2026-09-01 (see that page's own header comment). -->
         <a href="#strategy-of-the-week" class="hover:text-gray-100 transition">Strategy of the Week</a>
         <a href="#blog" class="hover:text-gray-100 transition">Blog</a>
         <a href="#faq" class="hover:text-gray-100 transition">FAQ</a>
@@ -565,8 +563,36 @@
          checklist. -->
     <div class="mt-14 space-y-6">
 
-      <a href="blog/automated-trading-mistakes-to-avoid.html" class="reveal relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="blog/free-backtested-trading-strategies.html" class="reveal relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <span class="absolute top-3 px-2 py-1 text-xs font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded-md" style="right: 0.75rem;">New</span>
+        <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Three ascending bars (a strategy's performance, echoing
+               strategy-of-the-week.html's own hero mark) plus a gold medal
+               for the week's "Top performer" pick and a FREE label for the
+               always-free slot - same visual language as the module itself. -->
+          <rect x="50" y="95" width="24" height="35" rx="3" fill="#374151"/>
+          <rect x="85" y="75" width="24" height="55" rx="3" fill="#0f766e"/>
+          <rect x="120" y="50" width="24" height="80" rx="3" fill="#10b981"/>
+          <circle cx="185" cy="52" r="23" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+          <path d="M185 40.5 l3.3 7.1 7.7 1-5.7 5.4 1.4 7.6-6.7-3.8-6.7 3.8 1.4-7.6-5.7-5.4 7.7-1z" fill="#fbbf24"/>
+          <text x="74" y="148" fill="#6ee7b7" font-size="16" font-weight="800" font-family="ui-sans-serif,system-ui" text-anchor="middle" letter-spacing="1">FREE</text>
+          <text x="185" y="145" fill="#9ca3af" font-size="11" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">weekly</text>
+        </svg>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Strategies</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-09-01" class="text-xs text-gray-500">Sep 1, 2026</time>
+          </div>
+          <h3 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Free Backtested Trading Strategies, Updated Every Week</h3>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A new independently backtested strategy every week - one is always free to download, five more are available to buy individually.</p>
+          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="blog/automated-trading-mistakes-to-avoid.html" class="reveal group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Three checklist rows - two flagged wrong (red X), one fixed
                (emerald check) - plus a "7" badge, echoing the free-builder
@@ -617,38 +643,6 @@
           </div>
           <h3 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Free Algo Trading Strategy Builder: What You Actually Get</h3>
           <p class="mt-2 text-sm text-gray-400 leading-relaxed">No signup, no card, two real exports to MT5, MT4, or cTrader - exactly what's free and where the free tier ends.</p>
-          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </div>
-      </a>
-
-      <a href="blog/atr-stop-loss-sizing.html" class="reveal group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
-        <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Four candles with growing range (volatility), a bracket
-               next to the last one showing the stop distance scaling
-               with it - "the stop adapts to how much it's actually
-               moving". -->
-          <line x1="35" y1="55" x2="35" y2="115" stroke="#4b5563" stroke-width="2"/>
-          <rect x="27" y="75" width="16" height="20" fill="#374151"/>
-          <line x1="80" y1="45" x2="80" y2="125" stroke="#4b5563" stroke-width="2"/>
-          <rect x="72" y="65" width="16" height="35" fill="#4b5563"/>
-          <line x1="125" y1="35" x2="125" y2="135" stroke="#0f766e" stroke-width="2"/>
-          <rect x="117" y="55" width="16" height="50" fill="#0f766e"/>
-          <line x1="170" y1="20" x2="170" y2="150" stroke="#10b981" stroke-width="2.5"/>
-          <rect x="160" y="45" width="20" height="70" fill="#10b981"/>
-          <line x1="205" y1="20" x2="205" y2="150" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 4"/>
-          <path d="M198 20 L212 20 M198 150 L212 150" stroke="#f59e0b" stroke-width="1.5"/>
-          <text x="205" y="14" fill="#fbbf24" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">ATR</text>
-        </svg>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</span>
-            <span class="text-xs text-gray-600">&middot;</span>
-            <time datetime="2026-08-26" class="text-xs text-gray-500">Aug 26, 2026</time>
-          </div>
-          <h3 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">ATR-Based Stop Loss Sizing, Explained</h3>
-          <p class="mt-2 text-sm text-gray-400 leading-relaxed">Why a fixed-pip stop breaks down across instruments, and how to size one that adapts to each market's own volatility.</p>
           <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>

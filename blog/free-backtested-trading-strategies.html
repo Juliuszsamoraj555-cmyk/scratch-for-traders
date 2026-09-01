@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Free Backtested Trading Strategies, Updated Every Week - AlgoPuzzle</title>
+<meta name="description" content="A new independently backtested trading strategy every week. One is always free to download as a ready-to-run MT5, MT4, or cTrader file - five more are available to buy individually." />
+<link rel="canonical" href="https://algopuzzle.com/blog/free-backtested-trading-strategies.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Free Backtested Trading Strategies, Updated Every Week" />
+<meta property="og:description" content="One free, independently backtested trading strategy every week - ready-to-run MT5, MT4, or cTrader file, real stats shown before you pay for anything." />
+<meta property="og:url" content="https://algopuzzle.com/blog/free-backtested-trading-strategies.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Free Backtested Trading Strategies, Updated Every Week",
+  "description": "A new independently backtested trading strategy every week - one is always free to download as a ready-to-run MT5, MT4, or cTrader file, five more are available to buy individually.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-01",
+  "dateModified": "2026-09-01",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/free-backtested-trading-strategies.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is the free Strategy of the Week actually free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. No signup, no card, no time limit - you get a real generated MT5, MT4, or cTrader file, the same generator a paid strategy uses. One strategy is free every week; it just rotates." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need to know how to code to use one of these strategies?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Every strategy is already built - you download a ready-to-run .mq5, .mq4, or .cs file and import it into your platform. Nothing to write or configure beyond the normal platform install steps." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does a good backtest mean the strategy will be profitable live?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No, and no strategy on the page claims that. Each one shows real historical results from a fixed test window on real tick data - not a promise about your account, your broker, or future market conditions. Past performance never guarantees future results." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need an account to buy a paid strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes - buying a strategy requires a free account login, so ownership follows you to any device instead of staying tied to one browser. The free strategy of the week needs no account at all." }
+    },
+    {
+      "@type": "Question",
+      "name": "How often does the lineup change?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Every week: a new free strategy and a new set of five paid ones, each independently tested before it's published." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Free Backtested Trading Strategies, Updated Every Week", "item": "https://algopuzzle.com/blog/free-backtested-trading-strategies.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Strategies</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Free Backtested Trading Strategies, Updated Every Week</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>AlgoPuzzle publishes a new, independently backtested trading strategy every week under <a href="../strategy-of-the-week.html" class="text-emerald-400 hover:text-emerald-300 underline">Strategy of the Week</a>: one strategy is always free to download as a ready-to-run MetaTrader 5, MetaTrader 4, or cTrader file, and five more are available to buy individually, starting at $4.99 (the week's top performer is $7.99) - both one-time purchases, not a subscription. Every strategy shows its real win rate, return, number of trades, profit factor, and max drawdown up front, before you pay for anything, tested against real historical tick data rather than a faster, more optimistic bar-based screen. None of it is a black box: the exact entry condition, stop loss, and take profit are visible immediately for the free strategy, and unlock the moment you buy a paid one. You don't need to know how to code - every strategy exports as a real file for your platform, the same generator AlgoPuzzle's own no-code strategy builder uses.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What "Strategy of the Week" actually is</h2>
+      <p>It's a rotating lineup, not a fixed library: six strategies a week, one free and five paid, each covering a different instrument, timeframe, or style - momentum, trend-following, mean-reversion setups across pairs like XAUUSD, USDJPY, USDCAD, and AUDUSD. Browse the current lineup on the <a href="../strategy-of-the-week.html" class="text-emerald-400 hover:text-emerald-300 underline">Strategy of the Week page</a>, open any card for the full stats and an expandable equity curve, and everything you've bought stays reachable later from <a href="../my-purchases.html" class="text-emerald-400 hover:text-emerald-300 underline">My Purchases</a>.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">How each strategy is actually tested</h2>
+      <p>Every strategy on the page is validated tick by tick against real MetaTrader 5 tick data over its stated test window, not the faster, more optimistic bar-based screen that produces the initial shortlist - a step that has already dropped at least one strategy that looked profitable on the fast pass but flipped to a real loss under tick-precise execution. The tested window (e.g. "Jul 29 - Aug 28, 2026") is shown on every card, and the disclaimer applies to every single one: past performance does not guarantee future results, and a backtest is never a promise about your account, your broker, or where the market goes next.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Free vs. paid: what's actually different</h2>
+      <table>
+        <thead><tr><th></th><th>Free strategy of the week</th><th>Standard paid strategy</th><th>Top performer</th></tr></thead>
+        <tbody>
+          <tr><td>Price</td><td>$0</td><td>$4.99, one-time</td><td>$7.99, one-time</td></tr>
+          <tr><td>Account needed</td><td>No</td><td>Yes, to buy it</td><td>Yes, to buy it</td></tr>
+          <tr><td>Stats shown before paying</td><td>Full</td><td>Full</td><td>Full</td></tr>
+          <tr><td>Exact entry / stop / target</td><td>Visible immediately</td><td>Unlocks after purchase</td><td>Unlocks after purchase</td></tr>
+          <tr><td>Platforms</td><td>MT5, MT4, cTrader</td><td>MT5, MT4, cTrader</td><td>MT5, MT4, cTrader</td></tr>
+          <tr><td>Access</td><td>Yours forever</td><td>Yours forever</td><td>Yours forever</td></tr>
+        </tbody>
+      </table>
+      <p>The only thing the price actually buys is the exact rule set - win rate, return, trade count, profit factor, and drawdown are shown for every strategy, free or paid, before you decide anything. A purchase requires logging into a free account so it follows you to any device instead of staying stuck to one browser; the free strategy skips that step entirely.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">How to actually use one</h2>
+      <ol class="list-decimal pl-5 space-y-2">
+        <li>Open <a href="../strategy-of-the-week.html" class="text-emerald-400 hover:text-emerald-300 underline">Strategy of the Week</a> and check this week's lineup - stats and an equity curve for every strategy, free or paid.</li>
+        <li>Read what the strategy actually does before paying for anything - description, test window, and risk numbers are all shown up front, never held back to force a purchase.</li>
+        <li>Download the free one, or buy a paid one (log in first - a purchase is tied to your account, not your browser).</li>
+        <li>Import the generated file into MetaTrader 5, MetaTrader 4, or cTrader - every export ships with a README and a video walkthrough for the install steps.</li>
+      </ol>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">Is the free Strategy of the Week actually free?</p>
+          <p class="mt-1">Yes. No signup, no card, no time limit - you get a real generated MT5, MT4, or cTrader file, the same generator a paid strategy uses. One strategy is free every week; it just rotates.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Do I need to know how to code to use one of these strategies?</p>
+          <p class="mt-1">No. Every strategy is already built - you download a ready-to-run .mq5, .mq4, or .cs file and import it into your platform. Nothing to write or configure beyond the normal platform install steps.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Does a good backtest mean the strategy will be profitable live?</p>
+          <p class="mt-1">No, and no strategy on the page claims that. Each one shows real historical results from a fixed test window on real tick data - not a promise about your account, your broker, or future market conditions. Past performance never guarantees future results.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Do I need an account to buy a paid strategy?</p>
+          <p class="mt-1">Yes - buying a strategy requires a free account login, so ownership follows you to any device instead of staying tied to one browser. The free strategy of the week needs no account at all.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How often does the lineup change?</p>
+          <p class="mt-1">Every week: a new free strategy and a new set of five paid ones, each independently tested before it's published.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8 flex flex-wrap gap-3">
+      <a href="../strategy-of-the-week.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Browse this week's strategies
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-100 font-semibold text-base px-6 py-3.5 rounded-lg transition">
+        Or build your own - free
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
