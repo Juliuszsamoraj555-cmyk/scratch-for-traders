@@ -125,93 +125,15 @@ async def get_or_create_device(device_id: Optional[str], ip: str) -> str:
 
 
 # --------------------------------------------------------------------------
-# Entitlement status (read-only, for the frontend to render "X free
-# exports left" / paywall state)
-# --------------------------------------------------------------------------
-
-def _get_entitlement_status_sync(device_id: str) -> dict:
-    with _conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "select free_exports_used, paid_export_credits, pass_expires_at "
-            "from devices where device_id = %s",
-            (device_id,),
-        )
-        row = cur.fetchone()
-        if not row:
-            return {
-                "free_exports_used": 0,
-                "free_exports_remaining": settings.FREE_EXPORT_LIMIT,
-                "paid_export_credits": 0,
-                "pass_active": False,
-                "pass_expires_at": None,
-            }
-        free_used, credits, pass_expires_at = row
-        pass_active = bool(
-            pass_expires_at and pass_expires_at > datetime.datetime.now(datetime.timezone.utc)
-        )
-        return {
-            "free_exports_used": free_used,
-            "free_exports_remaining": max(0, settings.FREE_EXPORT_LIMIT - free_used),
-            "paid_export_credits": credits,
-            "pass_active": pass_active,
-            "pass_expires_at": pass_expires_at.isoformat() if pass_expires_at else None,
-        }
-
-
-async def get_entitlement_status(device_id: str) -> dict:
-    return await run_in_threadpool(_get_entitlement_status_sync, device_id)
-
-
-# --------------------------------------------------------------------------
-# Consuming an export (the one place that decides "can this device export
-# right now" - see consume_export_entitlement() in supabase/schema.sql for
-# the atomic, row-locked logic)
-# --------------------------------------------------------------------------
-
-def _consume_export_sync(
-    device_id: str, platform: str, ip: Optional[str], strategy_meta: Optional[dict]
-) -> tuple[bool, str]:
-    # Same salted hash as get_or_create_device used when it stored this
-    # device's ip_hash - has to match or the IP-level free-export count
-    # in consume_export_entitlement() would never find this device's rows.
-    ip_hash = hash_ip(ip) if ip else None
-    with _conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "select granted, consumed_from from consume_export_entitlement(%s, %s, %s, %s, %s, %s, %s)",
-            (
-                device_id,
-                platform,
-                settings.FREE_EXPORT_LIMIT,
-                ip_hash,
-                settings.IP_FREE_EXPORT_LIMIT,
-                settings.IP_FREE_EXPORT_WINDOW_HOURS,
-                Jsonb(strategy_meta) if strategy_meta is not None else None,
-            ),
-        )
-        granted, consumed_from = cur.fetchone()
-        return bool(granted), consumed_from
-
-
-async def consume_export(
-    device_id: str, platform: str, ip: Optional[str] = None, strategy_meta: Optional[dict] = None
-) -> tuple[bool, str]:
-    """Returns (granted, consumed_from). consumed_from is 'free' | 'credit'
-    | 'pass' when granted=True, or 'none' when granted=False (caller
-    should respond 402 Payment Required). ip is optional only so old call
-    sites don't break - omitting it just disables the per-IP free-export
-    cap for that call (see consume_export_entitlement() in schema.sql).
-    strategy_meta (see _summarize_strategy() in main.py) is stored
-    alongside the export_log row consume_export_entitlement() inserts,
-    when one actually gets granted - omitted (None) it's simply not
-    recorded, same as before this existed."""
-    return await run_in_threadpool(_consume_export_sync, device_id, platform, ip, strategy_meta)
-
-
-# --------------------------------------------------------------------------
-# Granting entitlement after a Stripe payment (called from the webhook
-# handler in billing.py). Both are idempotent on stripe_event_id, since
-# Stripe retries webhook delivery on any non-2xx response or timeout and
-# must be safe to receive the same event twice.
+# The per-device entitlement helpers that used to live here
+# (get_entitlement_status / consume_export, reading devices.free_exports_used
+# and devices.paid_export_credits) were removed on 2026-09-03, when every
+# export became account-based - see consume_account_export below and
+# _require_export_entitlement in main.py. Nothing called them any more.
+#
+# The `devices` table and consume_export_entitlement() in schema.sql are
+# deliberately NOT dropped: they hold the real history of every export
+# delivered before that change.
 # --------------------------------------------------------------------------
 
 def _event_already_applied(cur, stripe_event_id: str) -> bool:
@@ -462,7 +384,7 @@ async def has_purchased_strategy(user_id: str, strategy_id: str) -> bool:
 def _get_account_status_sync(user_id: str) -> dict:
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "select is_pro, is_pro_until, exports_available, has_active_pass(%s) "
+            "select is_pro, is_pro_until, exports_available, free_exports_used, has_active_pass(%s) "
             "from user_entitlements where user_id = %s",
             (user_id, user_id),
         )
@@ -472,13 +394,19 @@ def _get_account_status_sync(user_id: str) -> dict:
             # account gets a row at signup) - only reachable for a login
             # token issued before this feature existed and never since
             # refreshed, or a database that hasn't had the migration run
-            # yet. Treat as "nothing granted" rather than erroring.
-            return {"is_pro": False, "is_pro_until": None, "exports_available": 0, "pass_active": False}
-        is_pro, is_pro_until, exports_available, pass_active = row
+            # yet. Treat as a brand new account (full free allowance, no
+            # grants) rather than erroring - consume_account_export()
+            # creates the row for real on the first actual export.
+            return {
+                "is_pro": False, "is_pro_until": None, "exports_available": 0,
+                "free_exports_used": 0, "pass_active": False,
+            }
+        is_pro, is_pro_until, exports_available, free_exports_used, pass_active = row
         return {
             "is_pro": is_pro,
             "is_pro_until": is_pro_until.isoformat() if is_pro_until else None,
             "exports_available": exports_available,
+            "free_exports_used": free_exports_used,
             "pass_active": bool(pass_active),
         }
 
@@ -487,28 +415,40 @@ async def get_account_status(user_id: str) -> dict:
     return await run_in_threadpool(_get_account_status_sync, user_id)
 
 
-def _consume_account_export_credit_sync(
+def _consume_account_export_sync(
     user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict]
-) -> bool:
+) -> tuple[bool, str]:
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "select consume_account_export_credit(%s, %s, %s, %s)",
-            (user_id, device_id, platform, Jsonb(strategy_meta) if strategy_meta is not None else None),
+            "select granted, consumed_from from consume_account_export(%s, %s, %s, %s, %s)",
+            (
+                user_id,
+                device_id,
+                platform,
+                settings.FREE_EXPORT_LIMIT,
+                Jsonb(strategy_meta) if strategy_meta is not None else None,
+            ),
         )
-        return bool(cur.fetchone()[0])
+        granted, consumed_from = cur.fetchone()
+        return bool(granted), consumed_from
 
 
-async def consume_account_export_credit(
+async def consume_account_export(
     user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict] = None
-) -> bool:
-    """Spends one unit of this ACCOUNT's exports_available bucket (see
-    consume_account_export_credit() in schema.sql) - the tier checked
-    between an active pro grant (has_active_pass, unlimited) and the
-    anonymous per-device free/paid flow (consume_export). Returns False
-    (never raises) when the account has none left, so the caller falls
-    through to the device-based check exactly as if this tier didn't
-    exist."""
-    return await run_in_threadpool(_consume_account_export_credit_sync, user_id, device_id, platform, strategy_meta)
+) -> tuple[bool, str]:
+    """The one call that decides whether this ACCOUNT may export right now
+    and deducts the right bucket - free allowance first, then purchased
+    credits (see consume_account_export() in schema.sql). An active pro
+    grant is unlimited and checked separately, before this.
+
+    Returns (granted, consumed_from); consumed_from is 'free' |
+    'account_credit' when granted, 'none' when the account is out of
+    everything and the caller should 402.
+
+    device_id is recorded on the export_log row (which browser received
+    the file) but never decides anything - exports have been account-based
+    since 2026-09-03, see this module's own section header above."""
+    return await run_in_threadpool(_consume_account_export_sync, user_id, device_id, platform, strategy_meta)
 
 
 def _log_user_pass_export_sync(user_id: str, device_id: str, platform: str, strategy_meta: Optional[dict]) -> None:

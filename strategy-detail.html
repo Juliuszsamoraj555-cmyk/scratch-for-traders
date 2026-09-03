@@ -167,7 +167,7 @@
   <div id="authOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 id="authTitle" class="text-lg font-semibold text-gray-100 mb-1">Log in</h2>
-      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">Buying a strategy needs an account - it's what lets it follow you to any device.</p>
+      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">Downloading or buying a strategy needs a free account - it is what lets it follow you to any device.</p>
       <p id="authError" class="hidden text-sm font-medium bg-red-950 border border-red-600 text-red-200 rounded-md px-3 py-2.5 mb-3 flex items-start gap-2"><span aria-hidden="true">✕</span><span id="authErrorText"></span></p>
       <div class="space-y-3">
         <div>
@@ -586,20 +586,38 @@ async function handleDownloadClick(s, platform, btn) {
     alert("This strategy's blueprint hasn't been added yet - content is being finalized. Check back soon.");
     return;
   }
+  // Every generated file needs an account as of 2026-09-03, the free
+  // strategy of the week included - checked before the request so the
+  // trader gets the login modal instead of a raw 401, and resumes into
+  // the download they asked for.
+  if (!(await getValidAccessToken())) {
+    showMarketplaceAuthOverlay(() => handleDownloadClick(s, platform, btn));
+    return;
+  }
   const originalLabel = btn ? btn.innerHTML : null;
   if (btn) {
     btn.disabled = true;
     btn.style.opacity = '0.6';
   }
   try {
+    const token = await getValidAccessToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${API_BASE}/api/marketplace/download/${platform}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers,
       body: JSON.stringify({ id: s.strategy_config_id }),
     });
+    // The session can expire between the check above and this response.
+    if (res.status === 401) {
+      showMarketplaceAuthOverlay(() => handleDownloadClick(s, platform, btn));
+      return;
+    }
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}));
-      throw new Error(detail.detail || `Download failed (HTTP ${res.status}).`);
+      const msg = detail.detail && detail.detail.message ? detail.detail.message : detail.detail;
+      throw new Error(msg || `Download failed (HTTP ${res.status}).`);
     }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

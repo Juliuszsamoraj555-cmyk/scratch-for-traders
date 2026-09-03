@@ -141,14 +141,16 @@ function _setAuthMode(mode) {
   e.error.classList.add('hidden');
   if (mode === 'login') {
     e.title.textContent = 'Log in';
-    e.subtitle.textContent = "Buying a strategy needs an account - it's what lets it follow you to any device.";
+    // Downloading, not just buying: every generated file needs an account
+    // as of 2026-09-03, the free strategy of the week included.
+    e.subtitle.textContent = "Downloading or buying a strategy needs a free account - it's what lets it follow you to any device.";
     e.passwordRow.classList.remove('hidden');
     e.submitBtn.textContent = 'Log in';
     e.toggleModeBtn.textContent = 'Need an account? Sign up';
     e.forgotBtn.classList.remove('hidden');
   } else if (mode === 'signup') {
     e.title.textContent = 'Sign up';
-    e.subtitle.textContent = 'Create an account to buy this strategy.';
+    e.subtitle.textContent = 'Free to create. Everything you download or buy stays on your account.';
     e.passwordRow.classList.remove('hidden');
     e.submitBtn.textContent = 'Sign up';
     e.toggleModeBtn.textContent = 'Already have an account? Log in';

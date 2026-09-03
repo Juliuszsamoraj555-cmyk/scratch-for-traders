@@ -113,12 +113,16 @@ def create_checkout_session(
     client with price" reasoning as marketplace_strategies.py's own module
     docstring."""
     _require_configured()
-    if kind in ("day_pass", "strategy_purchase") and not user_id:
-        raise LoginRequired(
-            "Log in to buy the 30-day pass - it needs to work across your devices."
-            if kind == "day_pass"
-            else "Log in to buy this strategy - it needs to work across your devices."
-        )
+    if not user_id:
+        # Every kind requires login as of 2026-09-03 - export_credit was
+        # the last anonymous one, and it stopped making sense the moment
+        # exports themselves required an account (see main.py's
+        # _require_export_entitlement): the credit would have been
+        # unspendable.
+        raise LoginRequired({
+            "day_pass": "Log in to buy the 30-day pass - it needs to work across your devices.",
+            "strategy_purchase": "Log in to buy this strategy - it needs to work across your devices.",
+        }.get(kind, "Log in to buy an export - it's credited to your account."))
 
     tier: Optional[str] = None
     if kind == "strategy_purchase":
@@ -234,13 +238,15 @@ async def apply_completed_checkout(event: "stripe.Event") -> Optional[str]:
     session_id = session["id"]
 
     if kind == "export_credit":
-        device_id = metadata.get("device_id") or session.get("client_reference_id")
-        if not device_id:
-            return None
-        # user_id is only present if the buyer was logged in at checkout
-        # (see create_checkout_session) - when set, grant_export_credits
-        # credits their ACCOUNT (exports_available) instead of the device.
+        # Credited to the ACCOUNT (user_entitlements.exports_available),
+        # never the device - checkout has required login since 2026-09-03
+        # (see create_checkout_session), so user_id is always present for
+        # any session created after that. device_id stays on the
+        # billing_events row as an audit trail of which browser paid.
         user_id = metadata.get("user_id")
+        device_id = metadata.get("device_id") or session.get("client_reference_id")
+        if not user_id or not device_id:
+            return None
         await db.grant_export_credits(
             device_id, 1, stripe_event_id, session_id, amount_total, currency, email, user_id=user_id
         )

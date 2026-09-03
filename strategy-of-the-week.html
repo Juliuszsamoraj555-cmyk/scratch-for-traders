@@ -276,7 +276,7 @@
          carry the visual weight, and they mean something. -->
     <p class="reveal text-xs font-semibold uppercase tracking-wide text-emerald-400">New lineup every week</p>
     <h1 class="reveal mt-3 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
-    <p class="reveal mt-4 text-lg text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually.</p>
+    <p class="reveal mt-4 text-lg text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually. Downloading any of them needs a free account.</p>
     <div class="reveal mt-5 flex items-center gap-3 text-sm text-gray-500 flex-wrap">
       <span>Tested <span class="text-gray-300 font-medium">Jul 29 &ndash; Aug 28, 2026</span> &middot; published Aug 29</span>
       <span class="text-gray-700">&middot;</span>
@@ -423,7 +423,7 @@
   <div id="authOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4 z-50">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 id="authTitle" class="text-lg font-semibold text-gray-100 mb-1">Log in</h2>
-      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">Buying a strategy needs an account - it's what lets it follow you to any device.</p>
+      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">Downloading or buying a strategy needs a free account - it is what lets it follow you to any device.</p>
       <p id="authError" class="hidden text-sm font-medium bg-red-950 border border-red-600 text-red-200 rounded-md px-3 py-2.5 mb-3 flex items-start gap-2"><span aria-hidden="true">✕</span><span id="authErrorText"></span></p>
       <div class="space-y-3">
         <div>
@@ -775,8 +775,16 @@ async function confirmPurchase() {
   if (!document.getElementById('purchaseAck').checked) return;
   const strategy = getMarketplaceStrategy(pendingStrategyId);
   if (strategy && strategy.tier === 'free') {
-    // Free strategy: nothing to charge, no login needed - straight to the
-    // unlocked/download view, same destination a real Stripe success_url uses.
+    // Free strategy: nothing to charge, but an account IS needed as of
+    // 2026-09-03 (every generated file requires one now - see
+    // _require_strategy_ownership in main.py). Prompting here rather
+    // than letting them land on the detail page and hit it at the
+    // download button, which would be a worse place to learn it.
+    if (!(await getValidAccessToken())) {
+      closePurchaseModal();
+      showMarketplaceAuthOverlay(() => { window.location.href = `strategy-detail.html?id=${strategy.id}`; });
+      return;
+    }
     window.location.href = `strategy-detail.html?id=${pendingStrategyId}`;
     return;
   }

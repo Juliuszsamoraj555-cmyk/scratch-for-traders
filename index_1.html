@@ -369,7 +369,10 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>No signup required</span>
+              <!-- Was "No signup required" until 2026-09-03 - exports
+                   are account-based now (free ones included), so that
+                   claim became untrue. -->
+              <span>Free account, no card</span>
             </li>
           </ul>
           <!-- mt-auto (not a fixed mt-4 like the other two columns used
@@ -464,7 +467,9 @@
   <div id="authOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
     <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-sm p-6">
       <h2 id="authTitle" class="text-lg font-semibold text-gray-100 mb-1">Log in</h2>
-      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">The 30-day pass works across every device once you're logged in.</p>
+      <!-- Overwritten by setAuthMode() the moment the modal opens; kept in
+           sync with its 'login' copy so nothing stale can flash first. -->
+      <p id="authSubtitle" class="text-sm text-gray-400 mb-4">Your free exports and anything you buy are tied to your account, so they work on every device.</p>
       <!-- Was plain small red text - easy to miss entirely next to a
            dark modal background. Now a solid alert box: background
            tint + strong border + icon, same treatment as the toast. -->
@@ -2531,16 +2536,24 @@ let authOnSuccess = null;
 function setAuthMode(mode) {
   authMode = mode;
   authError.classList.add('hidden');
+  // Copy is deliberately about EXPORTS rather than the 30-day pass now
+  // (2026-09-03): this modal used to only ever appear when buying the
+  // pass, but exporting requires an account too, and that's the reason
+  // most traders will see it.
   if (mode === 'login') {
     authTitle.textContent = 'Log in';
-    authSubtitle.textContent = "The 30-day pass works across every device once you're logged in.";
+    authSubtitle.textContent = "Your free exports and anything you buy are tied to your account, so they work on every device.";
     authPasswordRow.classList.remove('hidden');
     authSubmitBtn.textContent = 'Log in';
     authToggleModeBtn.textContent = 'Need an account? Sign up';
     authForgotBtn.classList.remove('hidden');
   } else if (mode === 'signup') {
     authTitle.textContent = 'Sign up';
-    authSubtitle.textContent = 'Create an account to buy the 30-day pass.';
+    // No hardcoded free-export count here on purpose - the real number
+    // lives in settings.py and reaches the UI through the backend (see
+    // the billing-status pill and the paywall message), so repeating it
+    // in a third place is just something to drift.
+    authSubtitle.textContent = 'Free to create. Your free exports and anything you buy live on your account.';
     authPasswordRow.classList.remove('hidden');
     authSubmitBtn.textContent = 'Sign up';
     authToggleModeBtn.textContent = 'Already have an account? Log in';
@@ -2790,13 +2803,21 @@ function renderBillingIndicator(status) {
     return;
   }
   let label;
-  if (status.pass_active) {
+  if (!status.logged_in) {
+    // Exports are account-based (2026-09-03), so there is no per-browser
+    // balance left to report to a logged-out visitor. Saying "2 free
+    // exports left" here would be a promise this browser can't keep -
+    // the allowance belongs to whichever account they sign into.
+    label = `${status.free_exports_remaining} free exports with an account`;
+  } else if (status.pass_active) {
     const until = status.pass_expires_at ? new Date(status.pass_expires_at).toLocaleDateString() : '';
     label = `Unlimited pass active${until ? ` (until ${until})` : ''}`;
+  } else if (status.free_exports_remaining > 0) {
+    label = `${status.free_exports_remaining} free export${status.free_exports_remaining === 1 ? '' : 's'} left`;
   } else if (status.paid_export_credits > 0) {
     label = `${status.paid_export_credits} paid export${status.paid_export_credits === 1 ? '' : 's'} available`;
   } else {
-    label = `${status.free_exports_remaining} free export${status.free_exports_remaining === 1 ? '' : 's'} left`;
+    label = 'No exports left';
   }
   billingIndicator.textContent = label;
   billingIndicator.classList.remove('hidden');
@@ -2848,13 +2869,15 @@ function hidePaywall() {
 
 async function startCheckout(kind) {
   trackEvent('checkout_started', { kind });
-  // The 30-day pass is the one purchase that needs login (see
-  // billing.LoginRequired) - if there's no valid session yet, collect
-  // one first, then resume straight into checkout on success rather
-  // than making the trader click "buy" a second time.
-  if (kind === 'pass' && !(await getValidAccessToken())) {
+  // Both purchases need login now (see billing.LoginRequired) - the
+  // single export credit joined the pass on 2026-09-03, since an export
+  // itself requires an account and an unspendable credit would be worse
+  // than no sale. If there's no valid session yet, collect one first,
+  // then resume straight into checkout rather than making the trader
+  // click "buy" a second time.
+  if (!(await getValidAccessToken())) {
     hidePaywall();
-    showAuthOverlay(() => startCheckout('pass'));
+    showAuthOverlay(() => startCheckout(kind));
     return;
   }
 
@@ -2968,6 +2991,20 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
     return;
   }
 
+  // Every export needs an account as of 2026-09-03, the free ones
+  // included - the free allowance is counted per account now, not per
+  // browser (see _require_export_entitlement in main.py). Checked here
+  // BEFORE the request so the trader gets a login prompt rather than a
+  // raw 401, and resumes straight into the export they asked for on
+  // success - the same "collect login, then continue" pattern
+  // startCheckout() already uses for the 30-day pass. Validating the
+  // workspace first (above) is deliberate: being asked to sign in only
+  // to then be told the strategy is incomplete would be a worse order.
+  if (!(await getValidAccessToken())) {
+    showAuthOverlay(() => exportStrategy({ endpoint, filenamePrefix, button, busyLabel }));
+    return;
+  }
+
   exportButtons.forEach(b => { b.disabled = true; });
   statusMsg.textContent = busyLabel;
   // Force-visible regardless of the mobile icon-only header (statusMsg is
@@ -2986,19 +3023,28 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
   }, 6000);
 
   try {
-    // Authorization is only added if actually logged in - lets the
-    // backend grant via an active 30-day pass first (see
-    // _require_export_entitlement in main.py) before ever falling back
-    // to the anonymous device_id cookie's free/credit balance.
+    // The token IS the entitlement now - it identifies the account whose
+    // free allowance / credits / pass the backend spends (see
+    // _require_export_entitlement in main.py). The device cookie still
+    // goes along, but only so export_log records which browser received
+    // the file.
     const token = await getValidAccessToken();
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
       headers,
-      credentials: 'include', // sends the anonymous device cookie - see device_identity.py
+      credentials: 'include', // device cookie - see device_identity.py
       body: JSON.stringify(payload),
     });
+
+    // 401 is reachable even though login was checked above: the session
+    // can expire between that check and this response. Re-prompt and
+    // resume rather than surfacing it as a generic failure.
+    if (res.status === 401) {
+      showAuthOverlay(() => exportStrategy({ endpoint, filenamePrefix, button, busyLabel }));
+      return;
+    }
 
     if (res.status === 402) {
       const errJson = await res.json().catch(() => ({}));

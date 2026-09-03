@@ -37,7 +37,11 @@ from pydantic import BaseModel, Field, field_validator
 
 import billing
 import db
-from device_identity import get_client_ip, get_device_id
+# get_client_ip is no longer imported here: it only fed the per-IP cap on
+# the anonymous free-export bucket, which went away with the device-based
+# flow on 2026-09-03. device_identity.py still uses it internally to stamp
+# devices.ip_hash.
+from device_identity import get_device_id
 from marketplace_strategies import get_marketplace_strategy_config, get_marketplace_strategy_tier
 from supabase_auth import get_current_user
 from settings import settings
@@ -2924,36 +2928,30 @@ def _asset_slug_for_filename(config: WorkspaceConfig) -> str:
 async def _require_export_entitlement(
     request: Request, device_id: str, platform: str, strategy_meta: Optional[dict] = None
 ) -> None:
-    """Consumes one unit of export entitlement (free allowance -> paid
-    credit -> active day-pass, checked in that order - see
-    consume_export_entitlement() in supabase/schema.sql) or raises 402
-    Payment Required.
+    """Consumes one unit of THIS ACCOUNT's export entitlement (free
+    allowance -> purchased credit, in that order - see
+    consume_account_export() in supabase/schema.sql), or raises.
+
+    Every export requires a logged-in account as of 2026-09-03, free ones
+    included - an explicit product decision, not a technical one. Before
+    that, the free tier and single-export credits were anonymous and
+    counted per device_id cookie; that whole path is gone, along with its
+    per-IP free cap (which only existed because a cookie resets to a
+    fresh free allowance the moment it's cleared - an account does not,
+    so the cap has nothing left to defend).
+
+    Raises 401 when not logged in and 402 when the account is out of
+    everything - two distinct states the frontend shows differently: a
+    login prompt versus the paywall.
+
+    An active pro grant (a purchased 30-day pass or a manual one - see
+    has_active_pass() in schema.sql) is unlimited and wins immediately,
+    before anything is deducted.
 
     strategy_meta (see _summarize_strategy() above) is only ever attached
-    to the export_log row once the export is actually granted - a 402
+    to the export_log row once the export is actually granted - a 401/402
     here means nothing was exported, so nothing about the attempted
     strategy is recorded either.
-
-    The client IP is passed through (hashed inside db.py, same as
-    get_device_id already does) so the free bucket is also capped per-IP,
-    not just per device_id cookie - see IP_FREE_EXPORT_LIMIT in
-    settings.py for why a cleared cookie alone isn't enough to loop past
-    this anymore.
-
-    If the request carries a valid login token AND that user has active
-    pro (a purchased 30-day pass, or a manual grant - see
-    has_active_pass() in schema.sql), it wins immediately - checked
-    before anything else, since it's meant to work from any of the
-    trader's devices, not just this one (see schema.sql's header
-    comment).
-
-    Otherwise, if logged in, that account's exports_available bucket is
-    checked next (2026-08-29 addition) - a separate, additive pool of
-    exports for this account specifically, manually grantable or funded
-    by a single-export purchase made while logged in. Only after both of
-    those come up empty (or the request isn't logged in at all) does this
-    fall through to the anonymous per-device free/paid flow, completely
-    unchanged for anyone not logged in.
 
     If DATABASE_URL isn't configured at all, billing is treated as not
     wired up yet (e.g. local dev without a Supabase project) and every
@@ -2964,14 +2962,20 @@ async def _require_export_entitlement(
         return
 
     user_id = get_current_user(request)
-    if user_id:
-        if await db.has_active_pass(user_id):
-            await db.log_user_pass_export(user_id, device_id, platform, strategy_meta)
-            return
-        if await db.consume_account_export_credit(user_id, device_id, platform, strategy_meta):
-            return
+    if not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "login_required",
+                "message": "Log in to export - your free exports are tied to your account.",
+            },
+        )
 
-    granted, _consumed_from = await db.consume_export(device_id, platform, get_client_ip(request), strategy_meta)
+    if await db.has_active_pass(user_id):
+        await db.log_user_pass_export(user_id, device_id, platform, strategy_meta)
+        return
+
+    granted, _consumed_from = await db.consume_account_export(user_id, device_id, platform, strategy_meta)
     if not granted:
         raise HTTPException(
             status_code=402,
@@ -3140,6 +3144,21 @@ async def _require_strategy_ownership(strategy_id: str, request: Request) -> Non
     if tier is None:
         raise HTTPException(status_code=404, detail=f"Unknown marketplace strategy id: {strategy_id!r}")
     if tier == "free":
+        # Free still means free - no purchase, no entitlement spent - but
+        # it does need an account as of 2026-09-03, same as every other
+        # generated file this app hands out (see
+        # _require_export_entitlement). Deliberately checked before the
+        # DATABASE_URL escape hatch below: this one needs no database at
+        # all, only a valid token, so an unconfigured local dev
+        # environment shouldn't quietly hand the file to anyone.
+        if not get_current_user(request):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": "login_required",
+                    "message": "Log in to download this week's free strategy - it's free, it just needs an account.",
+                },
+            )
         return
     if not settings.DATABASE_URL:
         # Same "loudly allow, never silently block" stance as
@@ -3270,57 +3289,71 @@ async def health():
 
 
 # --------------------------------------------------------------------------
-# Billing (Stripe + anonymous device entitlement)
+# Billing (Stripe + account entitlement)
 # --------------------------------------------------------------------------
-# No accounts, no login - see device_identity.py. A device pays either
-# per export (one-time, ~5 zl) or for a 30-day unlimited pass (one-time,
-# ~30 zl); /api/generate* above is what actually spends that entitlement.
+# Every export requires a logged-in account as of 2026-09-03, free ones
+# included - see _require_export_entitlement above. An account gets 2 free
+# exports, then pays either per export (one-time) or for a 30-day
+# unlimited pass (one-time); /api/generate* above is what actually spends
+# that entitlement.
 
 @app.get("/api/billing/status")
 async def billing_status(request: Request, device_id: str = Depends(get_device_id)):
-    """Entitlement snapshot for the current browser - the frontend uses
-    this to show 'N free exports left' / paywall state without needing
-    to attempt (and fail) an export first. If the request is also logged
-    in, pass_active reflects that user's account-wide pass (which can be
-    true even on a brand new device that's never bought anything, either
-    from a purchased pass or a manual grant - see has_active_pass() in
-    schema.sql), and account_exports_available surfaces that same
-    account's separate, additive export bucket (2026-08-29 addition) -
-    an existing frontend that doesn't read this new field yet keeps
-    working exactly as before, it just won't mention this bucket."""
+    """Entitlement snapshot for the logged-in account - the frontend uses
+    this to show 'N free exports left' / paywall state without needing to
+    attempt (and fail) an export first.
+
+    Account-based since 2026-09-03. Not logged in means there is nothing
+    to report: the response says so via logged_in=false and a full,
+    untouched free allowance, because that IS what this visitor gets the
+    moment they sign up - it is not a claim that they can export now
+    (they can't; /api/generate* 401s). The frontend shows a login prompt
+    on that state, not a paywall.
+
+    The `device_id` dependency is kept purely so the cookie keeps being
+    issued/refreshed on this call, same as every other endpoint - it no
+    longer decides any entitlement."""
     user_id = get_current_user(request)
-    if not settings.DATABASE_URL:
+    if not settings.DATABASE_URL or not user_id:
         return {
             "free_exports_used": 0,
             "free_exports_remaining": settings.FREE_EXPORT_LIMIT,
             "paid_export_credits": 0,
             "pass_active": False,
             "pass_expires_at": None,
-            "billing_configured": False,
+            "billing_configured": bool(settings.DATABASE_URL),
             "logged_in": bool(user_id),
         }
-    status = await db.get_entitlement_status(device_id)
-    status["billing_configured"] = True
-    status["logged_in"] = bool(user_id)
-    if user_id:
-        account_status = await db.get_account_status(user_id)
-        if account_status["pass_active"]:
-            status["pass_active"] = True
-        status["account_exports_available"] = account_status["exports_available"]
-    return status
+
+    account = await db.get_account_status(user_id)
+    free_used = account["free_exports_used"]
+    return {
+        "free_exports_used": free_used,
+        "free_exports_remaining": max(0, settings.FREE_EXPORT_LIMIT - free_used),
+        # Named paid_export_credits for the frontend's sake - it's the
+        # account's exports_available bucket now, not the old per-device
+        # column, but the meaning ("exports this trader has paid for and
+        # not yet spent") and every consumer of it are unchanged.
+        "paid_export_credits": account["exports_available"],
+        "pass_active": account["pass_active"],
+        "pass_expires_at": account["is_pro_until"],
+        "billing_configured": True,
+        "logged_in": True,
+    }
 
 
 @app.post("/api/billing/checkout/export")
 async def billing_checkout_export(request: Request, device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for a single export credit and
-    returns its hosted URL for the frontend to redirect to. Anonymous -
-    no login required, same as the free tier - but if the caller happens
-    to be logged in, that's passed through so the credit lands on their
-    account instead of just this device (2026-08-29 addition - see
-    billing.create_checkout_session / db.grant_export_credits)."""
+    returns its hosted URL for the frontend to redirect to. Requires
+    login (401 if not) as of 2026-09-03 - exports themselves now do, so
+    a credit that couldn't be spent without an account would be worse
+    than useless. See billing.LoginRequired."""
     user_id = get_current_user(request)
     try:
         url = billing.create_checkout_session(device_id, "export_credit", user_id=user_id)
+    except billing.LoginRequired as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except billing.BillingNotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"url": url}

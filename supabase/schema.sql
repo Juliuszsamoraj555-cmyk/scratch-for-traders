@@ -443,45 +443,97 @@ create or replace function has_active_pass(p_user_id uuid) returns boolean as $$
 $$ language sql stable;
 
 -- ============================================================
--- consume_account_export_credit: atomic decrement of a logged-in
--- account's exports_available bucket - the middle tier checked between
--- "does this account have an active pro grant" (has_active_pass, above)
--- and the anonymous per-device free/paid flow (consume_export_entitlement,
--- below). Row-locked (FOR UPDATE) for the same reason as
--- consume_export_entitlement: two near-simultaneous exports from the
--- same account shouldn't both slip through on the last credit.
+-- ACCOUNT-BASED EXPORTS (2026-09-03) - every export now requires a
+-- logged-in account, free ones included, and the free allowance is
+-- counted PER ACCOUNT rather than per device (explicit product
+-- decision: an account per exporter is worth more than the friction it
+-- costs, and a device_id cookie resets to a fresh free allowance the
+-- moment it's cleared, which an account does not).
 --
--- p_device_id is still required even though this is account-keyed -
--- export_log.device_id is NOT NULL (every request already carries one,
--- logged in or not), so this is just which browser the export happened
--- to be delivered to, not which entitlement paid for it.
+-- free_exports_used is the account's own counter, the direct
+-- counterpart of devices.free_exports_used - which, along with the
+-- whole anonymous per-device flow below, is now DEAD for exports. Both
+-- the column and consume_export_entitlement() are deliberately left in
+-- place rather than dropped: they still hold the real history of every
+-- export delivered before this change, and nothing is gained by
+-- destroying that.
 -- ============================================================
-create or replace function consume_account_export_credit(
+alter table user_entitlements add column if not exists free_exports_used integer not null default 0;
+
+-- ============================================================
+-- consume_account_export: the one place that decides "can this ACCOUNT
+-- export right now", and atomically deducts the right bucket. Replaces
+-- consume_account_export_credit(), which only knew about purchased
+-- credits - the free allowance lived on the device back then. Returns
+-- (granted, consumed_from) to match consume_export_entitlement's shape;
+-- consumed_from is 'free' | 'account_credit' when granted, 'none' when
+-- the account is out of everything (the app should 402).
+--
+-- An active pro grant is still checked separately, BEFORE this is ever
+-- called (has_active_pass above) - pro is unlimited, so there's nothing
+-- here to deduct for it.
+--
+-- Free allowance is spent BEFORE purchased credits on purpose: same
+-- total either way, but it leaves the credit the trader actually paid
+-- for available for whenever they need it, instead of silently burning
+-- it while a free one was still sitting there.
+--
+-- Row-locked (FOR UPDATE) so two near-simultaneous exports from the
+-- same account can't both slip through on the last free one.
+--
+-- p_device_id is recorded but never consulted: export_log.device_id is
+-- NOT NULL and simply says which browser the file was delivered to, not
+-- which entitlement paid for it.
+-- ============================================================
+drop function if exists consume_account_export_credit(uuid, uuid, text, jsonb);
+
+create or replace function consume_account_export(
     p_user_id uuid,
     p_device_id uuid,
     p_platform text,
+    p_free_limit integer default 2,
     p_strategy_meta jsonb default null
-) returns boolean as $$
+) returns table(granted boolean, consumed_from text) as $$
 declare
-    v_remaining integer;
+    v_credits   integer;
+    v_free_used integer;
 begin
-    select exports_available into v_remaining
+    -- Belt-and-suspenders: the auth.users trigger above already creates a
+    -- row per signup, but a missing row must not read as "out of free
+    -- exports" for someone who has never exported at all.
+    insert into user_entitlements (user_id) values (p_user_id)
+    on conflict (user_id) do nothing;
+
+    select exports_available, free_exports_used
+      into v_credits, v_free_used
       from user_entitlements
      where user_id = p_user_id
      for update;
 
-    if not found or v_remaining <= 0 then
-        return false;
+    -- 1) The account's free allowance.
+    if v_free_used < p_free_limit then
+        update user_entitlements
+           set free_exports_used = free_exports_used + 1
+         where user_id = p_user_id;
+        insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta)
+        values (p_device_id, p_user_id, p_platform, 'free', p_strategy_meta);
+        return query select true, 'free'::text;
+        return;
     end if;
 
-    update user_entitlements
-       set exports_available = exports_available - 1
-     where user_id = p_user_id;
+    -- 2) Purchased / manually granted account credits.
+    if v_credits > 0 then
+        update user_entitlements
+           set exports_available = exports_available - 1
+         where user_id = p_user_id;
+        insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta)
+        values (p_device_id, p_user_id, p_platform, 'account_credit', p_strategy_meta);
+        return query select true, 'account_credit'::text;
+        return;
+    end if;
 
-    insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta)
-    values (p_device_id, p_user_id, p_platform, 'account_credit', p_strategy_meta);
-
-    return true;
+    -- 3) Nothing left.
+    return query select false, 'none'::text;
 end;
 $$ language plpgsql;
 
