@@ -180,17 +180,110 @@
   #features .feature-card:hover .feature-icon { transform: scale(1.1) rotate(-3deg); }
   #features .feature-icon { transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
-  /* Strategy of the Week teaser card - same lift/glow recipe as
-     .feature-card above (2026-08-31), so this section stops reading as
-     the one static, un-animated block on an otherwise "alive" page. */
-  #sotwTeaserCard {
-    transition: transform 300ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  /* ------------------------------------------------------------------
+     Strategy of the Week teaser (2026-09-01 redesign). Replaces a single
+     large card showing only the free strategy, which read as empty and
+     generic - now three real strategies (free / top performer / one more
+     from the rotating lineup) in a market-watch style list: the layout a
+     trader already knows from their broker's instrument window, which is
+     also deliberately NOT three equal cards side by side.
+
+     Written as plain CSS rather than Tailwind utilities on purpose: the
+     stylesheet is PRECOMPILED (assets/vendor/tailwind/tailwind-compiled.css,
+     see docs/DEPLOYMENT.md step 0) and Node isn't installed on this
+     machine, so any new utility class would silently do nothing. Custom
+     CSS here is guaranteed to work either way.
+     ------------------------------------------------------------------ */
+  .sotw-list {
+    border: 1px solid #1f2937;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: rgba(17, 24, 39, 0.6);
   }
-  #sotwTeaserCard:hover {
-    transform: translateY(-4px);
-    border-color: #047857;
-    background-color: rgba(6, 78, 59, 0.18);
-    box-shadow: 0 10px 30px -12px rgba(16, 185, 129, 0.35);
+  .sotw-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 168px auto 128px;
+    align-items: center;
+    gap: 1.75rem;
+    padding: 1.75rem 2rem;
+    border-top: 1px solid #1f2937;
+    text-decoration: none;
+    transition: background-color 180ms ease;
+  }
+  .sotw-row:first-child { border-top: 0; }
+  .sotw-row:hover { background: rgba(6, 78, 59, 0.18); }
+  /* A left edge marks the two rows that mean something specific (the
+     always-free slot, the week's best performer) - an inset shadow
+     rather than a badge, so the list stays scannable instead of picking
+     up decorative chips. */
+  .sotw-row--free { box-shadow: inset 4px 0 0 #10b981; }
+  .sotw-row--top  { box-shadow: inset 4px 0 0 #f59e0b; }
+
+  /* Instrument mark sizing for this page - the markup itself comes from
+     assets/instrument-marks.js (shared with strategy-of-the-week.html),
+     which deliberately ships no CSS of its own since the two pages draw
+     these at different sizes. The ring colour is the row background, so
+     the back disc reads as sitting behind the front one. */
+  /* display:inline-block matters wherever .im-pair isn't itself a grid
+     item - width is ignored on a plain inline box, letting the
+     absolutely-positioned discs escape and overlap whatever sits next
+     to them (seen for real on strategy-of-the-week.html). */
+  .im-pair { position: relative; display: inline-block; width: 74px; height: 46px; flex: none; vertical-align: middle; }
+  .im-disc {
+    position: absolute; top: 0; width: 46px; height: 46px;
+    border-radius: 50%; overflow: hidden; display: block;
+    box-shadow: 0 0 0 2px #111827;
+  }
+  .im-disc svg { display: block; width: 100%; height: 100%; }
+  .im-disc--back  { left: 28px; z-index: 1; }
+  .im-disc--front { left: 0;    z-index: 2; }
+
+  .sotw-symbol { font-size: 1.375rem; font-weight: 700; color: #f3f4f6; letter-spacing: 0.01em; line-height: 1.15; }
+  .sotw-meta { margin-top: 0.3125rem; font-size: 0.875rem; color: #6b7280; }
+  /* Sits ABOVE the symbol rather than inline in the meta line: appended
+     to the meta it made "Top performer - Trend following - M5" long
+     enough to wrap to two ragged lines at mid widths, throwing the row
+     out of alignment with its neighbours. */
+  .sotw-tag-top {
+    display: block; margin-bottom: 0.1875rem;
+    font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #f59e0b;
+  }
+
+  .sotw-stats { display: flex; gap: 2rem; }
+  .sotw-stat-val { font-size: 1.375rem; font-weight: 700; line-height: 1.1; }
+  .sotw-stat-lbl { margin-top: 0.25rem; font-size: 0.75rem; color: #6b7280; }
+
+  .sotw-price { text-align: right; font-size: 1.5rem; font-weight: 700; color: #e5e7eb; line-height: 1.1; }
+  .sotw-price--free { color: #34d399; }
+  .sotw-cta { margin-top: 0.3125rem; font-size: 0.8125rem; color: #6b7280; text-align: right; }
+  .sotw-row:hover .sotw-cta { color: #34d399; }
+
+  /* Progressive shedding rather than a single mobile breakpoint: the two
+     secondary stats go first, then the sparkline, then the row folds to
+     two lines - so the row stays full-but-not-cramped at every width
+     instead of jumping straight from "everything" to "almost nothing". */
+  @media (max-width: 1180px) {
+    .sotw-stat-wide { display: none; }
+  }
+  @media (max-width: 860px) {
+    .sotw-row { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: 1rem; column-gap: 1rem; padding: 1.375rem 1.25rem; }
+    .sotw-spark { display: none; }
+    .sotw-pair  { grid-column: 1; grid-row: 1; }
+    .sotw-name  { grid-column: 2; grid-row: 1; }
+    .sotw-price-cell { grid-column: 3; grid-row: 1; }
+    .sotw-stats { grid-column: 1 / -1; grid-row: 2; }
+    /* Scaled back down from the desktop sizes above: at full size the
+       meta line ("Top performer - Trend following - M5") wrapped to
+       three ragged lines and the rows lost their alignment entirely. */
+    .im-pair { width: 58px; height: 36px; }
+    .im-disc { width: 36px; height: 36px; }
+    .im-disc--back { left: 22px; }
+    .sotw-symbol { font-size: 1.125rem; }
+    .sotw-meta { font-size: 0.8125rem; margin-top: 0.1875rem; }
+    .sotw-stat-val { font-size: 1.125rem; }
+    .sotw-price { font-size: 1.25rem; }
+    .sotw-stats { gap: 1.5rem; }
   }
 
   /* Tailwind's Preflight reset apparently overrides the browser's native
@@ -502,41 +595,35 @@
   </section>
 
   <!-- ============================================================
-       STRATEGY OF THE WEEK (2026-08-26, staging)
+       STRATEGY OF THE WEEK
        Teaser mirroring the BLOG section's own pattern below (short
        intro + a peek at the content + a "see everything" link to the
        real page, not the full listing inlined here). Data-driven from
-       assets/marketplace-data.js so the free strategy shown here can
-       never drift out of sync with the real page - placeholder content
-       until the marketplace's real content/prices/Stripe land (see
-       that file's header comment).
+       assets/marketplace-data.js so the strategies shown here can never
+       drift out of sync with the real page.
+
+       Wider (max-w-6xl) than the other sections on purpose: this is the
+       one block on the page carrying a real data table, and the columns
+       need the room at the size they're drawn - see the .sotw-* rules in
+       the <style> block above.
        ============================================================ -->
   <section id="strategy-of-the-week" class="border-t border-gray-800 bg-gray-900/40">
-    <div class="max-w-5xl mx-auto px-6 py-20">
-      <div class="flex items-center justify-center gap-3">
-        <!-- Same composed mark as strategy-of-the-week.html's own hero
-             (2026-08-31 redesign) - a small strategy card with a rising
-             bar chart and a gold "picked this week" medal overlapping the
-             corner, built from filled shapes the same way #features'
-             feature-icon SVGs are (not a generic stroke-icon-in-a-chip). -->
-        <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="5" y="9" width="38" height="30" rx="6" fill="#059669"/>
-          <rect x="12" y="26" width="6" height="8" rx="1.5" fill="#a7f3d0"/>
-          <rect x="21" y="19" width="6" height="15" rx="1.5" fill="#a7f3d0"/>
-          <rect x="30" y="13" width="6" height="21" rx="1.5" fill="#f0fdf4"/>
-          <circle cx="38" cy="10" r="9" fill="#f59e0b"/>
-          <path d="M38 5.2l1.7 3.5 3.8.55-2.75 2.68.65 3.82L38 14l-3.4 1.78.65-3.82-2.75-2.68 3.8-.55L38 5.2Z" fill="#fffbeb"/>
-        </svg>
-        <h2 class="reveal text-2xl md:text-3xl font-bold text-gray-50 text-center">Strategy of the Week</h2>
-      </div>
-      <p class="reveal mt-3 text-gray-400 text-center max-w-xl mx-auto">A new, independently backtested strategy every week. One is always free.</p>
+    <div class="max-w-6xl mx-auto px-6 py-24">
+      <!-- Typographic header, no icon chip (2026-09-01): the composed
+           card+medal mark that used to sit next to this heading read as
+           a stock app icon rather than something this product drew. The
+           instrument marks in the list below now carry the visual
+           weight instead, and they mean something. -->
+      <p class="reveal text-xs font-semibold uppercase tracking-wide text-emerald-400 text-center">New lineup every week</p>
+      <h2 class="reveal mt-3 text-3xl md:text-4xl font-bold text-gray-50 text-center">Strategy of the Week</h2>
+      <p class="reveal mt-4 text-lg text-gray-400 text-center max-w-2xl mx-auto">Independently backtested on real tick data, with the full stats shown before you pay for anything. One is always free.</p>
 
-      <div id="sotwTeaserCard" class="reveal mt-12 bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-7 flex flex-wrap gap-8 items-stretch transition"></div>
+      <div id="sotwList" class="reveal mt-12 sotw-list"></div>
 
       <div class="reveal mt-8 text-center">
-        <a href="strategy-of-the-week.html" class="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition">
-          Show more
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <a href="strategy-of-the-week.html" class="inline-flex items-center gap-2 text-base font-semibold text-emerald-400 hover:text-emerald-300 transition">
+          See all six strategies
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
       </div>
     </div>
@@ -790,40 +877,120 @@
 </div>
 
 <script src="assets/marketplace-data.js"></script>
+<script src="assets/instrument-marks.js"></script>
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // Strategy of the Week teaser card - see the section's own header
-  // comment above. Renders the free strategy from the shared catalog
-  // (assets/marketplace-data.js) so this can never drift out of sync
-  // with the real listing page.
+  /* ------------------------------------------------------------------
+     Strategy of the Week teaser - see the section's own header comment.
+     Renders three strategies from the shared catalog
+     (assets/marketplace-data.js) so this can never drift out of sync
+     with the real listing page. The instrument marks (overlapping
+     currency discs) come from assets/instrument-marks.js, shared with
+     strategy-of-the-week.html - only their sizing lives in this page's
+     own <style> block (.im-pair / .im-disc above).
+     ------------------------------------------------------------------ */
+
+  // Compact equity sparkline from the strategy's REAL per-trade balances
+  // (same data the listing page charts, just downsampled to ~26 points
+  // and smoothed - a raw polyline through every trade reads as noise at
+  // this size, the exact complaint that sent the listing page's own
+  // chart back for a redo).
+  function sotwSparkline(equityCurve, w, h) {
+    if (!Array.isArray(equityCurve) || equityCurve.length < 2) return '';
+    const all = equityCurve.map((p) => (typeof p === 'object' ? p.balance : p));
+    const step = Math.max(1, Math.floor(all.length / 26));
+    const vals = all.filter((_, i) => i % step === 0);
+    if (vals[vals.length - 1] !== all[all.length - 1]) vals.push(all[all.length - 1]);
+    const min = Math.min(...vals), max = Math.max(...vals), range = (max - min) || 1;
+    const pad = h * 0.16;
+    const pts = vals.map((v, i) => [
+      (i / (vals.length - 1)) * w,
+      h - pad - ((v - min) / range) * (h - pad * 2),
+    ]);
+    let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1];
+      const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+      d += ` C ${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)}`
+         + ` ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)}`
+         + ` ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    const up = vals[vals.length - 1] >= vals[0];
+    const stroke = up ? '#34d399' : '#f87171';
+    const fill = up ? 'rgba(16,185,129,0.14)' : 'rgba(248,113,113,0.14)';
+    return `<svg class="sotw-spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+      <path d="${d} L ${w},${h} L 0,${h} Z" fill="${fill}"/>
+      <path d="${d}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
   (function renderStrategyOfTheWeekTeaser() {
-    const strategy = typeof MARKETPLACE_STRATEGIES !== 'undefined'
-      ? MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free')
-      : null;
-    const el = document.getElementById('sotwTeaserCard');
-    if (!strategy || !el) return;
-    el.innerHTML = `
-      <div class="flex-1 min-w-[280px]">
-        <span class="text-xs font-bold uppercase tracking-wide text-emerald-400">${strategy.badge}</span>
-        <h3 class="mt-2.5 text-xl font-bold text-gray-50">${strategy.name}</h3>
-        <p class="mt-2.5 text-sm text-gray-300 leading-relaxed max-w-md">${strategy.description}</p>
-        <div class="mt-5 flex gap-6 flex-wrap">
-          <div><div class="text-xl font-bold text-emerald-300">${strategy.stats.winRate}%</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
-          <div><div class="text-xl font-bold text-emerald-300">+${strategy.stats.returnPct}%</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
-          <div><div class="text-xl font-bold text-gray-100">${strategy.stats.trades}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
-        </div>
-        <div class="mt-5">
-          <a href="strategy-detail.html?id=${strategy.id}" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md">Download for free</a>
-        </div>
-      </div>
-      <div class="flex-1 min-w-[220px] flex items-center justify-center">
-        <svg viewBox="0 0 320 140" width="100%" height="140" style="max-width:340px" preserveAspectRatio="none" aria-hidden="true">
-          <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="0,120 30,118 60,112 90,116 120,98 150,90 180,72 210,68 240,48 270,40 300,22 320,16 320,140 0,140" fill="rgba(16,185,129,0.10)" stroke="none"/>
-        </svg>
-      </div>
-    `;
+    const el = document.getElementById('sotwList');
+    if (!el || typeof MARKETPLACE_STRATEGIES === 'undefined') return;
+
+    const free = MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free');
+    const featured = MARKETPLACE_STRATEGIES.find((s) => s.featured);
+    // Third slot rotates on every page load, drawn from the paid
+    // strategies whose instrument isn't already on screen - so a repeat
+    // visitor sees a different pair here and the lineup reads as bigger
+    // than the three rows shown (it is: six a week).
+    const shown = [free && free.symbol, featured && featured.symbol].filter(Boolean);
+    const pool = MARKETPLACE_STRATEGIES.filter(
+      (s) => s.tier === 'paid' && !s.featured && !shown.includes(s.symbol)
+    );
+    const third = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+
+    const rows = [
+      { s: free, kind: 'free' },
+      { s: featured, kind: 'top' },
+      { s: third, kind: 'paid' },
+    ].filter((r) => r.s);
+
+    el.innerHTML = rows.map(({ s, kind }) => {
+      const ret = s.stats.returnPct;
+      const price = kind === 'free' ? 'Free' : s.priceLabel;
+      return `
+        <a href="strategy-detail.html?id=${s.id}" class="sotw-row${kind === 'free' ? ' sotw-row--free' : kind === 'top' ? ' sotw-row--top' : ''}">
+          ${instrumentMark(s.symbol)}
+          <span class="sotw-name">
+            ${kind === 'top' ? '<span class="sotw-tag-top">Top performer</span>' : ''}
+            <span class="sotw-symbol" style="display:block">${s.symbol}</span>
+            <span class="sotw-meta" style="display:block">${s.style} &middot; ${s.timeframe}</span>
+          </span>
+          ${sotwSparkline(s.stats.equityCurve, 168, 54)}
+          <span class="sotw-stats">
+            <span>
+              <span class="sotw-stat-val" style="color:#e5e7eb;display:block">${s.stats.winRate.toFixed(1)}%</span>
+              <span class="sotw-stat-lbl" style="display:block">win rate</span>
+            </span>
+            <span>
+              <span class="sotw-stat-val" style="color:${ret >= 0 ? '#34d399' : '#f87171'};display:block">${ret > 0 ? '+' : ''}${ret.toFixed(1)}%</span>
+              <span class="sotw-stat-lbl" style="display:block">return</span>
+            </span>
+            <!-- Profit factor and max drawdown are here for the same
+                 reason the listing page shows them next to win rate: a
+                 win rate on its own is misleading (a sub-50% strategy can
+                 be solidly profitable), and nobody should have to click
+                 through to find out how far a strategy drew down. They
+                 also carry the section's "full stats before you pay"
+                 claim rather than leaving the row half empty. -->
+            <span class="sotw-stat-wide">
+              <span class="sotw-stat-val" style="color:#e5e7eb;display:block">${s.stats.profitFactor}</span>
+              <span class="sotw-stat-lbl" style="display:block">profit factor</span>
+            </span>
+            <span class="sotw-stat-wide">
+              <span class="sotw-stat-val" style="color:#e5e7eb;display:block">${s.stats.drawdownPct.toFixed(1)}%</span>
+              <span class="sotw-stat-lbl" style="display:block">max drawdown</span>
+            </span>
+          </span>
+          <span class="sotw-price-cell">
+            <span class="sotw-price${kind === 'free' ? ' sotw-price--free' : ''}" style="display:block">${price}</span>
+            <span class="sotw-cta" style="display:block">${kind === 'free' ? 'Download' : 'View'} &rarr;</span>
+          </span>
+        </a>
+      `;
+    }).join('');
   })();
 
   // Fade the page out before handing off to the builder, so the jump

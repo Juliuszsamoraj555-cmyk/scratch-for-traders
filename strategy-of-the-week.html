@@ -51,28 +51,186 @@
     background-color: rgba(6, 78, 59, 0.18);
     box-shadow: 0 10px 30px -12px rgba(16, 185, 129, 0.35);
   }
-  #strategyGrid .sotw-card:nth-child(1) { transition-delay: 0ms; }
-  #strategyGrid .sotw-card:nth-child(2) { transition-delay: 80ms; }
-  #strategyGrid .sotw-card:nth-child(3) { transition-delay: 160ms; }
-  #strategyGrid .sotw-card:nth-child(4) { transition-delay: 240ms; }
-
   /* "Top performer" medal badge nudge on hover, same spirit as
      #features .feature-icon's hover rotate. */
   .sotw-medal { transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
-  .sotw-card:hover .sotw-medal,
-  .sotw-featured-card:hover .sotw-medal { transform: scale(1.12) rotate(-4deg); }
+  .sotw-card:hover .sotw-medal { transform: scale(1.12) rotate(-4deg); }
 
-  /* Featured card gets its own amber-toned glow (not the emerald one
-     above) - it's already visually "the special one" via the amber
-     medal/border, the hover state should agree. */
-  .sotw-featured-card {
-    transition: transform 300ms ease, opacity 600ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  /* ------------------------------------------------------------------
+     Instrument marks (2026-09-01). Markup comes from
+     assets/instrument-marks.js, shared with index.html's homepage
+     teaser; only sizing lives here, since the two pages draw them at
+     different scales. .im-pair--lg is the free strategy's hero card.
+     ------------------------------------------------------------------ */
+  /* display:inline-block matters - .im-pair is a <span>, and width is
+     ignored on a plain inline box, which let the absolutely-positioned
+     discs escape their column and overlap the symbol next to them. */
+  .im-pair { position: relative; display: inline-block; width: 74px; height: 46px; flex: none; vertical-align: middle; }
+  .im-disc {
+    position: absolute; top: 0; width: 46px; height: 46px;
+    border-radius: 50%; overflow: hidden; display: block;
+    box-shadow: 0 0 0 2px #111827;
   }
-  .sotw-featured-card:hover {
-    transform: translateY(-4px);
-    border-color: #b45309;
-    background-color: rgba(120, 53, 15, 0.18);
-    box-shadow: 0 10px 30px -12px rgba(245, 158, 11, 0.35);
+  .im-disc svg { display: block; width: 100%; height: 100%; }
+  .im-disc--back  { left: 28px; z-index: 1; }
+  .im-disc--front { left: 0;    z-index: 2; }
+
+  .im-pair--lg { width: 104px; height: 64px; }
+  .im-pair--lg .im-disc { width: 64px; height: 64px; box-shadow: 0 0 0 3px #0b1120; }
+  .im-pair--lg .im-disc--back { left: 40px; }
+
+  /* ------------------------------------------------------------------
+     Paid strategies: a market-watch table (2026-09-01 redesign). Replaces
+     a featured card sitting above a 2-column grid of four more cards -
+     five strategies in three different visual treatments, which made
+     comparing them harder than it needed to be and leaned on exactly the
+     equal-card-grid look this site avoids elsewhere. One list, one row
+     each, aligned columns: the layout a trader already reads in their
+     broker's instrument window, and the only one where five strategies
+     can be compared down a column instead of card by card.
+     ------------------------------------------------------------------ */
+  .sotw-table { border: 1px solid #1f2937; border-radius: 1rem; overflow: hidden; background: rgba(17, 24, 39, 0.6); }
+
+  /* Every column except the name is a FIXED width, deliberately. The
+     header and the rows are separate grid containers (a row needs its own
+     box for hover, the left accent edge and the click target, so
+     `display:contents` is out - that generates no box at all). Separate
+     grids only line up if their columns can't resolve differently, and
+     `auto` / `minmax(72px,auto)` size to each grid's OWN content - which
+     is exactly how the header ended up visibly offset from the rows
+     underneath it. Fixed widths + one shared `1fr` remove that freedom. */
+  .sotw-row, .sotw-head {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) 150px repeat(4, 88px) 148px;
+    align-items: center;
+    gap: 1.25rem;
+  }
+  .sotw-head {
+    padding: 0.875rem 2rem;
+    background: rgba(3, 7, 18, 0.5);
+    border-bottom: 1px solid #1f2937;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+  .sotw-head span { text-align: right; }
+  .sotw-head .sotw-head-instrument,
+  .sotw-head .sotw-head-perf { text-align: left; }
+
+  .sotw-row {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #1f2937;
+    cursor: pointer;
+    transition: background-color 180ms ease;
+  }
+  .sotw-table .sotw-row:first-of-type { border-top: 0; }
+  .sotw-row:hover { background: rgba(6, 78, 59, 0.18); }
+  /* A left edge marks the week's best performer - an inset shadow rather
+     than a badge, so the table stays scannable instead of picking up
+     decorative chips. Amber hover to match, not the emerald default. */
+  .sotw-row--top { box-shadow: inset 4px 0 0 #f59e0b; }
+  .sotw-row--top:hover { background: rgba(120, 53, 15, 0.22); }
+
+  .sotw-tag-top {
+    display: block; margin-bottom: 0.1875rem;
+    font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #fbbf24;
+  }
+  .sotw-symbol { font-size: 1.375rem; font-weight: 700; color: #f3f4f6; line-height: 1.15; }
+  .sotw-meta { margin-top: 0.3125rem; font-size: 0.875rem; color: #6b7280; display: flex; align-items: center; gap: 0.375rem; }
+
+  .sotw-stat { text-align: right; font-size: 1.25rem; font-weight: 700; color: #e5e7eb; line-height: 1.15; }
+  .sotw-stat--good { color: #34d399; }
+  .sotw-stat--bad { color: #f87171; }
+  /* Per-row stat captions duplicate the table header on desktop, so they
+     only appear once the header is gone (below). */
+  .sotw-stat-lbl { display: none; margin-top: 0.1875rem; font-size: 0.6875rem; color: #6b7280; text-align: right; }
+
+  /* ------------------------------------------------------------------
+     Free strategy card. Written as plain CSS rather than Tailwind
+     utilities because `p-8`, `rounded-2xl` and `min-w-[300px]` are NOT in
+     the precompiled stylesheet (verified against it directly, not
+     assumed) - a missing utility styles nothing and reports nothing, so
+     the card rendered with zero padding and its content flush against
+     the border. See docs/DEPLOYMENT.md step 0; there's no Node on this
+     machine to rebuild the Tailwind build, so anything new goes here.
+     ------------------------------------------------------------------ */
+  .sotw-free-section { padding-bottom: 3.5rem; }
+  .sotw-free-card {
+    background: rgba(17, 24, 39, 0.6);
+    border: 1px solid #1f2937;
+    border-radius: 1rem;
+    padding: 2rem;
+  }
+  .sotw-free-grid { display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start; }
+  .sotw-free-left  { flex: 1 1 320px; min-width: min(100%, 320px); }
+  .sotw-free-right { flex: 1 1 300px; min-width: min(100%, 300px); }
+  .sotw-free-head { display: flex; align-items: center; gap: 1rem; }
+  .sotw-paid-head { margin-bottom: 1.25rem; }
+  @media (max-width: 700px) { .sotw-free-card { padding: 1.5rem; } }
+
+  /* The free card's four stats. A bare `grid-cols-4` renders as ONE
+     column here - that utility isn't in the precompiled Tailwind build
+     (only the `sm:`-prefixed variants this page already used are, see
+     docs/DEPLOYMENT.md step 0) and there's no Node available to rebuild
+     it. Custom CSS is guaranteed to work either way. */
+  .sotw-free-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  @media (max-width: 520px) { .sotw-free-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 0.75rem; } }
+
+  .sotw-action { text-align: right; }
+  .sotw-price { display: block; font-size: 1.5rem; font-weight: 700; color: #f9fafb; line-height: 1.1; }
+  .sotw-buy {
+    margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.375rem;
+    font-size: 0.8125rem; font-weight: 600; border-radius: 0.375rem;
+    padding: 0.5rem 1rem; background: #10b981; color: #111827;
+    border: 0; cursor: pointer; transition: background-color 150ms ease;
+  }
+  .sotw-buy:hover { background: #34d399; }
+  .sotw-owned { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #34d399; }
+  .sotw-owned-link { margin-top: 0.375rem; display: block; font-size: 0.75rem; color: #9ca3af; }
+  .sotw-row:hover .sotw-owned-link { color: #34d399; }
+
+  /* Progressive shedding, same approach as the homepage teaser: the two
+     secondary stats go first, then the sparkline, then the row folds to
+     two lines - so the row stays full-but-not-cramped at every width
+     rather than jumping from "everything" to "almost nothing". */
+  @media (max-width: 1150px) {
+    .sotw-row, .sotw-head { grid-template-columns: 74px minmax(0, 1fr) 140px repeat(2, 88px) 148px; }
+    .sotw-col-wide { display: none; }
+  }
+  @media (max-width: 900px) {
+    .sotw-head { display: none; }
+    .sotw-row {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      row-gap: 1.125rem; column-gap: 1rem;
+      padding: 1.375rem 1.25rem;
+    }
+    .sotw-spark { display: none; }
+    .sotw-stat-lbl { display: block; }
+    .sotw-cell-mark   { grid-column: 1; grid-row: 1; }
+    .sotw-cell-name   { grid-column: 2; grid-row: 1; }
+    .sotw-cell-action { grid-column: 3; grid-row: 1; }
+    .sotw-cell-stat   { grid-row: 2; text-align: left; }
+    .sotw-cell-stat .sotw-stat, .sotw-cell-stat .sotw-stat-lbl { text-align: left; }
+    /* Scaled back down: at desktop sizes these wrapped into ragged
+       multi-line rows on a phone. */
+    .im-pair { width: 58px; height: 36px; }
+    .im-disc { width: 36px; height: 36px; }
+    .im-disc--back { left: 22px; }
+    /* The hero mark needs its own mobile size: `.im-pair--lg .im-disc`
+       is two classes deep, so it outranks the single-class `.im-disc`
+       rule above no matter that the media query comes later - leaving
+       64px discs inside a 58px box, spilling over the heading next to
+       them. Scaled as a pair instead, still larger than a table row's. */
+    .im-pair--lg { width: 82px; height: 52px; }
+    .im-pair--lg .im-disc { width: 52px; height: 52px; }
+    .im-pair--lg .im-disc--back { left: 30px; }
+    .sotw-symbol { font-size: 1.125rem; }
+    .sotw-meta { font-size: 0.8125rem; }
+    .sotw-stat { font-size: 1.125rem; }
+    .sotw-price { font-size: 1.25rem; }
   }
 </style>
 </head>
@@ -111,23 +269,15 @@
        HERO
        ============================================================ -->
   <section class="max-w-6xl mx-auto px-6 pt-16 pb-10">
-    <div class="reveal flex items-center gap-3">
-      <!-- Same composed mark as index.html's homepage teaser (2026-08-31
-           redesign) - one signature illustration reused in both places,
-           same idea as the puzzle-piece hero mark doubling as the nav
-           logo elsewhere on the site. -->
-      <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="5" y="9" width="38" height="30" rx="6" fill="#059669"/>
-        <rect x="12" y="26" width="6" height="8" rx="1.5" fill="#a7f3d0"/>
-        <rect x="21" y="19" width="6" height="15" rx="1.5" fill="#a7f3d0"/>
-        <rect x="30" y="13" width="6" height="21" rx="1.5" fill="#f0fdf4"/>
-        <circle cx="38" cy="10" r="9" fill="#f59e0b"/>
-        <path d="M38 5.2l1.7 3.5 3.8.55-2.75 2.68.65 3.82L38 14l-3.4 1.78.65-3.82-2.75-2.68 3.8-.55L38 5.2Z" fill="#fffbeb"/>
-      </svg>
-      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
-    </div>
-    <p class="reveal mt-4 text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually.</p>
-    <div class="reveal mt-5 flex items-center gap-3 text-sm text-gray-500">
+    <!-- Typographic header, no icon chip (2026-09-01) - matching the
+         homepage teaser's own header. The composed card+medal mark that
+         used to sit next to this heading read as a stock app icon rather
+         than something this product drew; the instrument marks below now
+         carry the visual weight, and they mean something. -->
+    <p class="reveal text-xs font-semibold uppercase tracking-wide text-emerald-400">New lineup every week</p>
+    <h1 class="reveal mt-3 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
+    <p class="reveal mt-4 text-lg text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually.</p>
+    <div class="reveal mt-5 flex items-center gap-3 text-sm text-gray-500 flex-wrap">
       <span>Tested <span class="text-gray-300 font-medium">Jul 29 &ndash; Aug 28, 2026</span> &middot; published Aug 29</span>
       <span class="text-gray-700">&middot;</span>
       <a href="#how-we-test" class="text-emerald-400 hover:text-emerald-300 transition">How we test our strategies &rarr;</a>
@@ -135,22 +285,27 @@
   </section>
 
   <!-- ============================================================
-       FREE STRATEGY OF THE WEEK
+       FREE STRATEGY OF THE WEEK - kept as a full-width hero card rather
+       than folded into the table below: it's the headline offer of the
+       page, it needs no price/buy column, and it's the one strategy
+       whose exact rules are visible without paying, so it earns the
+       room for a real description and a full-size equity chart.
        ============================================================ -->
-  <section class="max-w-6xl mx-auto px-6 pb-10">
-    <div id="freeStrategyCard" class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-7 flex flex-wrap gap-8 items-stretch"></div>
+  <section class="max-w-6xl mx-auto px-6 sotw-free-section">
+    <div id="freeStrategyCard" class="reveal sotw-card sotw-free-card"></div>
   </section>
 
   <!-- ============================================================
-       PAID STRATEGIES
+       PAID STRATEGIES - one market-watch table, see the .sotw-table
+       rules in the <style> block for why this replaced a featured card
+       plus a 2-column grid of four more.
        ============================================================ -->
   <section class="max-w-6xl mx-auto px-6 pb-20">
-    <div class="reveal flex items-baseline justify-between flex-wrap gap-2 mb-1">
-      <h2 class="text-lg font-bold text-gray-100">5 strategies this week</h2>
+    <div class="reveal flex items-baseline justify-between flex-wrap gap-2 sotw-paid-head">
+      <h2 class="text-xl font-bold text-gray-100">Five more strategies this week</h2>
       <span class="text-sm text-gray-500">One-time purchase &middot; yours forever</span>
     </div>
-    <div id="featuredStrategyCard" class="mt-5 mb-4"></div>
-    <div id="strategyGrid" class="grid sm:grid-cols-2 gap-4"></div>
+    <div id="strategyTable" class="reveal sotw-table"></div>
   </section>
 
   <!-- ============================================================
@@ -296,6 +451,7 @@
 
 <script src="assets/marketplace-data.js"></script>
 <script src="assets/marketplace-auth.js"></script>
+<script src="assets/instrument-marks.js"></script>
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -303,32 +459,12 @@ function fmtStat(v, suffix) {
   return (v === null || v === undefined) ? '—' : `${v}${suffix}`;
 }
 
-// Profit factor sits right next to win rate on purpose: a strategy can have
-// a win rate well under 50% and still be solidly profitable if its average
-// win is bigger than its average loss (common for trend/momentum systems
-// with a wide Take Profit and a tight Stop Loss) - profit factor (gross
-// profit / gross loss) is what actually answers "does this make money",
-// win rate alone can look alarming in isolation even when the strategy is
-// fine. Both numbers come from the same tick-precise backtest (see
-// strategy-lab/docs/HANDOFF.md), never shown one without the other here.
-// grid sm:grid-cols-2 (2026-08-31 fix), not flex flex-wrap - at the
-// featured card's narrower stat column, 4 flex items with no fixed width
-// would wrap unevenly (3 on one line, "profit factor" alone on the next,
-// visibly misaligned under the other three). A 2-column grid always lands
-// as a clean 2x2 on any real desktop/tablet viewport (bare, unprefixed
-// grid-cols-2 isn't in the compiled CSS - see docs/DEPLOYMENT.md step 0 -
-// sm: is, and this squeeze only ever happens well above that breakpoint
-// since the outer cards already stack to one column below it).
-function statBlock(strategy) {
-  const s = strategy.stats;
-  return `
-    <div class="grid sm:grid-cols-2 gap-6">
-      <div><div class="text-xl font-bold text-emerald-300">${fmtStat(s.winRate, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
-      <div><div class="text-xl font-bold text-emerald-300">${s.returnPct > 0 ? '+' : ''}${fmtStat(s.returnPct, '%')}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
-      <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.trades, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">trades</div></div>
-      <div><div class="text-xl font-bold text-gray-100">${fmtStat(s.profitFactor, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">profit factor</div></div>
-    </div>
-  `;
+// Percentages always to one decimal so a column reads as a column - the
+// raw catalog values mix 17.3 with a flat 25.0, and `${25}%` renders as
+// "25%" next to "17.3%", which looks like two different precisions
+// rather than two measurements of the same thing.
+function fmtPct(v) {
+  return (v === null || v === undefined) ? '—' : `${v.toFixed(1)}%`;
 }
 
 // Real equity curve (2026-08-29) - replaces a previous hardcoded, identical
@@ -423,52 +559,43 @@ function styleIcon(style) {
   return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18v-3h4v-4h4v-4h4V4h4"/></svg>`;
 }
 
-function ownedRow(strategy) {
-  return `
-    <div class="flex items-center justify-between gap-3 pt-1">
-      <span class="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        You own this
-      </span>
-      <a href="strategy-detail.html?id=${strategy.id}" class="text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 px-3.5 py-2 rounded-md">View &amp; download</a>
-    </div>
-  `;
-}
-
-// Price is deliberately NOT emerald here (2026-08-31 fix, reported: it
-// blended into win rate/return right above it and the Buy button right
-// next to it - three emerald elements in one small area reading as one
-// indistinct green blob instead of three separate pieces of information).
-// Bright neutral white gives the price its own visual identity - emerald
-// stays reserved for "this is a performance number" (stats, equity curve)
-// and "this is the action" (the button) - the price is neither.
-function buyRow(strategy) {
-  return `
-    <div class="flex items-center justify-between pt-1">
-      <span class="text-2xl font-bold text-gray-50">${strategy.priceLabel}</span>
-      <button class="buy-btn text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-5 py-2.5 rounded-md" data-id="${strategy.id}">Buy</button>
-    </div>
-  `;
-}
-
 function renderFreeCard() {
   const strategy = MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free');
   if (!strategy) return;
   const owned = isStrategyOwned(strategy.id);
+  const s = strategy.stats;
   document.getElementById('freeStrategyCard').innerHTML = `
-    <div class="flex-1 min-w-[280px]">
-      <span class="text-xs font-bold uppercase tracking-wide text-emerald-400">${strategy.badge}</span>
-      <h3 class="mt-2.5 text-xl font-bold text-gray-50">${strategy.name}</h3>
-      <p class="mt-2.5 text-sm text-gray-300 leading-relaxed max-w-md">${strategy.description}</p>
-      <div class="mt-5">${statBlock(strategy)}</div>
-      <div class="mt-5">
-        ${owned
-          ? `<a href="strategy-detail.html?id=${strategy.id}" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md">View &amp; download</a>`
-          : `<button class="buy-btn inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-md" data-id="${strategy.id}">Download for free</button>`}
+    <div class="sotw-free-grid">
+      <div class="sotw-free-left">
+        <div class="sotw-free-head">
+          ${instrumentMark(strategy.symbol, 'im-pair--lg')}
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wide text-emerald-400">${strategy.badge}</span>
+            <div class="sotw-symbol" style="margin-top:0.25rem;font-size:1.75rem">${strategy.symbol}</div>
+          </div>
+        </div>
+        <div class="sotw-meta" style="margin-top:0.875rem">${styleIcon(strategy.style)}${strategy.style} &middot; ${strategy.timeframe}</div>
+        <p class="mt-3 text-sm text-gray-300 leading-relaxed max-w-lg">${strategy.description}</p>
+        <div class="mt-6">
+          ${owned
+            ? `<a href="strategy-detail.html?id=${strategy.id}" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3 rounded-lg">View &amp; download</a>`
+            : `<button class="buy-btn inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3 rounded-lg shadow-lg shadow-emerald-500/20" data-id="${strategy.id}">Download for free
+                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v12M6 12l6 6 6-6M5 21h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+               </button>`}
+        </div>
       </div>
-    </div>
-    <div class="flex-1 min-w-[220px] flex items-center justify-center">
-      ${equityCurveSvg(strategy.stats.equityCurve)}
+      <div class="sotw-free-right">
+        ${equityCurveSvg(strategy.stats.equityCurve, { height: 150 })}
+        <!-- Same four numbers, in the same order, as every row of the
+             paid table below - so the free strategy can be compared to
+             them directly rather than being described differently. -->
+        <div class="mt-4 sotw-free-stats border-t border-gray-800 pt-4">
+          <div><div class="sotw-stat" style="text-align:left;font-size:1.125rem">${fmtPct(s.winRate)}</div><div class="text-[11px] text-gray-500 mt-0.5">win rate</div></div>
+          <div><div class="sotw-stat sotw-stat--good" style="text-align:left;font-size:1.125rem">${s.returnPct > 0 ? '+' : ''}${fmtPct(s.returnPct)}</div><div class="text-[11px] text-gray-500 mt-0.5">return</div></div>
+          <div><div class="sotw-stat" style="text-align:left;font-size:1.125rem">${fmtStat(s.profitFactor, '')}</div><div class="text-[11px] text-gray-500 mt-0.5">profit factor</div></div>
+          <div><div class="sotw-stat" style="text-align:left;font-size:1.125rem">${fmtPct(s.drawdownPct)}</div><div class="text-[11px] text-gray-500 mt-0.5">max drawdown</div></div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -484,66 +611,103 @@ function goToDetail(id, e) {
   window.location.href = `strategy-detail.html?id=${id}`;
 }
 
-// Medal badge (2026-08-31 redesign) - replaces the old rounded-full amber
-// pill + generic trophy stroke icon (a textbook "AI SaaS dashboard" tell)
-// with an actual illustrated medal: a filled star badge with two ribbon
-// tails, same composed-shapes idiom as #features' icons on the homepage.
-// Reuses the .sotw-medal class so it gets the same hover nudge as the
-// hero mark's badge.
-function medalBadge() {
-  return `
-    <span class="inline-flex items-center gap-2">
-      <svg class="sotw-medal" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M8.5 12.5 5.5 21l6.5-3.2 6.5 3.2-3-8.5" fill="#b45309"/>
-        <circle cx="12" cy="9" r="7.2" fill="#f59e0b"/>
-        <path d="M12 4.9l1.55 3.15 3.47.5-2.51 2.45.59 3.46L12 12.83l-3.1 1.63.59-3.46-2.51-2.45 3.47-.5L12 4.9Z" fill="#fffbeb"/>
-      </svg>
-      <!-- Inline color, not a text-amber-* class - none of that shade
-           family is in the precompiled Tailwind CSS (see docs/DEPLOYMENT.md
-           step 0) and this project has no Node.js available to rebuild it
-           right now; same #fbbf24 amber-400 the medal icon's badge uses. -->
-      <span class="text-xs font-bold uppercase tracking-wide" style="color:#fbbf24">Top performer this week</span>
-    </span>
-  `;
+// Compact sparkline for a table row - the full equityCurveSvg above is
+// sized for a card, this one downsamples to ~26 points first so the line
+// stays legible rather than turning into noise at row height.
+function rowSparkline(equityCurve, w, h) {
+  if (!Array.isArray(equityCurve) || equityCurve.length < 2) return '';
+  const all = equityBalances(equityCurve);
+  const step = Math.max(1, Math.floor(all.length / 26));
+  const vals = all.filter((_, i) => i % step === 0);
+  if (vals[vals.length - 1] !== all[all.length - 1]) vals.push(all[all.length - 1]);
+  const min = Math.min(...vals), max = Math.max(...vals), range = (max - min) || 1;
+  const pad = h * 0.16;
+  const pts = vals.map((v, i) => [
+    (i / (vals.length - 1)) * w,
+    h - pad - ((v - min) / range) * (h - pad * 2),
+  ]);
+  const d = smoothPath(pts);
+  const up = vals[vals.length - 1] >= vals[0];
+  const stroke = up ? '#34d399' : '#f87171';
+  const fill = up ? 'rgba(16,185,129,0.14)' : 'rgba(248,113,113,0.14)';
+  return `<svg class="sotw-spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+    <path d="${d} L ${w},${h} L 0,${h} Z" fill="${fill}"/>
+    <path d="${d}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
 }
 
-function renderFeaturedCard() {
-  const strategy = MARKETPLACE_STRATEGIES.find((s) => s.featured);
-  if (!strategy) return;
-  const owned = isStrategyOwned(strategy.id);
-  document.getElementById('featuredStrategyCard').innerHTML = `
-    <div class="reveal sotw-featured-card relative bg-gray-900/60 border border-amber-700/50 rounded-xl p-7 cursor-pointer" id="featuredCardClick">
-      ${medalBadge()}
-      <div class="mt-4 flex flex-wrap gap-6 items-center">
-        <div class="flex-[2] min-w-[260px]">
-          <span class="text-xs font-medium text-gray-500 inline-flex items-center gap-1.5">${styleIcon(strategy.style)}${strategy.style} &middot; ${strategy.timeframe}</span>
-          <h4 class="mt-1.5 text-xl font-bold text-gray-50">${strategy.symbol} &mdash; ${strategy.name.split('—')[1] || strategy.name}</h4>
-          <p class="mt-1.5 text-sm text-gray-400 leading-relaxed max-w-md">${strategy.description}</p>
-        </div>
-        <div class="flex-1 min-w-[140px] flex items-center justify-center">${equityCurveSvg(strategy.stats.equityCurve, { height: 90 })}</div>
-        <div class="flex-1 min-w-[170px]">${statBlock(strategy)}</div>
-        <div class="flex-1 min-w-[160px]" id="featuredCardAction">${owned ? ownedRow(strategy) : buyRow(strategy)}</div>
-      </div>
+// One market-watch table for all five paid strategies (2026-09-01) -
+// replaces renderFeaturedCard() + renderGrid(), which showed the same
+// five strategies in two different visual treatments. The featured one
+// keeps its distinction through an amber left edge and a "Top performer"
+// label rather than a separate layout, so all five stay comparable
+// column by column.
+function renderTable() {
+  const strategies = MARKETPLACE_STRATEGIES.filter((s) => s.tier === 'paid');
+  // Featured first, then the rest in catalog order.
+  strategies.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+
+  const header = `
+    <div class="sotw-head">
+      <span class="sotw-head-instrument" style="grid-column:1 / span 2">Instrument</span>
+      <span class="sotw-head-perf">30-day performance</span>
+      <span>Win rate</span>
+      <span>Return</span>
+      <span class="sotw-col-wide">Profit factor</span>
+      <span class="sotw-col-wide">Max drawdown</span>
+      <span>&nbsp;</span>
     </div>
   `;
-  document.getElementById('featuredCardClick').addEventListener('click', () => goToDetail(strategy.id));
-  document.getElementById('featuredCardAction').addEventListener('click', (e) => e.stopPropagation());
-}
 
-function renderGrid() {
-  const strategies = MARKETPLACE_STRATEGIES.filter((s) => s.tier === 'paid' && !s.featured);
-  document.getElementById('strategyGrid').innerHTML = strategies.map((strategy) => `
-      <div class="reveal sotw-card bg-gray-900/60 border border-gray-800 rounded-xl p-5 cursor-pointer grid-card" data-id="${strategy.id}">
-        <span class="text-xs font-medium text-gray-500 inline-flex items-center gap-1.5">${styleIcon(strategy.style)}${strategy.style} &middot; ${strategy.timeframe}</span>
-        <h4 class="mt-1.5 text-sm font-bold text-gray-100">${strategy.name}</h4>
-        <div class="mt-3 flex items-center justify-center">${equityCurveSvg(strategy.stats.equityCurve, { height: 70 })}</div>
-        <div class="mt-3">${statBlock(strategy)}</div>
-        <div class="mt-4 grid-card-action">${isStrategyOwned(strategy.id) ? ownedRow(strategy) : buyRow(strategy)}</div>
+  const rows = strategies.map((strategy) => {
+    const s = strategy.stats;
+    const owned = isStrategyOwned(strategy.id);
+    return `
+      <div class="sotw-row${strategy.featured ? ' sotw-row--top' : ''}" data-id="${strategy.id}">
+        ${instrumentMark(strategy.symbol, 'sotw-cell-mark')}
+        <span class="sotw-cell-name">
+          ${strategy.featured ? '<span class="sotw-tag-top">Top performer</span>' : ''}
+          <span class="sotw-symbol" style="display:block">${strategy.symbol}</span>
+          <span class="sotw-meta">${styleIcon(strategy.style)}${strategy.style} &middot; ${strategy.timeframe}</span>
+        </span>
+        ${rowSparkline(s.equityCurve, 150, 54)}
+        <span class="sotw-cell-stat">
+          <span class="sotw-stat" style="display:block">${fmtPct(s.winRate)}</span>
+          <span class="sotw-stat-lbl">win rate</span>
+        </span>
+        <span class="sotw-cell-stat">
+          <span class="sotw-stat ${s.returnPct >= 0 ? 'sotw-stat--good' : 'sotw-stat--bad'}" style="display:block">${s.returnPct > 0 ? '+' : ''}${fmtPct(s.returnPct)}</span>
+          <span class="sotw-stat-lbl">return</span>
+        </span>
+        <span class="sotw-cell-stat sotw-col-wide">
+          <span class="sotw-stat" style="display:block">${fmtStat(s.profitFactor, '')}</span>
+          <span class="sotw-stat-lbl">profit factor</span>
+        </span>
+        <span class="sotw-cell-stat sotw-col-wide">
+          <span class="sotw-stat" style="display:block">${fmtPct(s.drawdownPct)}</span>
+          <span class="sotw-stat-lbl">max drawdown</span>
+        </span>
+        <span class="sotw-cell-action sotw-action">
+          ${owned
+            ? `<span class="sotw-owned"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Owned</span>
+               <span class="sotw-owned-link">View &amp; download &rarr;</span>`
+            : `<span class="sotw-price">${strategy.priceLabel}</span>
+               <button class="sotw-buy buy-btn" data-id="${strategy.id}">Buy</button>`}
+        </span>
       </div>
-    `).join('');
-  document.querySelectorAll('.grid-card').forEach((card) => {
-    card.addEventListener('click', () => goToDetail(card.dataset.id));
-    card.querySelector('.grid-card-action').addEventListener('click', (e) => e.stopPropagation());
+    `;
+  }).join('');
+
+  document.getElementById('strategyTable').innerHTML = header + rows;
+
+  // Whole row opens the detail page (a closer look before committing to
+  // buy); the Buy button inside it acts immediately instead - hence the
+  // stopPropagation, and hence a <div> row rather than an <a>, since a
+  // button nested inside an anchor is invalid.
+  document.querySelectorAll('#strategyTable .sotw-row').forEach((row) => {
+    row.addEventListener('click', () => goToDetail(row.dataset.id));
+    const action = row.querySelector('.sotw-cell-action');
+    if (action) action.addEventListener('click', (e) => e.stopPropagation());
   });
 }
 
@@ -571,8 +735,7 @@ document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el))
 
 function renderAll() {
   renderFreeCard();
-  renderFeaturedCard();
-  renderGrid();
+  renderTable();
   document.querySelectorAll('.buy-btn').forEach((btn) => {
     btn.addEventListener('click', () => openPurchaseModal(btn.dataset.id));
   });

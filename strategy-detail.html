@@ -33,6 +33,50 @@
 <style>
   html { scroll-behavior: smooth; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+  /* ------------------------------------------------------------------
+     BUG FIX (2026-09-01, found by auditing this page's classes against
+     the precompiled stylesheet rather than by eye): several Tailwind
+     utilities this page has always relied on are NOT in
+     assets/vendor/tailwind/tailwind-compiled.css, so they styled
+     nothing - silently, with no error. See docs/DEPLOYMENT.md step 0:
+     the build only contains classes that existed when it was last
+     generated, and there's no Node on this machine to regenerate it.
+
+     The visible damage was the interactive crosshair on the expandable
+     performance chart - the feature specifically asked for so a buyer
+     could read a real balance off the curve. `w-px`, `bottom-0` and
+     `bg-gray-500/50` were all missing, so its vertical line rendered
+     with auto width, auto height and a transparent background (i.e.
+     invisible), and `w-2.5 h-2.5` missing left the dot with no size at
+     all. Confirmed against the live computed styles, not assumed.
+
+     Restated here as real CSS on the class hooks the markup already
+     carries, so nothing needs re-marking-up.
+     ------------------------------------------------------------------ */
+  .crosshair-line { top: 0; bottom: 0; width: 1px; background: rgba(107, 114, 128, 0.5); }
+  .crosshair-dot { width: 10px; height: 10px; border-color: #030712; }
+  .crosshair-tooltip { white-space: nowrap; }
+  /* `.hidden` still has to win over the sizing above - it's what the
+     chart's own show/hide toggles, and a sized-but-visible crosshair
+     stuck on screen would be worse than an invisible one. */
+  .crosshair-line.hidden, .crosshair-dot.hidden, .crosshair-tooltip.hidden { display: none; }
+
+  /* Same root cause, less visible: gap-x-6/gap-y-3 (the "More stats"
+     grid ran with no gaps at all), grid-cols-2 (it collapsed to a
+     single column below the sm: breakpoint), pb-5 and bg-gray-950/40. */
+  .stats-grid { column-gap: 1.5rem; row-gap: 0.75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 640px) { .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .expanded-chart-body { padding-bottom: 1.25rem; }
+  .expanded-chart-host { background: rgba(3, 7, 18, 0.4); }
+  /* min-w-[180px] (an arbitrary-value utility, never generated) - kept the
+     compact chart from being squeezed to nothing next to the stat block. */
+  .detail-chart-col { min-width: min(100%, 180px); }
+  /* text-left on the chart's toggle button: the element is a <button>,
+     which browsers center by default, so without this the "View full
+     performance chart" label sat centered while everything around it is
+     left-aligned. */
+  #chartExpandToggle { text-align: left; }
 </style>
 </head>
 <body class="bg-gray-950 text-gray-100">
@@ -401,7 +445,7 @@ function extraStatsGrid(s) {
   return `
     <div class="mt-4 bg-gray-900/40 border border-gray-800 rounded-xl p-5">
       <h3 class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">More stats</h3>
-      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+      <dl class="grid stats-grid">
         ${rows.map(([label, value]) => `
           <div>
             <dt class="text-[11px] text-gray-500">${label}</dt>
@@ -469,7 +513,7 @@ function renderLocked() {
     <h1 class="mt-2 text-2xl font-bold text-gray-50">${s.name}</h1>
     <p class="mt-3 text-sm text-gray-400 leading-relaxed max-w-xl">${s.description}</p>
     <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex items-center justify-between flex-wrap gap-6">
-      <div class="flex-1 min-w-[180px] flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 90 })}</div>
+      <div class="flex-1 detail-chart-col flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 90 })}</div>
       <div class="flex gap-6 flex-wrap">${keyStatsRow(s)}</div>
       <div class="flex items-center gap-4">
         <!-- Neutral white, not emerald - same reasoning as buyRow() in
@@ -505,7 +549,7 @@ function renderUnlocked() {
     <h1 class="mt-2 text-2xl font-bold text-gray-50">${s.name}</h1>
     <p class="mt-3 text-sm text-gray-300 leading-relaxed max-w-xl">${s.description}</p>
     <div class="mt-6 bg-gray-900/60 border border-gray-800 rounded-xl p-6 flex flex-wrap items-center gap-8">
-      <div class="flex-1 min-w-[180px] flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 100 })}</div>
+      <div class="flex-1 detail-chart-col flex items-center justify-center">${equityCurveSvg(s.stats.equityCurve, { height: 100 })}</div>
       <div class="flex gap-8 flex-wrap">${keyStatsRow(s)}</div>
     </div>
     ${extraStatsGrid(s)}
