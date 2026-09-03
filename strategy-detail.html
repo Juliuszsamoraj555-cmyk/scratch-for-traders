@@ -78,6 +78,7 @@
      left-aligned. */
   #chartExpandToggle { text-align: left; }
 </style>
+<script src="assets/analytics.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-100">
 
@@ -628,6 +629,12 @@ async function handleDownloadClick(s, platform, btn) {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    // Fired only once a file has actually been delivered - not on the
+    // click, which may still have 401'd or 402'd.
+    if (typeof window.apTrack === 'function') {
+      window.apTrack('strategy_downloaded', { strategy: s.strategy_config_id, platform: platform });
+    }
   } catch (err) {
     alert(`Could not download this strategy: ${err.message}`);
   } finally {
@@ -702,6 +709,23 @@ initMarketplaceAuthModal();
 // just-paid buyer the LOCKED view. The download buttons' own server-side
 // check (has_purchased_strategy, authoritative) is the real backstop if
 // the webhook is ever genuinely still lagging.
+// Strategy purchase conversion (2026-09-03). This page is the real
+// success_url for kind="strategy_purchase" (see billing.py), and
+// ?purchased=1 is only ever reached by Stripe redirecting after
+// payment_status=paid. Guarded on justPurchased AND a paid tier so
+// simply revisiting an owned strategy, or opening the free one, never
+// re-reports a sale. The value is looked up from the catalog rather
+// than the URL, so it can't be edited by whoever loads the page.
+if (strategy && justPurchased && strategy.tier === 'paid') {
+  const paid = parseFloat(String(strategy.priceLabel).replace(/[^0-9.]/g, ''));
+  if (typeof window.apTrack === 'function') {
+    window.apTrack('purchase_completed', { kind: 'strategy_purchase', strategy: strategy.id, value: paid });
+  }
+  if (typeof window.apConversion === 'function' && !isNaN(paid)) {
+    window.apConversion('purchase', { value: paid, currency: 'USD' });
+  }
+}
+
 if (!strategy) {
   renderNotFound();
 } else if (strategy.tier === 'free' || justPurchased) {

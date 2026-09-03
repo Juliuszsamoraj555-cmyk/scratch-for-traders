@@ -3244,6 +3244,17 @@ ALLOWED_ANALYTICS_EVENTS = {
     "auth_modal_shown",
     "login_completed",
     "signup_completed",
+    # 2026-09-03 additions, for measuring paid traffic (see
+    # docs/ANALYTICS.md). Until now every event fired only inside the
+    # builder, so a visitor arriving from an ad and bouncing off the
+    # landing page was completely invisible - and the single most
+    # important event of all, an export actually completing, wasn't
+    # recorded anywhere.
+    "landing_view",       # a marketing page was viewed; metadata.page says which
+    "cta_clicked",        # which call-to-action sent someone into the builder
+    "export_succeeded",   # the real activation event: a file was delivered
+    "strategy_downloaded",  # a marketplace strategy file was delivered
+    "purchase_completed",   # returned from Stripe having actually paid
 }
 
 # Generous but bounded - this is lightweight product instrumentation

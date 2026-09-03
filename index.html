@@ -330,6 +330,7 @@
     92%, 100% { transform: scaleY(0); opacity: 0; }
   }
 </style>
+<script src="assets/analytics.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-100">
 <div id="pageRoot">
@@ -993,6 +994,15 @@
     }).join('');
   })();
 
+  /* Landing-page instrumentation (2026-09-03) - see docs/ANALYTICS.md.
+     Until now nothing was measured outside the builder, so a visitor
+     arriving from an ad and leaving without clicking through was
+     completely invisible: exactly the population paid traffic is made
+     of, and exactly what needs measuring before spending on it. */
+  if (typeof window.apTrack === 'function') {
+    window.apTrack('landing_view', { page: 'home' });
+  }
+
   // Fade the page out before handing off to the builder, so the jump
   // feels like one motion instead of a hard cut. Falls back to an
   // instant navigation if anything goes wrong.
@@ -1000,6 +1010,19 @@
     el.addEventListener('click', (e) => {
       e.preventDefault();
       const href = el.getAttribute('href');
+      // Which CTA actually moves people - the hero, the mid-page one, or
+      // the closing one. apTrack uses keepalive, so this survives the
+      // navigation that starts 300ms later.
+      if (typeof window.apTrack === 'function') {
+        window.apTrack('cta_clicked', {
+          label: (el.textContent || '').trim().slice(0, 60),
+          // Distance down the page, as a rough "how much did they read
+          // before deciding" signal that doesn't depend on hand-labelling
+          // every button.
+          depth_pct: Math.round((el.getBoundingClientRect().top + window.scrollY)
+            / Math.max(1, document.body.scrollHeight) * 100),
+        });
+      }
       document.getElementById('pageRoot').classList.add('leaving');
       setTimeout(() => { window.location.href = href; }, 300);
     });

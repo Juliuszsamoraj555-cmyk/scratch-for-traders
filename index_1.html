@@ -67,6 +67,7 @@
     #paywallOverlay .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 </style>
+<script src="assets/analytics.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 flex flex-col h-screen overflow-hidden">
 
@@ -2618,6 +2619,7 @@ authSubmitBtn.addEventListener('click', async () => {
     } else if (authMode === 'signup') {
       const result = await authSignUp(email, password);
       trackEvent('signup_completed', { needs_confirmation: !!result.needsConfirmation });
+      if (typeof window.apConversion === 'function') window.apConversion('signup');
       if (result.needsConfirmation) {
         // Real success (the account was created) with an extra step
         // needed, not a failure - shown via the green toast, same as
@@ -2738,7 +2740,18 @@ const API_BASE = IS_LOCAL_DEV
 // same anonymous device cookie as billing (credentials: 'include'), plus
 // the login bearer token when there is one, so events can be tied to a
 // logged-in user the same way exports already are.
+// Delegates to apTrack() from assets/analytics.js (2026-09-03), which
+// records to BOTH our own analytics_events table and GA4 - so every
+// event this file already fired now also shows up against paid traffic,
+// with no call site needing to change. The original direct-fetch body is
+// kept as a fallback purely so the builder still logs if analytics.js
+// somehow fails to load; it must never become the reason an export
+// breaks.
 async function trackEvent(eventType, metadata) {
+  if (typeof window.apTrack === 'function') {
+    window.apTrack(eventType, metadata);
+    return;
+  }
   try {
     const token = await getValidAccessToken();
     const headers = { 'Content-Type': 'application/json' };
@@ -2931,6 +2944,12 @@ upgradeBtn.addEventListener('click', async () => {
   const checkout = params.get('checkout');
   if (!checkout) return;
   if (checkout === 'success') {
+    // NOTE: not the real post-payment landing any more - billing.py's
+    // success_url points at /thank-you/export/ and /thank-you/pass/,
+    // which is where the purchase conversion is actually fired. This
+    // branch only covers a stale bookmarked link from before that
+    // change, so it must NOT report a conversion or the same sale could
+    // be counted twice.
     const kind = params.get('kind');
     showToast(kind === 'pass' ? 'Payment received - unlimited exports unlocked for 30 days.' : 'Payment received - export credit added.', false);
   } else if (checkout === 'cancel') {
@@ -3079,6 +3098,18 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
       ? ` (${payload.rules.length} strategy rules combined into one file)`
       : '';
     showToast(`Export complete! Your .zip download has started.${ruleCountNote}`, false);
+
+    // The activation event - a real file actually reached a real trader.
+    // Fired HERE rather than on the button click on purpose: a click that
+    // then hit the paywall, a validation error or a network failure is
+    // not an export, and counting it as one would quietly inflate the
+    // conversion rate every ad decision gets made on.
+    trackEvent('export_succeeded', {
+      platform: filenamePrefix,
+      rule_count: payload.rules.length,
+    });
+    if (typeof window.apConversion === 'function') window.apConversion('export');
+
     refreshBillingIndicator(); // this export just consumed a free/paid credit - reflect it immediately
   } catch (err) {
     showToast('Export failed: ' + err.message, true);

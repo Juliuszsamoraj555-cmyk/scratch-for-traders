@@ -22,6 +22,7 @@
 <style>
   body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
 </style>
+<script src="../../assets/analytics.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-100">
 
@@ -104,6 +105,30 @@
     </div>
   </footer>
 
-<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+/* Purchase conversion (2026-09-03). This page IS billing.py's real
+   success_url for this product, so reaching it means Stripe already
+   confirmed payment_status=paid - it is the correct and only place to
+   report the sale to Google Ads.
+
+   The value is fixed here, not read from the URL, so it can't be edited
+   by whoever loads the page. Mirrors settings.py's price for this
+   product; if that changes, change this.
+
+   apTrack/apConversion come from assets/analytics.js (loaded in <head>)
+   and are no-ops until the Ads ID is configured, so this is safe to ship
+   before the ad account exists. */
+(function () {
+  var value = 2.00;
+  if (typeof window.apTrack === 'function') {
+    window.apTrack('purchase_completed', { kind: 'export_credit', value: value });
+  }
+  if (typeof window.apConversion === 'function') {
+    window.apConversion('purchase', { value: value, currency: 'USD' });
+  }
+})();
+</script>
 </body>
 </html>
