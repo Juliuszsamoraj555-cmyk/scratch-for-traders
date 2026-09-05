@@ -35,14 +35,14 @@
 
   // Google Ads conversion ID, e.g. 'AW-123456789'. Shared by every
   // conversion action on the account.
-  const ADS_ID = '';
+  const ADS_ID = 'AW-18392802331';
 
   // The half AFTER the slash in each conversion snippet Google shows,
   // e.g. 'AbC-D_efG-h12_34-567'. One per conversion action.
   const ADS_LABELS = {
-    signup: '',
-    export: '',
-    purchase: '',
+    signup: 'mjD7CMOK8u4cEJvIr8JE',
+    export: 'AOdFCLus8u4cEJvIr8JE',
+    purchase: 'k1ApCI6o_u4cEJvIr8JE',
   };
 
   /* ---------- end of config ---------- */
