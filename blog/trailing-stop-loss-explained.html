@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Trailing Stop Loss Explained - AlgoPuzzle</title>
+<meta name="description" content="How a trailing stop loss actually moves, why it only ever protects more profit, and what it can't guarantee - with a fixed-pip vs. ATR comparison." />
+<link rel="canonical" href="https://algopuzzle.com/blog/trailing-stop-loss-explained.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Trailing Stop Loss Explained" />
+<meta property="og:description" content="How a trailing stop loss moves as a trade runs in your favor - and the one thing it never does. Fixed-pip vs. ATR-based trailing, compared." />
+<meta property="og:url" content="https://algopuzzle.com/blog/trailing-stop-loss-explained.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Trailing Stop Loss Explained",
+  "description": "How a trailing stop loss actually moves, why it only ever protects more profit, and what it can't guarantee - with a fixed-pip vs. ATR comparison.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-07",
+  "dateModified": "2026-09-07",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/trailing-stop-loss-explained.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is a trailing stop loss?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A stop loss that moves automatically as a trade moves in your favor, staying a fixed distance behind the best price reached since entry, instead of sitting at one level for the whole trade." }
+    },
+    {
+      "@type": "Question",
+      "name": "How is a trailing stop different from a regular stop loss?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A regular stop loss sits at one fixed price for the life of the trade. A trailing stop recalculates every time price makes a new favorable extreme, but only ever moves in the direction that locks in more profit - it never moves backward to give more room." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can a trailing stop loss guarantee I lock in a certain profit?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Once triggered it typically fills as a market order, so in a fast-moving or gapping market the actual exit price can be worse than the stop level - the same slippage risk any stop order carries. It guarantees a trigger point, not an exact fill." }
+    },
+    {
+      "@type": "Question",
+      "name": "Should the trailing distance be fixed pips or based on ATR?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A fixed-pip distance is simpler but means something different on every instrument and under every volatility condition. An ATR-based distance scales with the instrument's own recent movement, so it stays roughly as tight or loose relative to normal noise - the same tradeoff as any ATR-based stop." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does a trailing stop replace a take profit?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Not automatically. A take profit closes the trade at a fixed target; a trailing stop has no target and lets a winning trade run until price reverses by the trailing distance. Some strategies use one or the other, some combine both." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Trailing Stop Loss Explained", "item": "https://algopuzzle.com/blog/trailing-stop-loss-explained.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Trailing Stop Loss Explained</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>A trailing stop loss is a stop that moves automatically as a trade runs in your favor, staying a fixed distance behind the current price instead of sitting at one level for the whole trade. Buy at 1.1000 with a 20-pip trailing stop and it starts at 1.0980 - but if price rises to 1.1050, the stop moves up to 1.1030, always 20 pips behind the highest price reached since entry. It only ever moves in the direction that locks in more profit: if price pulls back without setting a new high, the stop stays exactly where it already was, rather than moving backward with it. The trade closes the moment price touches the stop, same as any other stop order - the only difference is where that level sits, not how the exit itself triggers. The point isn't guessing the exact top of a move; it's letting a winning trade keep running while automatically giving up less of the gain than a fixed exit would if the move reverses.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">How the distance actually moves</h2>
+      <p>A trailing stop updates in one direction only - the direction that protects more of the open profit. On a long position it can only move up, never down; on a short position it can only move down, never up. Each time price sets a new favorable extreme since entry, the stop recalculates as that extreme minus (long) or plus (short) the trailing distance. A pullback that doesn't reach a new extreme simply leaves the stop unchanged - it never retreats to "give the trade more room" once it has moved.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Fixed distance vs. ATR-based trailing</h2>
+      <p>The trailing distance itself can be set two ways, and the tradeoff is the same one that applies to any stop loss.</p>
+      <table>
+        <thead><tr><th></th><th>Fixed-pip trailing distance</th><th>ATR-based trailing distance</th></tr></thead>
+        <tbody>
+          <tr><td>Adapts to volatility</td><td>No - same distance always</td><td>Yes - recalculated from recent price movement</td></tr>
+          <tr><td>Consistent across instruments</td><td>No - "20 pips" means something different per pair</td><td>Yes - relative to each instrument's own normal range</td></tr>
+          <tr><td>Simplicity</td><td>Simpler, one number</td><td>One extra input (ATR period and multiplier)</td></tr>
+          <tr><td>Best fit</td><td>A single instrument under stable conditions</td><td>Multiple instruments, or volatility that changes over time</td></tr>
+        </tbody>
+      </table>
+      <p>See <a href="atr-stop-loss-sizing.html" class="text-emerald-400 hover:text-emerald-300 underline">ATR-based stop loss sizing</a> for how that measurement actually works - the same logic applies whether it's sizing a fixed stop or a trailing one.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Trailing stop vs. a fixed take profit</h2>
+      <p>A take profit closes a trade at one predetermined target, win locked in the moment price gets there. A trailing stop has no target at all - it lets a winning trade run indefinitely, only closing once price reverses by the trailing distance from wherever it peaked. That makes a trailing stop better suited to trend-following ideas that don't want to cap the size of a big move, and a fixed take profit better suited to setups with a specific, repeatable target in mind. Some strategies use only one; others use a take profit as a minimum win and a trailing stop to let the trade run further if the move keeps going.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What a trailing stop doesn't protect against</h2>
+      <p>A trailing stop is still a stop order underneath - once triggered, it typically fills as a market order at whatever price is available next, not necessarily the exact stop price. In a fast-moving market or across a price gap, the real fill can land worse than the stop level, the same slippage risk that applies to any stop loss. A trailing stop guarantees a trigger point; it does not guarantee the exact price the trade actually exits at.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Adding one in a block-based builder</h2>
+      <p>In a visual builder, a trailing stop is a risk block with a trailing distance operand instead of a fixed one - a plain pip value, or an ATR expression like "1.5x ATR(14)" for a distance that adapts per instrument. The block recalculates the stop level on each new candle using the same rule described above: move it only when doing so protects more profit, otherwise leave it alone. See <a href="visual-trading-strategy-builder.html" class="text-emerald-400 hover:text-emerald-300 underline">how a visual strategy builder works</a> for how blocks like this fit into a complete strategy.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is a trailing stop loss?</p>
+          <p class="mt-1">A stop loss that moves automatically as a trade moves in your favor, staying a fixed distance behind the best price reached since entry, instead of sitting at one level for the whole trade.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How is a trailing stop different from a regular stop loss?</p>
+          <p class="mt-1">A regular stop loss sits at one fixed price for the life of the trade. A trailing stop recalculates every time price makes a new favorable extreme, but only ever moves in the direction that locks in more profit - it never moves backward to give more room.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Can a trailing stop loss guarantee I lock in a certain profit?</p>
+          <p class="mt-1">No. Once triggered it typically fills as a market order, so in a fast-moving or gapping market the actual exit price can be worse than the stop level - the same slippage risk any stop order carries. It guarantees a trigger point, not an exact fill.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Should the trailing distance be fixed pips or based on ATR?</p>
+          <p class="mt-1">A fixed-pip distance is simpler but means something different on every instrument and under every volatility condition. An ATR-based distance scales with the instrument's own recent movement, so it stays roughly as tight or loose relative to normal noise - the same tradeoff as any ATR-based stop.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Does a trailing stop replace a take profit?</p>
+          <p class="mt-1">Not automatically. A take profit closes the trade at a fixed target; a trailing stop has no target and lets a winning trade run until price reverses by the trailing distance. Some strategies use one or the other, some combine both.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a trailing stop - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
