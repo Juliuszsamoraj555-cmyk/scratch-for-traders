@@ -264,20 +264,30 @@
            divider that disappeared into the noise once the header
            wrapped to two lines on a narrow phone. -->
       <div class="flex items-center gap-1.5 sm:gap-2 pl-2 sm:pl-3 -ml-1 sm:ml-0">
+        <!-- Redesigned 2026-09-08 (direct feedback, same pass as the
+             paywall): these were 3 fully-saturated fills in 3 different
+             hues (emerald/amber/sky) sitting in a row - read as a
+             "traffic light" fighting for attention, out of step with the
+             rest of the app's one-accent-color (emerald) discipline.
+             Unified to the same neutral dark treatment for all three -
+             each platform's own icon already carries its own identity,
+             it doesn't need a matching loud background too. Emerald stays
+             reserved for actual primary actions (Save, the upgrade CTA)
+             so it still means something when it shows up. -->
         <button id="exportMt5Btn" aria-label="Export to MT5"
-          class="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
+          class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-100 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
           <img src="assets/mt5_icon.png"
             alt="MT5" class="w-5 h-5 object-contain shrink-0" />
           <span class="hidden sm:inline">Export to MT5</span>
         </button>
         <button id="exportMt4Btn" aria-label="Export to MT4"
-          class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
+          class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-100 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
           <img src="assets/mt4_icon.png"
             alt="MT4" class="w-5 h-5 object-contain shrink-0" />
           <span class="hidden sm:inline">Export to MT4</span>
         </button>
         <button id="exportCtraderBtn" aria-label="Export to cTrader"
-          class="bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-gray-900 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
+          class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-100 font-semibold px-2.5 sm:px-4 py-2 rounded-md shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2">
           <img src="assets/ctrader_icon.png"
             alt="cTrader" class="w-5 h-5 object-contain shrink-0" />
           <span class="hidden sm:inline">Export to cTrader</span>
