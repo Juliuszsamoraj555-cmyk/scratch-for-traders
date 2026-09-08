@@ -55,16 +55,53 @@
        it - correctly on its own, no fighting its layout needed. */
     body.toolbox-open.category-flyout-open .blocklyToolbox { display: none !important; }
   }
-  /* Plain CSS, not a Tailwind sm:grid-cols-3 class: the precompiled
-     stylesheet (see the build-step note above) only ships whatever
-     utility classes were actually present in the source HTML at the
-     last `npm run build:css` - no responsive grid-cols variant was ever
-     used before, so none exist to reference, and a class the build
-     never generated silently does nothing at runtime (same trap as the
-     z-index utilities elsewhere in this file). This drives the paywall
-     modal's 3-column layout directly instead. */
+  /* Paywall pricing cards - plain CSS throughout, not Tailwind grid
+     utilities (same precompiled-stylesheet trap noted above, and a lot
+     of what this needs - scale, tinted gradient, glow shadow - isn't a
+     bare utility class anyway). Flexbox instead of the old CSS Grid
+     layout on purpose: the old grid reserved 3 equal fixed columns even
+     when paywallExportCol was hidden (see showPaywall's hideSingleExport
+     in the script below), leaving a dead empty column - reported
+     2026-09-08 as "looks broken". Flex-wrap + justify-content:center
+     naturally re-centers whatever cards are actually visible instead. */
+  .paywall-cards { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 1rem; margin-top: 1.5rem; }
+  .paywall-card { display: flex; flex-direction: column; width: 100%; max-width: 232px; padding: 1.25rem; border-radius: 0.75rem; background: rgba(31,41,55,0.55); border: 1px solid #374151; }
+  /* The recommended plan gets real visual weight - wider, elevated,
+     tinted, glowing - instead of sitting as an equal-weight card next to
+     the other two (the "every card looks the same" AI-template tell). */
+  .paywall-card--hero {
+    max-width: 284px;
+    padding: 1.5rem 1.5rem 1.75rem;
+    border: 2px solid #10b981;
+    background: linear-gradient(180deg, rgba(16,185,129,0.10), rgba(17,24,39,0.5));
+    box-shadow: 0 0 0 1px rgba(16,185,129,0.15), 0 20px 45px -15px rgba(16,185,129,0.4);
+    position: relative;
+    z-index: 1;
+  }
   @media (min-width: 640px) {
-    #paywallOverlay .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .paywall-card--hero { transform: scale(1.045); }
+  }
+  /* .paywall-card sets its own display:flex, and this <style> block is
+     linked after the compiled Tailwind stylesheet in <head> - at equal
+     specificity, later-in-the-document wins, so .paywall-card's flex
+     was silently beating Tailwind's .hidden{display:none} whenever both
+     were on #paywallExportCol (confirmed live: computed display stayed
+     "flex" with .hidden applied). Same trap as the [hidden]-vs-.flex bug
+     documented in project memory, just the reverse direction this time -
+     fixed the same way, with an explicit rule instead of assuming class
+     order works out. */
+  .paywall-card.hidden { display: none !important; }
+  .paywall-badge {
+    align-self: flex-start;
+    margin-bottom: 0.625rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 9999px;
+    background: #34d399;
+    color: #052e21;
   }
 </style>
 <script src="assets/analytics.js"></script>
@@ -325,34 +362,35 @@
        toolbox drawer stayed open behind the paywall and hid the pricing
        cards entirely. -->
   <div id="paywallOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center px-4" style="z-index: 100;">
-    <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-4xl p-6 sm:p-8">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-4xl p-6 sm:p-8">
       <!-- paywallMessage is set dynamically by JS depending on what
            triggered the paywall (out of free exports - carries the
            backend's own count so it never drifts if FREE_EXPORT_LIMIT in
            settings.py changes; hit the free-tier saved-strategies limit;
            or the proactive "Go unlimited" entry point) - see
-           showPaywall() below. -->
-      <p id="paywallMessage" class="text-lg font-semibold text-gray-100 mb-6">Free exports used up</p>
-      <!-- Three-column plan layout: name label + price at top, feature
-           checklist, a dedicated CTA pinned to the bottom of each card
-           (flex column + mt-auto) rather than the whole card being the
-           button - same structural template as a standard pricing table,
-           just in our own colors/copy. The Free column is purely
-           informational (no CTA - there's nothing to "buy" for a plan
-           you're already on); paywallExportCol is hidden by JS whenever
-           free exports remain, since buying a single $2 export never
-           makes sense while free ones are still available (see
-           showPaywall's hideSingleExport option). -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
-          <!-- Invisible placeholder matching the "Best value" badge's
-               box on the highlighted column - without it, that column
-               alone getting an extra line pushed its price down out of
-               line with the other two. `invisible` keeps the layout
-               space without showing anything. -->
-          <span class="mb-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide rounded-md" style="visibility: hidden;" aria-hidden="true">Best value</span>
+           showPaywall() below. Sized as a real headline now, not a small
+           label - this modal only shows at a moment the trader is
+           already trying to do something, so it should read like one. -->
+      <p id="paywallMessage" class="text-2xl font-bold text-gray-50">Free exports used up</p>
+      <p class="mt-1 text-sm text-gray-400">Pick whatever actually fits how you're using this.</p>
+      <!-- .paywall-cards (see <style> above) - flexbox, not a 3-column
+           grid: the old grid reserved 3 equal fixed-width columns even
+           when paywallExportCol below is hidden, leaving a dead empty
+           column - reported 2026-09-08 as "looks broken", confirmed in
+           a screenshot. Flex-wrap + centering reflows correctly with
+           either 2 or 3 cards visible. The Free column is purely
+           informational (no CTA - nothing to "buy" for a plan you're
+           already on); paywallExportCol is hidden by JS whenever free
+           exports remain, since buying a single $2 export never makes
+           sense while free ones are still available (see showPaywall's
+           hideSingleExport option). The 30-day pass is the one that
+           should actually win the trader's attention, so unlike before
+           it's no longer an equal-weight card next to the other two -
+           see .paywall-card--hero. -->
+      <div class="paywall-cards">
+        <div class="paywall-card">
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Free</span>
-          <span class="mt-2 font-semibold text-gray-100 text-lg">$0</span>
+          <span class="mt-2 font-bold text-gray-100 text-2xl">$0</span>
           <ul class="mt-3 text-sm text-gray-300 space-y-2">
             <li class="flex items-start gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -376,21 +414,18 @@
               <span>Free account, no card</span>
             </li>
           </ul>
-          <!-- mt-auto (not a fixed mt-4 like the other two columns used
-               to have) - pushes this to the bottom of the card
-               regardless of how long the feature list above it is, so
-               all three buttons land on the same line instead of
-               trailing whatever height each column's own list happens
-               to be. -->
+          <!-- mt-auto pushes this to the bottom of the card regardless of
+               how long the feature list above it is, so every button
+               lands on the same baseline instead of trailing whatever
+               height each card's own list happens to be. -->
           <span class="mt-auto text-xs text-gray-500">Your current plan until you upgrade.</span>
           <button id="paywallStayFreeBtn"
             class="mt-2 w-full bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 rounded-md transition">Stay on Free plan</button>
         </div>
 
-        <div id="paywallExportCol" class="bg-gray-800/60 border border-gray-700 rounded-lg p-5 flex flex-col">
-          <span class="mb-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide rounded-md" style="visibility: hidden;" aria-hidden="true">Best value</span>
+        <div id="paywallExportCol" class="paywall-card">
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Single export</span>
-          <span class="mt-2 font-semibold text-emerald-400 text-lg">$2.00</span>
+          <span class="mt-2 font-bold text-emerald-400 text-2xl">$2.00</span>
           <ul class="mt-3 text-sm text-gray-300 space-y-2">
             <li class="flex items-start gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -409,21 +444,12 @@
             class="mt-auto w-full bg-gray-700 hover:bg-gray-600 text-gray-100 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
         </div>
 
-        <div class="bg-gray-800/60 border-2 border-emerald-600 rounded-lg p-5 flex flex-col">
-          <!-- In normal flow, not absolutely positioned over the plan
-               label - an earlier version overlapped "30-day unlimited"
-               with this badge (same class of bug as the toggle-button/
-               og-image overlaps found elsewhere in this app; same fix:
-               stop layering with position:absolute, put it in the flow
-               instead). -->
-          <!-- align-self via inline style, not the self-start class - the
-               precompiled stylesheet doesn't ship it (see the build-step
-               note in <head>), so the class would silently do nothing
-               and this would go right back to stretching full-width. -->
-          <span class="mb-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded-md" style="align-self: flex-start;">Best value</span>
-          <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">30-day unlimited</span>
-          <span class="mt-2 font-semibold text-emerald-400 text-lg">$9.99</span>
-          <ul class="mt-3 text-sm text-gray-300 space-y-2">
+        <div class="paywall-card paywall-card--hero">
+          <span class="paywall-badge">Best value</span>
+          <span class="text-xs font-semibold text-emerald-300 uppercase tracking-wide">30-day unlimited</span>
+          <span class="mt-2 font-bold text-emerald-400 text-4xl">$9.99</span>
+          <span class="text-xs text-gray-400">for 30 days &middot; about 33&cent;/day</span>
+          <ul class="mt-3 text-sm text-gray-200 space-y-2">
             <li class="flex items-start gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12l4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -450,7 +476,7 @@
             </li>
           </ul>
           <button id="paywallPassBtn"
-            class="mt-auto w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold py-2 rounded-md transition">Choose this plan</button>
+            class="mt-auto w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-base font-bold py-2.5 rounded-md transition">Choose this plan</button>
         </div>
       </div>
       <div class="flex justify-end mt-6">
