@@ -8,6 +8,17 @@ Read this before creating any X or Instagram post for AlgoPuzzle. It exists so t
 
 **Never fabricate a statistic, and never promise a profit outcome.** Asked twice this project's history to do exactly this ("traders who use X indicator earn Y% more", "tell them they'll finally be profitable") — declined both times, explained why (unverifiable claims, real regulatory-risk framing for a trading product), offered an honest alternative instead. Emotional, punchy, identity/FOMO-driven marketing copy is fine and encouraged (see "Copy voice" below) — a *specific invented number* or a *guaranteed result* is not, no matter how the request is framed ("just for engagement", "everyone does it", etc.). Every number that appears in a post must trace back to something the linked article actually says.
 
+## Format experiment: low-effort engagement posts (started 2026-09-08)
+
+Every post before this one used the same shape - 8-slide IG carousel + X post/reply, explaining something. Real result after several weeks: ~0 likes, follower count flat, and the 34 IG followers that do exist are mostly signal-group bot accounts, not real traders - confirmed directly by the user, not assumed. Root cause is almost certainly **cold-start distribution** (a brand-new, near-zero-follower account gets very little organic reach on either platform regardless of content quality - see "Bot/spam reality" below), not the copy or visual quality of what's been posted.
+
+Per direct user feedback ("może musimy przejść np na x w bardziej content który może pójść w viral - jakieś pytania o tradingu, to co robią duże firmy typu fundingpips"), testing a different, lower-friction format alongside the existing one rather than replacing it outright:
+
+- **X: a native Poll**, not a text post + reply. A poll is a single tap to answer, which is what a zero-follower account actually needs - replies/engagement are a far stronger distribution signal than an explainer thread nobody has a reason to trust yet. Question stays on-topic (algo trading / automation), not generic market chit-chat ("EURUSD or Gold today") - genuinely useful audience research for us either way, and avoids drifting into anything that reads as trade signals/advice (a real regulatory-adjacent line this project avoids elsewhere too, see the hard rule above and the Google Ads "complex speculative financial products" saga in project memory).
+- **Instagram: a single image, not a carousel** - a bold question + a numbered list of answers + "comment your number", not an 8-slide explainer. Optimizes for comments specifically (Instagram's algorithm weights comments heavily, and a numbered-answer format makes commenting a single character, near-zero effort).
+
+This is a parallel test, not a replacement for the explainer-carousel format - like the no-hashtags experiment on X, keep running this format until told otherwise, and don't assume it "won" or "lost" without the user saying so.
+
 ## Visual template (shared by X and Instagram)
 
 Both platforms reuse the same bold, minimal visual language — dark background, one huge statement, everything non-essential cut. This was a deliberate redesign partway through: an early attempt copied the website's OG-card template (small wordmark, several small labeled illustration parts, headline + subtitle) and it read as too busy/small for a feed thumbnail glanced at while scrolling. **One dominant idea, huge, high-contrast — that's the standard now.**
