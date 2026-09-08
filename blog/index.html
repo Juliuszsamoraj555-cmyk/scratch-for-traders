@@ -22,7 +22,7 @@
      utilities - border-emerald-400, -mb-px, gap-x-6, and pb-3 aren't in
      the precompiled build (see docs/DEPLOYMENT.md step 0), and adding a
      one-off tab bar isn't worth a full rebuild of the shared stylesheet. */
-  .blog-tabs { display: flex; flex-wrap: wrap; column-gap: 1.5rem; row-gap: 0.5rem; border-bottom: 1px solid #1f2937; }
+  .blog-tabs { display: flex; flex-wrap: wrap; column-gap: 1.5rem; row-gap: 0.5rem; margin-top: 2.5rem; border-bottom: 1px solid #1f2937; }
   .blog-tab { padding-bottom: 0.75rem; margin-bottom: -1px; font-size: 0.875rem; font-weight: 500; color: #9ca3af; border: none; border-bottom: 2px solid transparent; background: none; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
   .blog-tab:hover { color: #e5e7eb; }
   .blog-tab.active { color: #34d399; border-bottom-color: #34d399; }
@@ -78,7 +78,7 @@
          so adding a new article never means updating a number here too.
          The active category also lives in the URL hash (#risk-management
          etc.) so a link to a specific category is shareable/bookmarkable. -->
-    <nav class="blog-tabs mt-10" id="blogTabs" aria-label="Filter articles by category">
+    <nav class="blog-tabs" id="blogTabs" aria-label="Filter articles by category">
       <button type="button" class="blog-tab active" data-filter="all">All</button>
     </nav>
 
