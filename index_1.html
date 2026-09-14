@@ -1777,6 +1777,34 @@ async function handleSaveClick() {
   showToast(`Saved as "${trimmed}".`, false);
   renderStrategiesList();
   trackEvent('strategy_saved', { rule_count: workspace.getBlocksByType('trade_if', false).length });
+
+  // Best-effort, fire-and-forget server-side save log (2026-09-14) -
+  // separate from the lightweight analytics beacon above; this one
+  // captures what was actually built (asset/timeframe/indicators, via
+  // the same server-side StrategyIR summary /api/generate already
+  // uses) plus account/plan context, per direct request for more
+  // complete save-side data. Never awaited, never blocks, and a
+  // serialize failure here (e.g. no valid rule yet) just means this
+  // one save has no detail beyond what the analytics event above
+  // already logged - it must never make Save itself look broken.
+  try {
+    const saveLogConfig = serializeWorkspace(workspace);
+    (async () => {
+      const token = await getValidAccessToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      fetch(`${API_BASE}/api/strategies/log-save`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        keepalive: true,
+        body: JSON.stringify({ strategy_id: id, strategy_name: trimmed, config: saveLogConfig }),
+      }).catch(() => {});
+    })();
+  } catch (_) {
+    // Workspace isn't valid enough to serialize yet - nothing more to
+    // log beyond the rule_count analytics event above.
+  }
 }
 
 // Guards New/Load against silently discarding in-progress edits that

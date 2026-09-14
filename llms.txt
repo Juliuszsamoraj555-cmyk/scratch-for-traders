@@ -2,7 +2,7 @@
 
 > AlgoPuzzle is a no-code, block-based visual builder for algorithmic trading strategies. Connect blocks to define entry conditions, risk management, and position sizing, then export a ready-to-run strategy file for MetaTrader 5, MetaTrader 4, or cTrader - no programming required.
 
-AlgoPuzzle generates real platform code from the visual strategy: a MetaTrader 5 Expert Advisor (`.mq5`), a MetaTrader 4 Expert Advisor (`.mq4`), or a cTrader cBot (`.cs`), packaged with a setup guide. No account is required to use the builder or claim the free exports. Strategy data stays in the browser and the exported file - there is no server-side database of user strategies.
+AlgoPuzzle generates real platform code from the visual strategy: a MetaTrader 5 Expert Advisor (`.mq5`), a MetaTrader 4 Expert Advisor (`.mq4`), or a cTrader cBot (`.cs`), packaged with a setup guide. No account is required to build or backtest; an account is required to export, including the first two free exports. Strategy details are stored to operate and improve AlgoPuzzle; they are not sold to third parties.
 
 ## Platforms supported
 - MetaTrader 5 (MQL5 Expert Advisor)

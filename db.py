@@ -276,6 +276,81 @@ async def has_active_pass(user_id: str) -> bool:
     return await run_in_threadpool(_has_active_pass_sync, user_id)
 
 
+def _get_user_email_sync(user_id: str) -> Optional[str]:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute("select email from auth.users where id = %s", (user_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
+async def get_user_email(user_id: str) -> Optional[str]:
+    """Denormalization helper for strategy_save_log / strategy_of_the_week_downloads
+    below - both snapshot the trader's email at the moment of the event
+    (same reasoning as user_entitlements.email), rather than joining to
+    auth.users every time those tables are read. Reads auth.users
+    directly - the same Supabase-managed table this module already
+    queries elsewhere (see the auth.users trigger referenced above)."""
+    return await run_in_threadpool(_get_user_email_sync, user_id)
+
+
+# --------------------------------------------------------------------------
+# Strategy save + Strategy of the Week download logging (2026-09-14) - see
+# the matching table comments in schema.sql for the full rationale
+# (requested directly for more complete data than the existing
+# strategy_saved/strategy_downloaded analytics events alone provide).
+# Both are plain inserts, no read-back - event logs, not state anything
+# else in the app depends on reading, same pattern as log_analytics_event
+# further down this file.
+# --------------------------------------------------------------------------
+
+def _log_strategy_save_sync(
+    device_id: str, user_id: Optional[str], is_logged_in: bool, email: Optional[str],
+    plan: str, strategy_id: str, strategy_name: Optional[str], strategy_meta: Optional[dict],
+) -> None:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into strategy_save_log "
+            "(device_id, user_id, is_logged_in, email, plan, strategy_id, strategy_name, strategy_meta) "
+            "values (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                device_id, user_id, is_logged_in, email, plan, strategy_id, strategy_name,
+                Jsonb(strategy_meta) if strategy_meta is not None else None,
+            ),
+        )
+
+
+async def log_strategy_save(
+    device_id: str, user_id: Optional[str], is_logged_in: bool, email: Optional[str],
+    plan: str, strategy_id: str, strategy_name: Optional[str], strategy_meta: Optional[dict],
+) -> None:
+    return await run_in_threadpool(
+        _log_strategy_save_sync, device_id, user_id, is_logged_in, email, plan,
+        strategy_id, strategy_name, strategy_meta,
+    )
+
+
+def _log_sotw_download_sync(
+    device_id: str, user_id: Optional[str], email: Optional[str],
+    strategy_id: str, tier: Optional[str], platform: str,
+) -> None:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into strategy_of_the_week_downloads "
+            "(device_id, user_id, email, strategy_id, tier, platform) "
+            "values (%s, %s, %s, %s, %s, %s)",
+            (device_id, user_id, email, strategy_id, tier, platform),
+        )
+
+
+async def log_sotw_download(
+    device_id: str, user_id: Optional[str], email: Optional[str],
+    strategy_id: str, tier: Optional[str], platform: str,
+) -> None:
+    return await run_in_threadpool(
+        _log_sotw_download_sync, device_id, user_id, email, strategy_id, tier, platform,
+    )
+
+
 # --------------------------------------------------------------------------
 # Marketplace strategy purchases (2026-08-31 addition, account-required as
 # of the same day - see billing.LoginRequired) - see the "Marketplace

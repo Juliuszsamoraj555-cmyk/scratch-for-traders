@@ -604,3 +604,89 @@ begin
     return query select false, 'none'::text;
 end;
 $$ language plpgsql;
+
+-- ============================================================
+-- STRATEGY SAVE LOGGING (2026-09-14) - requested directly by the
+-- business owner for more complete data on what traders actually save
+-- in the builder, beyond the existing strategy_saved analytics event
+-- (which only ever carried a bare rule_count - see
+-- ALLOWED_ANALYTICS_EVENTS in main.py).
+--
+-- This is a real architecture change, not just a new column: until now
+-- saved strategy CONTENT never left the browser at all (see the
+-- "Tier 0 auto-save + multi-strategy library" feature). That's still
+-- true for the actual strategy data itself - localStorage remains the
+-- single source of truth the builder reads from; this table is a
+-- separate, additive EVENT LOG alongside it (what got saved, when, by
+-- whom), not a replacement, and the builder never reads it back.
+--
+-- Because of this table, the "where does my strategy data go" /
+-- "no server-side database" claims that used to appear in index.html's
+-- FAQ, blog/free-algo-trading-strategy-builder.html, and llms.txt were
+-- removed/rewritten the same day this shipped - they stopped being
+-- true the moment this table started filling. See juliusz-samoraj's
+-- standing memory note on this: don't make architectural promises in
+-- marketing copy ("no server-side database") that a future feature
+-- could quietly falsify - describe the actual data commitment instead
+-- (e.g. "never sold to third parties"), which stays true regardless of
+-- where the data technically lives.
+-- ============================================================
+create table if not exists strategy_save_log (
+    id            bigserial primary key,
+    device_id     uuid not null references devices (device_id),
+    user_id       uuid references auth.users (id),
+    is_logged_in  boolean not null default false,
+    -- Denormalized from auth.users at save time, same reasoning as
+    -- user_entitlements.email above - browsable in Table Editor without
+    -- a join, and a record of what the trader's email was at that
+    -- moment even if the account is later deleted or the email changes.
+    -- Null whenever is_logged_in is false (saving has never required an
+    -- account - only export/purchase do).
+    email         text,
+    plan          text not null default 'free', -- 'free' | 'pro' (has_active_pass(user_id) at save time; always 'free' when anonymous)
+    -- Client-generated id from the My Strategies library (see
+    -- generateStrategyId() in index_1.html) - repeated saves of the
+    -- SAME strategy over time share this id, so this table is also a
+    -- revision history, not just a tally of save clicks.
+    strategy_id   text not null,
+    strategy_name text,
+    -- Exact same shape _summarize_strategy() already produces for
+    -- export_log.strategy_meta - assets/timeframes/indicator_kinds/
+    -- rule_count/directions/uses_sl/uses_tp - reused rather than
+    -- reinvented. Derived SERVER-SIDE from a real parse_strategy() of
+    -- the workspace the client sent at save time, never taken as-is
+    -- from the request body. Null when the workspace didn't parse
+    -- cleanly yet (e.g. an in-progress, not-yet-valid rule) - the save
+    -- itself (local, in the browser) never fails because of this, only
+    -- this one column is missing for that row.
+    strategy_meta jsonb,
+    created_at    timestamptz not null default now()
+);
+
+create index if not exists strategy_save_log_user_id_idx on strategy_save_log (user_id);
+create index if not exists strategy_save_log_device_id_idx on strategy_save_log (device_id);
+create index if not exists strategy_save_log_strategy_id_idx on strategy_save_log (strategy_id);
+
+-- ============================================================
+-- STRATEGY OF THE WEEK DOWNLOAD LOGGING (2026-09-14) - same request,
+-- for the marketplace side: which of this week's strategies got
+-- downloaded, by whom, when. Every marketplace download (free tier
+-- included, since 2026-09-03) already requires a real login - see
+-- _require_strategy_ownership in main.py - so user_id/email are
+-- expected to be present on effectively every row going forward;
+-- nullable only for the same local-dev-without-DATABASE_URL escape
+-- hatch every other gate in this file has.
+-- ============================================================
+create table if not exists strategy_of_the_week_downloads (
+    id            bigserial primary key,
+    device_id     uuid not null references devices (device_id),
+    user_id       uuid references auth.users (id),
+    email         text, -- denormalized from auth.users at download time, same reasoning as strategy_save_log.email above
+    strategy_id   text not null,
+    tier          text, -- 'free' | 'standard' | 'featured' at time of download (see marketplace_strategies.py)
+    platform      text not null, -- 'mt5' | 'mt4' | 'ctrader'
+    created_at    timestamptz not null default now()
+);
+
+create index if not exists sotw_downloads_user_id_idx on strategy_of_the_week_downloads (user_id);
+create index if not exists sotw_downloads_strategy_id_idx on strategy_of_the_week_downloads (strategy_id);

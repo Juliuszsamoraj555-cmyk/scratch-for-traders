@@ -3097,6 +3097,65 @@ async def generate_expert_advisor_mt4(config: WorkspaceConfig, request: Request,
 
 
 # --------------------------------------------------------------------------
+# Strategy save logging (2026-09-14) - requested directly for more complete
+# data on what traders actually save in the builder than the existing
+# strategy_saved analytics event alone provides (see
+# strategy_save_log in schema.sql for the full rationale). Deliberately
+# separate from /api/analytics/event: that endpoint is a lightweight,
+# unauthenticated beacon with a fixed event-name allowlist, not built to
+# carry (or validate) real strategy content.
+#
+# Best-effort by design, same stance as analytics logging elsewhere in
+# this file: called fire-and-forget from handleSaveClick() in
+# index_1.html right after the actual (local, in the browser) save
+# already succeeded, so nothing here can ever make Save fail or feel
+# broken. A workspace that isn't valid enough to parse yet still gets a
+# row - just without strategy_meta - rather than the whole call being
+# skipped.
+# --------------------------------------------------------------------------
+class StrategySaveLogRequest(BaseModel):
+    strategy_id: str
+    strategy_name: Optional[str] = None
+    config: WorkspaceConfig
+
+
+@app.post("/api/strategies/log-save")
+async def log_strategy_save(body: StrategySaveLogRequest, request: Request, device_id: str = Depends(get_device_id)):
+    if not settings.DATABASE_URL:
+        return {"logged": False}
+
+    try:
+        user_id = get_current_user(request)
+        strategy_meta = None
+        try:
+            ir = parse_strategy(body.config)
+            strategy_meta = _summarize_strategy(ir)
+        except StrategyValidationError:
+            pass  # Not fully valid yet - still log the save, just without the detail.
+
+        plan = "pro" if (user_id and await db.has_active_pass(user_id)) else "free"
+        email = await db.get_user_email(user_id) if user_id else None
+
+        await db.log_strategy_save(
+            device_id=device_id,
+            user_id=user_id,
+            is_logged_in=bool(user_id),
+            email=email,
+            plan=plan,
+            strategy_id=body.strategy_id,
+            strategy_name=body.strategy_name,
+            strategy_meta=strategy_meta,
+        )
+        return {"logged": True}
+    except Exception as e:
+        # Never surface a logging failure to the trader - this call sits
+        # behind an already-successful local save, same "best-effort,
+        # must never look broken" stance as log_analytics_event.
+        print(f"[strategy_save_log] WARNING: failed to log save: {e}")
+        return {"logged": False}
+
+
+# --------------------------------------------------------------------------
 # Marketplace downloads (2026-08-29, real purchase gate added 2026-08-31) -
 # see marketplace_strategies.py's own module docstring for the full
 # rationale. Deliberately NOT the same shape as /api/generate above:
@@ -3173,9 +3232,32 @@ async def _require_strategy_ownership(strategy_id: str, request: Request) -> Non
         raise HTTPException(status_code=402, detail="This strategy hasn't been purchased yet.")
 
 
+async def _log_sotw_download_best_effort(strategy_id: str, platform: str, device_id: str, request: Request) -> None:
+    """Best-effort, fire-and-forget-from-the-server's-own-perspective record
+    of a completed marketplace download (see strategy_of_the_week_downloads
+    in schema.sql) - called after _require_strategy_ownership has already
+    passed, so this only ever runs for a download that's actually about to
+    be delivered. Never allowed to fail the actual download: any error here
+    is swallowed, same "must never look broken" stance as
+    /api/strategies/log-save above."""
+    if not settings.DATABASE_URL:
+        return
+    try:
+        user_id = get_current_user(request)
+        email = await db.get_user_email(user_id) if user_id else None
+        tier = get_marketplace_strategy_tier(strategy_id)
+        await db.log_sotw_download(
+            device_id=device_id, user_id=user_id, email=email,
+            strategy_id=strategy_id, tier=tier, platform=platform,
+        )
+    except Exception as e:
+        print(f"[sotw_download_log] WARNING: failed to log download: {e}")
+
+
 @app.post("/api/marketplace/download/mt5")
-async def marketplace_download_mt5(body: MarketplaceDownloadRequest, request: Request):
+async def marketplace_download_mt5(body: MarketplaceDownloadRequest, request: Request, device_id: str = Depends(get_device_id)):
     await _require_strategy_ownership(body.id, request)
+    await _log_sotw_download_best_effort(body.id, "mt5", device_id, request)
     ir, config = _marketplace_ir(body.id)
     mql5_code = render_mql5(ir)
     readme_text = generate_readme_mql5(ir)
@@ -3192,8 +3274,9 @@ async def marketplace_download_mt5(body: MarketplaceDownloadRequest, request: Re
 
 
 @app.post("/api/marketplace/download/ctrader")
-async def marketplace_download_ctrader(body: MarketplaceDownloadRequest, request: Request):
+async def marketplace_download_ctrader(body: MarketplaceDownloadRequest, request: Request, device_id: str = Depends(get_device_id)):
     await _require_strategy_ownership(body.id, request)
+    await _log_sotw_download_best_effort(body.id, "ctrader", device_id, request)
     ir, config = _marketplace_ir(body.id)
     csharp_code = render_csharp(ir)
     readme_text = generate_readme_csharp(ir)
@@ -3209,8 +3292,9 @@ async def marketplace_download_ctrader(body: MarketplaceDownloadRequest, request
 
 
 @app.post("/api/marketplace/download/mt4")
-async def marketplace_download_mt4(body: MarketplaceDownloadRequest, request: Request):
+async def marketplace_download_mt4(body: MarketplaceDownloadRequest, request: Request, device_id: str = Depends(get_device_id)):
     await _require_strategy_ownership(body.id, request)
+    await _log_sotw_download_best_effort(body.id, "mt4", device_id, request)
     ir, config = _marketplace_ir(body.id)
     mql4_code = render_mql4(ir)
     readme_text = generate_readme_mql4(ir)
