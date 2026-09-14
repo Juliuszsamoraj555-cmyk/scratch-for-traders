@@ -119,3 +119,34 @@ fired while testing on `localhost` land in the real
 `analytics_events` table. A handful of `landing_view` / `cta_clicked`
 rows from 2026-09-03 with `path = /index.html` are from setting this up.
 Filter by date if it matters; nothing separates them automatically.
+
+## Beyond the lightweight events: strategy_save_log and strategy_of_the_week_downloads
+
+The events table above is deliberately lightweight (a type + small
+metadata blob). Two dedicated tables carry richer, structured data
+instead of trying to cram it into that shape (added 2026-09-14, see
+`supabase/schema.sql` for the full column-by-column rationale):
+
+- **`strategy_save_log`** — one row per Save click in the builder:
+  device/account identity (`device_id`, `user_id`, `is_logged_in`,
+  `email`, `plan`), which strategy (`strategy_id`, `strategy_name`),
+  and what it actually contained (`strategy_meta`, the same
+  assets/timeframes/indicator_kinds/rule_count shape
+  `export_log.strategy_meta` already uses, derived server-side from a
+  real `parse_strategy()` call).
+- **`strategy_of_the_week_downloads`** — one row per completed
+  marketplace download: `device_id`, `user_id`, `email`, `strategy_id`,
+  `tier`, `platform`.
+
+Both are populated by dedicated backend calls (`POST
+/api/strategies/log-save`, and the three `/api/marketplace/download/*`
+endpoints), not by the analytics-event pipeline — query them directly
+with SQL/Table Editor rather than expecting them to show up in
+`analytics_daily_summary`.
+
+This is the first time saved-strategy *content* has ever reached the
+backend — localStorage is still the builder's own source of truth, this
+is a separate, additive log alongside it. It's also why the "nowhere
+but your browser, no server-side database" FAQ claim was removed from
+`index.html`, a blog post, and `llms.txt` the same day — it stopped
+being true the moment this shipped.
