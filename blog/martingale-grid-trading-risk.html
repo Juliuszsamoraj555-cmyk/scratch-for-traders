@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Why Martingale & Grid Trading Blows Up - AlgoPuzzle</title>
+<meta name="description" content="Martingale and grid strategies can look like they never lose - until one losing streak wipes the account. The math behind why, laid out plainly." />
+<link rel="canonical" href="https://algopuzzle.com/blog/martingale-grid-trading-risk.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Why Martingale & Grid Trading Blows Up" />
+<meta property="og:description" content="It looks like it never loses - for months. Then one losing streak asks for a lot size the account can't support. The arithmetic, laid out plainly." />
+<meta property="og:url" content="https://algopuzzle.com/blog/martingale-grid-trading-risk.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Why Martingale and Grid Trading Strategies Always Blow Up",
+  "description": "Martingale and grid strategies can look like they never lose - until one losing streak wipes the account. The math behind why, laid out plainly.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/martingale-grid-trading-risk.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is a martingale trading strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A martingale trading strategy increases position size after a loss - typically doubling it - so that a single winning trade recovers every prior loss in the sequence plus a small profit. It's borrowed directly from a betting system originally designed for roulette, applied to trade sizing instead of casino wagers." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why do grid trading strategies eventually fail?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A grid strategy adds more positions as price moves further against the first entries, averaging the entry price down while total exposure grows. That works as long as price eventually reverts within the grid's range - but if a trend runs further than the grid was built to withstand, exposure keeps compounding with no win to close it out, and margin runs out before the market turns back." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can a martingale strategy ever work?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Only with unlimited capital and no margin limit, which no real trading account has. With a finite account, the probability of eventually hitting a losing streak long enough to exceed available margin approaches certainty the longer the strategy runs - it's a matter of when, not if." }
+    },
+    {
+      "@type": "Question",
+      "name": "What should I use instead of martingale or grid position sizing?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Fixed-percentage position sizing that stays the same (or shrinks) after a loss, combined with a real stop loss on every trade - never a position that grows to \"make back\" a prior loss. The dollar risk per trade should be decided before the trade, not adjusted afterward based on what already happened." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Why Martingale and Grid Trading Strategies Always Blow Up", "item": "https://algopuzzle.com/blog/martingale-grid-trading-risk.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Why Martingale and Grid Trading Strategies Always Blow Up</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Martingale and grid trading strategies blow up because they respond to a losing streak by risking more money, not less - doubling (or otherwise increasing) the position size after every loss so a single winning trade recovers everything at once. That works for as long as the losing streak stays short, which is most of the time, so the equity curve looks smooth and the strategy looks like it "never loses" for months at a stretch. The problem is structural, not a tuning mistake: no losing streak has a guaranteed maximum length, and because the position size grows geometrically (or fast enough to approximate it, in a grid), a streak just five to ten trades longer than usual demands a position tens or hundreds of times larger than the first trade in the sequence. Eventually one streak runs long enough, or one move runs deep enough, to demand a lot size the account - or the broker's margin - simply can't support. The strategy that "never lost" for a year gives all of it back, plus more, in a single sequence. This isn't a prediction about market direction; it's arithmetic about a position size that grows without bound.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What "martingale" actually means in trading</h2>
+      <p>Martingale is a betting system originally built for roulette: double the wager after every loss, so the first win in the sequence recovers every prior loss plus the size of the original bet. Applied to trading, a losing trade doesn't get closed and accepted - it gets followed by a larger one, on the theory that price has to turn eventually and the larger trade will more than make up the difference when it does. The mechanism is deliberately "self-correcting" in appearance: every completed cycle nets a small profit, which is exactly what makes it look, from the outside, like a strategy that doesn't lose.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What a grid strategy adds on top</h2>
+      <p>A grid strategy places a ladder of orders at fixed intervals above and below the current price, adding more exposure as price moves against the first entries - effectively averaging the entry price down as the ladder fills, with the goal of closing the whole grid in profit together once price reverts back through it. The failure mode is the same shape as martingale's: exposure compounds as price moves further from the first entry, and if the move doesn't revert within the grid's range, there's no win available to close the sequence - only more margin required to keep it open.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The doubling sequence, laid out</h2>
+      <p>Starting from a 0.01 lot and doubling after every loss, the lot size on the nth losing trade is 0.01 &times; 2<sup>(n-1)</sup>. The numbers stay small for a while, which is exactly the trap:</p>
+      <table>
+        <thead><tr><th>Losing streak length</th><th>Lot size on that trade</th><th>Total lots risked so far</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0.01</td><td>0.01</td></tr>
+          <tr><td>5</td><td>0.16</td><td>0.31</td></tr>
+          <tr><td>10</td><td>5.12</td><td>10.23</td></tr>
+          <tr><td>15</td><td>163.84</td><td>327.67</td></tr>
+          <tr><td>20</td><td>5,242.88</td><td>10,485.75</td></tr>
+        </tbody>
+      </table>
+      <p>Ten losing trades in a row isn't exotic - most strategies see a streak that long eventually, given enough time. By trade 20, the position size has grown by a factor of over half a million relative to the first trade. No account survives that on a strategy that started at 0.01 lots.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why it looks like it "never loses" - until it does</h2>
+      <p>Most losing streaks are short, so a martingale or grid sequence resolves in a win far more often than not - which produces a rising, low-drawdown equity curve for a long stretch. That's exactly the pattern that gets marketed as a "grid EA that never loses" or sold as a signal service with a spotless track record. The deep, account-ending streak is rare on any given day, but it isn't rare over the life of the strategy - the probability of eventually hitting a losing streak long enough to exceed available margin climbs toward certainty the longer the strategy keeps running. It's a question of when, not if.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What actually manages risk, instead of doubling down</h2>
+      <p>Fixed-percentage <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a> that stays constant - or shrinks, never grows - after a loss, paired with a real stop loss on every single trade, closes exactly this door: the position size is decided before the trade based on the account and the stop distance, never adjusted afterward to chase a prior loss. An <a href="atr-stop-loss-sizing.html" class="text-emerald-400 hover:text-emerald-300 underline">ATR-based stop</a> handles the "how far away does the exit sit" half of that; fixed-risk sizing handles the "how large is the trade" half. Neither one ever asks the position to grow because the last one lost - see the fuller picture in <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a>. In a block-based builder, this looks like a risk block computed fresh from the account balance and the current stop distance on every trade, not a lot-size value that reads the outcome of the previous one.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is a martingale trading strategy?</p>
+          <p class="mt-1">A martingale trading strategy increases position size after a loss - typically doubling it - so that a single winning trade recovers every prior loss in the sequence plus a small profit. It's borrowed directly from a betting system originally designed for roulette, applied to trade sizing instead of casino wagers.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why do grid trading strategies eventually fail?</p>
+          <p class="mt-1">A grid strategy adds more positions as price moves further against the first entries, averaging the entry price down while total exposure grows. That works as long as price eventually reverts within the grid's range - but if a trend runs further than the grid was built to withstand, exposure keeps compounding with no win to close it out, and margin runs out before the market turns back.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Can a martingale strategy ever work?</p>
+          <p class="mt-1">Only with unlimited capital and no margin limit, which no real trading account has. With a finite account, the probability of eventually hitting a losing streak long enough to exceed available margin approaches certainty the longer the strategy runs - it's a matter of when, not if.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What should I use instead of martingale or grid position sizing?</p>
+          <p class="mt-1">Fixed-percentage position sizing that stays the same (or shrinks) after a loss, combined with a real stop loss on every trade - never a position that grows to "make back" a prior loss. The dollar risk per trade should be decided before the trade, not adjusted afterward based on what already happened.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a fixed-risk strategy - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
