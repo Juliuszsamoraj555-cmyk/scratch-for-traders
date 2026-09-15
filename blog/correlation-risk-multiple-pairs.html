@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Correlation Risk: When 3 Trades Are Really 1 - AlgoPuzzle</title>
+<meta name="description" content="Three positions on three different pairs can move as one trade when the pairs are correlated. The portfolio math behind why, and what to do about it." />
+<link rel="canonical" href="https://algopuzzle.com/blog/correlation-risk-multiple-pairs.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Correlation Risk: When 3 Trades Are Really 1" />
+<meta property="og:description" content="EURUSD, GBPUSD, and AUDUSD open at once feels diversified. It often isn't. The math behind why correlated positions stack risk instead of spreading it." />
+<meta property="og:url" content="https://algopuzzle.com/blog/correlation-risk-multiple-pairs.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Correlation Risk: When 3 Trades Are Really 1",
+  "description": "Three positions on three different pairs can move as one trade when the pairs are correlated. The portfolio math behind why, and what to do about it.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-15",
+  "dateModified": "2026-09-15",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/correlation-risk-multiple-pairs.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is correlation risk in trading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Correlation risk is the risk of treating several open positions as independent bets when the instruments actually tend to move together. If three \"different\" trades are all driven by the same underlying factor - like broad USD strength - they can win or lose together, which means the real risk on the account is closer to one large position than three separate small ones." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which currency pairs are commonly correlated?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Pairs that share a currency on the same side often move together - EURUSD and GBPUSD both tend to rise when the US dollar weakens broadly, for example. Pairs on opposite sides of a shared currency, like EURUSD and USDCHF, often move in opposite directions instead. The exact relationship shifts over time and isn't fixed, which is exactly why it needs checking rather than assuming." }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does correlation actually increase risk?",
+      "acceptedAnswer": { "@type": "Answer", "text": "With three equally-sized positions each risking 1% of the account, fully independent positions combine to roughly 1.73% total risk (the square root of 3), while fully correlated positions combine to a full 3% - no diversification benefit at all. The exact number depends on the real correlation between the specific instruments, but the direction is always the same: higher correlation means less risk reduction from holding multiple positions." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I manage correlation risk in an automated strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Treat correlated positions as a group for sizing purposes rather than sizing each one independently - cap the combined risk across correlated instruments the same way a single trade's risk gets capped, and check correlation before adding a new instrument to a strategy that already trades a related one." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Correlation Risk: When 3 Trades Are Really 1", "item": "https://algopuzzle.com/blog/correlation-risk-multiple-pairs.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Correlation Risk: When 3 Trades Are Really 1</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Correlation risk is what happens when several open positions that look diversified are actually driven by the same underlying factor, so they win or lose together instead of independently. A strategy running EURUSD, GBPUSD, and AUDUSD at once looks like three separate bets - but if all three are really a bet on the US dollar weakening, a single broad USD move can push all three the same direction on the same day. The account then carries far more risk than "three 1% trades" suggests, because there's no diversification actually happening - it's one large position wearing three different symbol names. This isn't about avoiding multiple positions; it's about knowing when multiple positions are genuinely independent versus when they're the same underlying trade counted three times. The fix isn't complicated once it's visible: size correlated positions as a group, not individually, and check the relationship between instruments before adding a new one to a strategy that already trades something related.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What correlation actually measures</h2>
+      <p>Correlation measures how closely two instruments' price movements track each other, on a scale from -1 (they move in exact opposite directions) through 0 (no relationship) to +1 (they move in exact lockstep). It isn't fixed forever - the relationship between two instruments can strengthen, weaken, or even flip depending on what's driving the market at the time - which is exactly why "these two pairs are correlated" needs periodic checking rather than being assumed once and forgotten.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why "different" pairs often aren't independent</h2>
+      <p>Most major currency pairs share a currency with several others, and that shared currency's own strength or weakness can dominate the move. EURUSD and GBPUSD both have the US dollar on one side, so a broad dollar move tends to push both the same direction at once - not because EUR and GBP are related to each other, but because both are being pushed by the same third factor. The same pattern shows up beyond forex: commodity-linked currencies moving with the commodities they're linked to, or index instruments moving with the sectors that dominate them. The instruments look different on the watchlist; the underlying driver is often the same one.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The portfolio math: what correlation does to combined risk</h2>
+      <p>For three equally-sized positions each risking 1% of the account, the combined risk depends entirely on how correlated they are with each other - not on the fact that there are three of them:</p>
+      <table>
+        <thead><tr><th>Correlation between the 3 positions</th><th>Combined risk (3 &times; 1% each)</th></tr></thead>
+        <tbody>
+          <tr><td>0 (fully independent)</td><td>&asymp; 1.73% (&radic;3 &times; 1%)</td></tr>
+          <tr><td>0.5 (moderately correlated)</td><td>&asymp; 2.45%</td></tr>
+          <tr><td>1.0 (fully correlated)</td><td>3% - no diversification benefit at all</td></tr>
+        </tbody>
+      </table>
+      <p>Independent positions get a real diversification discount - the combined risk is less than simply adding the three together, because they don't all go wrong at once. Fully correlated positions get none of that discount: the "3 separate 1% trades" framing was never true risk-wise: it was always one 3%-risk position, just split across three tickets.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What this looks like in practice</h2>
+      <p>A strategy that opens a long position on EURUSD, GBPUSD, and AUDUSD whenever its signal fires isn't necessarily wrong to do so - but if the signal is really reacting to broad USD weakness, it's placing one trade three times, not three trades. On a day the dollar reverses instead of weakening further, all three positions can hit their stops within minutes of each other, and the "three small losses" the position sizing was built around arrive as one large one.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Managing it, instead of discovering it live</h2>
+      <p>Correlated positions should be sized as a group, the same way a single trade's risk gets capped - if two or three instruments in a strategy are known to move together, the combined risk across all of them should stay within the limit normally applied to one trade, not be multiplied by however many symbols happen to be involved. See <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a> for how the single-trade version of that cap works, and <a href="martingale-grid-trading-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">why martingale and grid trading blows up</a> for a different, more direct way position sizing gets undermined. In a multi-rule, multi-asset builder, this means treating a strategy that trades several correlated instruments as one combined risk budget when setting position size - not as several unrelated trades that each get the full per-trade allowance.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is correlation risk in trading?</p>
+          <p class="mt-1">Correlation risk is the risk of treating several open positions as independent bets when the instruments actually tend to move together. If three "different" trades are all driven by the same underlying factor - like broad USD strength - they can win or lose together, which means the real risk on the account is closer to one large position than three separate small ones.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Which currency pairs are commonly correlated?</p>
+          <p class="mt-1">Pairs that share a currency on the same side often move together - EURUSD and GBPUSD both tend to rise when the US dollar weakens broadly, for example. Pairs on opposite sides of a shared currency, like EURUSD and USDCHF, often move in opposite directions instead. The exact relationship shifts over time and isn't fixed, which is exactly why it needs checking rather than assuming.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How much does correlation actually increase risk?</p>
+          <p class="mt-1">With three equally-sized positions each risking 1% of the account, fully independent positions combine to roughly 1.73% total risk (the square root of 3), while fully correlated positions combine to a full 3% - no diversification benefit at all. The exact number depends on the real correlation between the specific instruments, but the direction is always the same: higher correlation means less risk reduction from holding multiple positions.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How do I manage correlation risk in an automated strategy?</p>
+          <p class="mt-1">Treat correlated positions as a group for sizing purposes rather than sizing each one independently - cap the combined risk across correlated instruments the same way a single trade's risk gets capped, and check correlation before adding a new instrument to a strategy that already trades a related one.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a multi-asset strategy - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
