@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Why Profitable EAs Fail Prop Firm Challenges - AlgoPuzzle</title>
+<meta name="description" content="A backtest optimizes for return. A prop firm challenge tests compliance with daily loss, drawdown, and consistency rules - a different thing entirely." />
+<link rel="canonical" href="https://algopuzzle.com/blog/prop-firm-challenge-rules-that-break-eas.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Why Profitable EAs Fail Prop Firm Challenges" />
+<meta property="og:description" content="Your backtest says +18%. Your challenge says failed. The three compliance rules a profitable strategy can still break, and how to build around them." />
+<meta property="og:url" content="https://algopuzzle.com/blog/prop-firm-challenge-rules-that-break-eas.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Why Profitable EAs Fail Prop Firm Challenges",
+  "description": "A backtest optimizes for return. A prop firm challenge tests compliance with daily loss, drawdown, and consistency rules - a different thing entirely.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-16",
+  "dateModified": "2026-09-16",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/prop-firm-challenge-rules-that-break-eas.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Why do profitable strategies still fail prop firm challenges?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Because a prop firm challenge doesn't just measure whether a strategy is profitable - it measures whether it stays inside specific risk rules the whole time, like a maximum daily loss or a maximum overall drawdown. A backtest optimized purely for total return can pass with a great equity curve and still violate one of those rules on a single bad day, which typically ends the challenge regardless of the final result." }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a daily loss limit in a prop firm challenge?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A cap on how much the account is allowed to lose within a single trading day, usually measured from the account's balance or equity at the start of that day. Breaching it - even briefly, on floating losses before a trade closes, depending on the firm's exact rule - typically fails the challenge immediately, independent of how profitable the account is overall." }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a consistency rule and why does it catch automated strategies?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A consistency rule caps how much of a challenge's total profit is allowed to come from a single trade or a single day - often somewhere around 20-30% of the total, depending on the firm. It catches strategies that occasionally take one outsized win, since that single trade can push the ratio over the limit even while the strategy is highly profitable overall." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I build an EA that respects prop firm rules?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Add the rules as hard limits inside the strategy itself, not as something to monitor manually - a daily-loss circuit breaker that stops new trades once a threshold is hit, position sizing that leaves headroom under the maximum drawdown limit, and avoiding a single trade's target size growing large enough to trip a consistency rule." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Why Profitable EAs Fail Prop Firm Challenges", "item": "https://algopuzzle.com/blog/prop-firm-challenge-rules-that-break-eas.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; }
+  article th { background: #111827; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Why Profitable EAs Fail Prop Firm Challenges</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Profitable strategies fail prop firm challenges because a challenge isn't actually testing profitability - it's testing whether the account stays inside a fixed set of risk rules the entire time, and those are two different things. A backtest built purely to maximize return has no reason to respect a maximum daily loss, a maximum overall drawdown, or a consistency cap on how much profit one trade is allowed to contribute - none of those show up in a plain profit-and-loss curve. So a strategy can genuinely be profitable over a full challenge period and still fail on day three, because one rule was breached once, even briefly, and most firms end the challenge the moment that happens regardless of what the account does afterward. The strategy's edge was never the problem; the sizing and the drawdown behavior around that edge were built without the challenge's actual constraints in mind. Fixing this isn't about finding a better entry signal - it's about adding the firm's specific limits as hard rules inside the strategy itself, before the challenge starts, not discovering them from a failure email.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The rules that end a challenge, not the returns</h2>
+      <p>Every prop firm's exact numbers differ, but nearly all of them enforce some version of the same three mechanisms: a maximum daily loss, a maximum overall (or trailing) drawdown, and a consistency requirement limiting how much of total profit one trade or one day can represent. A strategy gets evaluated against all three simultaneously, continuously, for the whole challenge - not just checked for a final profit number at the end.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The daily loss limit: the one that ends challenges on otherwise fine days</h2>
+      <p>A daily loss limit caps how much the account can lose within a single trading day, usually measured against the balance or equity at that day's start. The trap is that it resets and re-applies every single day regardless of how the previous days went - a strategy that's been comfortably profitable for two weeks can still breach the daily limit on day fifteen if a single bad session runs past the threshold, and for most firms that ends the challenge immediately, independent of the overall result.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Static vs. trailing drawdown - not the same rule</h2>
+      <table>
+        <thead><tr><th></th><th>Static max drawdown</th><th>Trailing max drawdown</th></tr></thead>
+        <tbody>
+          <tr><td>Measured from</td><td>The account's starting balance, fixed</td><td>The account's highest-ever balance or equity, which keeps rising</td></tr>
+          <tr><td>Gets easier or harder over time?</td><td>Stays the same distance throughout</td><td>Gets tighter as the account makes more profit</td></tr>
+          <tr><td>Common trap</td><td>Less forgiving early, before a profit buffer exists</td><td>A big early win can make the allowed drawdown shrink in absolute terms afterward</td></tr>
+        </tbody>
+      </table>
+      <p>A strategy tuned against one type without checking which one a specific firm actually uses can be sized correctly for a rule it isn't actually being held to.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The consistency rule: punished for one good trade</h2>
+      <p>A consistency rule limits how much of the challenge's total profit is allowed to come from a single trade or a single day - often somewhere in the 20-30% range, depending on the firm. It specifically catches strategies that occasionally land one outsized win: a single trade large enough relative to the rest can push that ratio over the limit even while the account is more profitable than it would have been without that trade, which is the opposite of what most traders expect "good performance" to trigger.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Building the rules in, instead of monitoring for them</h2>
+      <p>The fix is the same shape as most risk-management fixes on this blog: turn a rule that has to be remembered into one the strategy enforces automatically. A daily-loss circuit breaker halts new trades for the rest of the day once a threshold is hit, rather than relying on someone watching a dashboard. <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">Position sizing</a> that leaves real headroom under the drawdown limit - not sized to the maximum the backtest could tolerate - keeps a normal losing streak from becoming a rule breach. And capping how large any single trade's target profit can grow relative to the account avoids feeding the exact pattern a consistency rule is designed to catch. None of this changes whether the underlying strategy has an edge; it changes whether that edge survives contact with the specific rules it's actually being measured against.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">Why do profitable strategies still fail prop firm challenges?</p>
+          <p class="mt-1">Because a prop firm challenge doesn't just measure whether a strategy is profitable - it measures whether it stays inside specific risk rules the whole time, like a maximum daily loss or a maximum overall drawdown. A backtest optimized purely for total return can pass with a great equity curve and still violate one of those rules on a single bad day, which typically ends the challenge regardless of the final result.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What is a daily loss limit in a prop firm challenge?</p>
+          <p class="mt-1">A cap on how much the account is allowed to lose within a single trading day, usually measured from the account's balance or equity at the start of that day. Breaching it - even briefly, on floating losses before a trade closes, depending on the firm's exact rule - typically fails the challenge immediately, independent of how profitable the account is overall.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What is a consistency rule and why does it catch automated strategies?</p>
+          <p class="mt-1">A consistency rule caps how much of a challenge's total profit is allowed to come from a single trade or a single day - often somewhere around 20-30% of the total, depending on the firm. It catches strategies that occasionally take one outsized win, since that single trade can push the ratio over the limit even while the strategy is highly profitable overall.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How do I build an EA that respects prop firm rules?</p>
+          <p class="mt-1">Add the rules as hard limits inside the strategy itself, not as something to monitor manually - a daily-loss circuit breaker that stops new trades once a threshold is hit, position sizing that leaves headroom under the maximum drawdown limit, and avoiding a single trade's target size growing large enough to trip a consistency rule.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a compliance-aware strategy - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
