@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Invalid Stops Error 130 / 10016 Explained - AlgoPuzzle</title>
+<meta name="description" content="MT4 error 130 and MT5 retcode 10016 mean the broker rejected your stop loss. The five usual causes, the fix for each, and what to do when nothing helps." />
+<link rel="canonical" href="https://algopuzzle.com/blog/invalid-stops-error-130-10016-explained.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Invalid Stops Error 130 / 10016 Explained" />
+<meta property="og:description" content="Your EA's logic is fine and the broker still says invalid stops. The five usual causes, and the workaround for the cases with no visible cause." />
+<meta property="og:url" content="https://algopuzzle.com/blog/invalid-stops-error-130-10016-explained.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Invalid Stops Error (130 / 10016): Why Your EA's Stop Loss Gets Rejected",
+  "description": "MT4 error 130 and MT5 retcode 10016 mean the broker rejected your stop loss. The five usual causes, the fix for each, and what to do when nothing helps.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-19",
+  "dateModified": "2026-09-19",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/invalid-stops-error-130-10016-explained.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What does invalid stops error 130 mean in MT4?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Error 130 (ERR_INVALID_STOPS) means the broker's server rejected the stop loss or take profit on an order or modification. The usual reasons are a stop placed closer to the current price than the symbol's minimum stop level allows, a stop on the wrong side of the price for the trade direction, or a price that isn't rounded to the symbol's number of digits." }
+    },
+    {
+      "@type": "Question",
+      "name": "What is retcode 10016 in MT5?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Retcode 10016 is TRADE_RETCODE_INVALID_STOPS - the MT5 equivalent of MT4's error 130. The trade server rejected the order because its stop loss or take profit levels were not acceptable, typically for the same reasons: distance below the stop level, wrong side of price, or unnormalized price values." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I find my broker's minimum stop distance?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Read the symbol's stop level - SYMBOL_TRADE_STOPS_LEVEL in MQL5 or MODE_STOPLEVEL in MQL4 - which is reported in points, not pips. On most brokers a 5-digit symbol has 10 points per pip, so a stop level of 30 points is 3 pips. A value of 0 usually means there is no fixed minimum, not that every distance is guaranteed to be accepted." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does the broker reject my stop loss even when the distance is correct?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Some brokers and account types reject server-side stops for reasons the symbol properties don't explain, or require an order to be opened without a stop and modified afterward. When every check passes and the error persists, the workaround is to have the EA monitor price itself and close the position when the level is crossed, instead of asking the server to hold the stop." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "Invalid Stops Error 130 / 10016 Explained", "item": "https://algopuzzle.com/blog/invalid-stops-error-130-10016-explained.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; vertical-align: top; }
+  article th { background: #111827; }
+  /* Tables scroll inside their own box on narrow screens instead of
+     pushing the whole page wider than the viewport. */
+  .table-wrap { overflow-x: auto; max-width: 100%; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Platforms</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Invalid Stops Error (130 / 10016): Why Your EA's Stop Loss Gets Rejected</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>An "invalid stops" error means the broker's server rejected the stop loss or take profit attached to an order - MetaTrader 4 reports it as error 130, and MetaTrader 5 as retcode 10016 (TRADE_RETCODE_INVALID_STOPS). In most cases it comes down to one of five causes: the stop sits closer to the current price than the symbol's minimum stop level allows, the stop is on the wrong side of the price for the trade direction, a pips-versus-points mix-up or an unrounded price, a distance measured from the wrong side of the spread, or an order being modified while price is inside the freeze level. Each of those is fixable in the strategy's logic, and the table below lists the fix for every one. A smaller number of cases has no visible cause at all: the symbol's stop level reads zero, the distances are generous, the prices are correct - and the broker still rejects the order. For those, the practical workaround is to stop asking the server to hold the stop and have the EA enforce it itself, which comes with real trade-offs covered further down.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The five usual causes, and the fix for each</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cause</th><th>What is going wrong</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>1. Below the minimum stop level</td><td>The stop is closer to the current price than the symbol's stop level (SYMBOL_TRADE_STOPS_LEVEL in MQL5, MODE_STOPLEVEL in MQL4), which is reported in points</td><td>Read the stop level at runtime and keep every stop at least that far away, with a small buffer for spread changes</td></tr>
+          <tr><td>2. Wrong side of the price</td><td>A buy needs its stop loss below the price and its take profit above; a sell is the reverse. A flipped sign or an inverted formula puts one on the wrong side</td><td>Check the sign of every distance calculation for both directions</td></tr>
+          <tr><td>3. Pips vs. points, or an unrounded price</td><td>On a 5-digit forex symbol one pip is ten points, so a "20 pip" stop typed in as 20 points is really 2 pips - inside the stop level. Prices not rounded to the symbol's digits get rejected too</td><td>Convert pips to price distance using the symbol's own digits, then normalize every price before sending</td></tr>
+          <tr><td>4. Measured from the wrong side of the spread</td><td>Stop distances are checked against the price the position would close at: Bid for a buy, Ask for a sell. Measuring from the entry-side price shifts the stop by the full spread</td><td>Anchor the stop to the exit-side price for the trade direction</td></tr>
+          <tr><td>5. Modifying inside the freeze level</td><td>While price is within the symbol's freeze level (SYMBOL_TRADE_FREEZE_LEVEL) of an order or stop, the server refuses modifications</td><td>Skip the modification and retry on a later tick instead of forcing it</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why a stop level of zero does not mean "anything goes"</h2>
+      <p>A stop level of 0 usually means the broker publishes no fixed minimum distance, not that every distance will be accepted. Some brokers apply a floating minimum that widens around news or thin liquidity, and some enforce rules on the server that never show up in the symbol's properties. That is why an EA can pass every check above on one broker and still be rejected on another using identical code.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">When every check passes and it still fails</h2>
+      <p>Some broker and account combinations reject an order that carries a stop loss or take profit even when the distances are legitimate, or accept the order only when it is opened without stops and modified afterward. Opening first and modifying second is a known pattern on market-execution accounts, but it is not universal - there are setups where the modification is rejected with the same error too. When both routes fail, the remaining option is to keep the stop out of the server's hands entirely: the EA watches the live price on every tick and closes the position itself the moment the level is crossed.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Server-side stops vs. EA-managed stops</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Server-side stop</th><th>EA-managed ("virtual") stop</th></tr></thead>
+        <tbody>
+          <tr><td>Who enforces it</td><td>The broker's server</td><td>The EA, checking price on every tick</td></tr>
+          <tr><td>Can trigger invalid stops errors</td><td>Yes</td><td>No - nothing is sent to the server until the close</td></tr>
+          <tr><td>Still works if the terminal or VPS goes offline</td><td>Yes</td><td>No - nothing is watching the price</td></tr>
+          <tr><td>Visible in the platform's position list</td><td>Yes</td><td>No - the SL/TP column stays empty</td></tr>
+          <tr><td>Exit price</td><td>Filled by the server at the stop</td><td>A market close after the level is crossed, so slippage applies</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Neither approach is strictly better. Server-side stops survive a dropped connection; EA-managed stops survive a broker that rejects them. Every EA and cBot AlgoPuzzle exports - MT5, MT4, and cTrader - uses the EA-managed design, so it does not depend on a broker accepting attached stops. The consequence to plan for: the EA has to stay running, so a VPS is worth it for anything left unattended, and the empty SL/TP column in the position list is expected rather than a bug. See <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a> for how the two levels work together and <a href="mt4-vs-mt5-vs-ctrader-automation.html" class="text-emerald-400 hover:text-emerald-300 underline">MT4 vs. MT5 vs. cTrader</a> for how each platform handles automation.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What does invalid stops error 130 mean in MT4?</p>
+          <p class="mt-1">Error 130 (ERR_INVALID_STOPS) means the broker's server rejected the stop loss or take profit on an order or modification. The usual reasons are a stop placed closer to the current price than the symbol's minimum stop level allows, a stop on the wrong side of the price for the trade direction, or a price that isn't rounded to the symbol's number of digits.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">What is retcode 10016 in MT5?</p>
+          <p class="mt-1">Retcode 10016 is TRADE_RETCODE_INVALID_STOPS - the MT5 equivalent of MT4's error 130. The trade server rejected the order because its stop loss or take profit levels were not acceptable, typically for the same reasons: distance below the stop level, wrong side of price, or unnormalized price values.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How do I find my broker's minimum stop distance?</p>
+          <p class="mt-1">Read the symbol's stop level - SYMBOL_TRADE_STOPS_LEVEL in MQL5 or MODE_STOPLEVEL in MQL4 - which is reported in points, not pips. On most brokers a 5-digit symbol has 10 points per pip, so a stop level of 30 points is 3 pips. A value of 0 usually means there is no fixed minimum, not that every distance is guaranteed to be accepted.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why does the broker reject my stop loss even when the distance is correct?</p>
+          <p class="mt-1">Some brokers and account types reject server-side stops for reasons the symbol properties don't explain, or require an order to be opened without a stop and modified afterward. When every check passes and the error persists, the workaround is to have the EA monitor price itself and close the position when the level is crossed, instead of asking the server to hold the stop.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build an EA that skips the stop-level problem - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
