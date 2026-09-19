@@ -43,7 +43,88 @@
    ------------------------------------------------------------ */
 const MARKETPLACE_STRATEGIES = [
   {
+    id: "gbpusd-prevclose-fade-h1",
+    tier: "free",
+    badge: "Free strategy of the week",
+    style: "Mean reversion",
+    timeframe: "H1",
+    symbol: "GBPUSD",
+    name: "GBPUSD, hourly candles - mean reversion",
+    description: "Sells GBP/USD when price trades above the previous hourly candle's close, betting the move fades, with a fixed 20-pip Stop Loss and 20-pip Take Profit. Full description and exact parameters shown up front - nothing here is held back.",
+    stats: { winRate: 58.2, returnPct: 10.5, trades: 55, profitFactor: 1.46, drawdownPct: -3.5, equityCurve: [{"date": "2026-08-20", "balance": 10000.0}, {"date": "2026-08-20 11:41", "balance": 9900.0}, {"date": "2026-08-20 13:22", "balance": 9800.01}, {"date": "2026-08-20 16:05", "balance": 9898.5}, {"date": "2026-08-20 22:12", "balance": 9997.49}, {"date": "2026-08-21 05:31", "balance": 9895.22}, {"date": "2026-08-21 14:57", "balance": 9893.23}, {"date": "2026-08-21 16:39", "balance": 9993.65}, {"date": "2026-08-21 18:37", "balance": 10093.58}, {"date": "2026-08-24 12:59", "balance": 10188.09}, {"date": "2026-08-25 23:58", "balance": 10083.88}, {"date": "2026-08-26 08:48", "balance": 10184.72}, {"date": "2026-08-26 16:32", "balance": 10287.58}, {"date": "2026-08-27 13:38", "balance": 10388.1}, {"date": "2026-08-27 17:22", "balance": 10284.22}, {"date": "2026-08-28 17:52", "balance": 10384.71}, {"date": "2026-08-31 12:01", "balance": 10375.41}, {"date": "2026-08-31 18:53", "balance": 10271.66}, {"date": "2026-09-01 11:26", "balance": 10372.02}, {"date": "2026-09-01 20:20", "balance": 10475.74}, {"date": "2026-09-02 10:58", "balance": 10573.31}, {"date": "2026-09-02 13:53", "balance": 10679.04}, {"date": "2026-09-02 17:26", "balance": 10572.25}, {"date": "2026-09-02 21:07", "balance": 10677.97}, {"date": "2026-09-03 16:30", "balance": 10564.25}, {"date": "2026-09-03 19:08", "balance": 10458.08}, {"date": "2026-09-04 19:50", "balance": 10530.24}, {"date": "2026-09-07 12:18", "balance": 10417.71}, {"date": "2026-09-08 16:55", "balance": 10310.62}, {"date": "2026-09-08 20:12", "balance": 10414.76}, {"date": "2026-09-09 10:17", "balance": 10303.46}, {"date": "2026-09-09 13:51", "balance": 10407.01}, {"date": "2026-09-09 15:26", "balance": 10302.94}, {"date": "2026-09-09 19:11", "balance": 10406.48}, {"date": "2026-09-10 15:11", "balance": 10508.16}, {"date": "2026-09-11 16:30", "balance": 10653.4}, {"date": "2026-09-14 12:04", "balance": 10860.14}, {"date": "2026-09-14 16:57", "balance": 10969.83}, {"date": "2026-09-14 20:16", "balance": 10860.13}, {"date": "2026-09-15 06:13", "balance": 10966.24}, {"date": "2026-09-15 10:43", "balance": 11077.0}, {"date": "2026-09-16 10:00", "balance": 10956.41}, {"date": "2026-09-16 16:19", "balance": 11065.97}, {"date": "2026-09-16 22:00", "balance": 11177.74}, {"date": "2026-09-17 14:57", "balance": 11065.4}, {"date": "2026-09-17 15:04", "balance": 11178.27}, {"date": "2026-09-18 07:42", "balance": 11173.43}, {"date": "2026-09-18 14:48", "balance": 11285.17}, {"date": "2026-09-18 19:20", "balance": 11171.75}, {"date": "2026-09-18 21:10", "balance": 11057.8}, {"date": "2026-09-18 22:59", "balance": 11052.27}], maxConsecutiveLosses: 3, maxConsecutiveWins: 6, bestTradePips: 34.1, worstTradePips: -21.8, recoveryFactor: 2.8, avgWinPips: 20.5, avgLossPips: 19.6, pctLong: 0.0 },
+    priceLabel: "$0.00",
+    strategy_config_id: "gbpusd-prevclose-fade-h1",
+    blockly_state: {"blocks": {"languageVersion": 0, "blocks": [{"type": "trade_if", "id": "mp0001", "x": 20, "y": 20, "extraState": {"positionsMode": "SINGLE"}, "fields": {"POSITIONS_MODE": "SINGLE"}, "inputs": {"ASSET": {"shadow": {"type": "asset_block", "id": "mp0002", "extraState": {"asset": "GBPUSD"}, "fields": {"ASSET": "GBPUSD"}}}, "TIMEFRAME": {"shadow": {"type": "timeframe_block", "id": "mp0003", "fields": {"TIMEFRAME": "PERIOD_H1"}}}, "CONDITION": {"block": {"type": "comparison_block", "id": "mp0004", "fields": {"OP": ">"}, "inputs": {"LEFT": {"block": {"type": "candle_block", "id": "mp0005", "fields": {"CANDLE_TYPE": "CURRENT"}}}, "RIGHT": {"block": {"type": "candle_block", "id": "mp0006", "fields": {"CANDLE_TYPE": "PREV_CLOSE"}}}}}}, "DO": {"block": {"type": "action_block", "id": "mp0009", "fields": {"DIRECTION": "SELL", "LOT": 0.1}, "inputs": {"SL": {"block": {"type": "risk_value_block", "id": "mp0007", "fields": {"VALUE": 20.0, "UNIT": "PIPS"}}}, "TP": {"block": {"type": "risk_value_block", "id": "mp0008", "fields": {"VALUE": 20.0, "UNIT": "PIPS"}}}}}}}}]}},
+  },
+  {
+    id: "usdjpy-macd-momentum-h1",
+    tier: "paid",
+    featured: true,
+    style: "Momentum",
+    timeframe: "H1",
+    symbol: "USDJPY",
+    name: "USDJPY - MACD Momentum",
+    description: "A momentum strategy on USD/JPY hourly candles - the strongest return of this week's lineup, with a max drawdown under 7%. Exact entry conditions and stop sizing unlock after purchase.",
+    stats: { winRate: 34.4, returnPct: 26.1, trades: 64, profitFactor: 1.57, drawdownPct: -6.9, equityCurve: [{"date": "2026-08-20", "balance": 10000.0}, {"date": "2026-08-20 09:26", "balance": 10300.0}, {"date": "2026-08-20 10:21", "balance": 10192.88}, {"date": "2026-08-20 16:06", "balance": 10392.95}, {"date": "2026-08-20 20:28", "balance": 10706.13}, {"date": "2026-08-21 09:44", "balance": 10602.28}, {"date": "2026-08-24 01:16", "balance": 10489.57}, {"date": "2026-08-25 16:02", "balance": 10700.03}, {"date": "2026-08-28 13:55", "balance": 11029.6}, {"date": "2026-08-28 17:59", "balance": 10918.57}, {"date": "2026-08-31 11:12", "balance": 10700.94}, {"date": "2026-09-01 22:33", "balance": 11025.54}, {"date": "2026-09-02 08:47", "balance": 10927.43}, {"date": "2026-09-04 03:49", "balance": 10814.52}, {"date": "2026-09-04 07:38", "balance": 11032.53}, {"date": "2026-09-04 10:14", "balance": 10920.0}, {"date": "2026-09-04 16:28", "balance": 10809.34}, {"date": "2026-09-07 10:23", "balance": 11033.07}, {"date": "2026-09-08 03:14", "balance": 10918.33}, {"date": "2026-09-08 12:45", "balance": 11286.64}, {"date": "2026-09-08 13:06", "balance": 11173.77}, {"date": "2026-09-08 16:21", "balance": 11391.56}, {"date": "2026-09-08 19:22", "balance": 11733.31}, {"date": "2026-09-08 22:41", "balance": 11615.19}, {"date": "2026-09-09 04:11", "balance": 11384.46}, {"date": "2026-09-09 14:38", "balance": 11269.85}, {"date": "2026-09-09 15:25", "balance": 11156.4}, {"date": "2026-09-09 19:12", "balance": 11494.81}, {"date": "2026-09-10 14:24", "balance": 11725.55}, {"date": "2026-09-10 16:32", "balance": 12077.32}, {"date": "2026-09-10 17:07", "balance": 11955.74}, {"date": "2026-09-10 20:37", "balance": 12187.98}, {"date": "2026-09-11 09:35", "balance": 12068.14}, {"date": "2026-09-14 12:15", "balance": 12430.19}, {"date": "2026-09-14 19:35", "balance": 12305.06}, {"date": "2026-09-14 22:52", "balance": 12056.94}, {"date": "2026-09-15 12:09", "balance": 12418.65}, {"date": "2026-09-15 14:06", "balance": 12292.8}, {"date": "2026-09-16 09:34", "balance": 12546.69}, {"date": "2026-09-16 23:04", "balance": 12415.37}, {"date": "2026-09-17 03:58", "balance": 12291.22}, {"date": "2026-09-17 04:07", "balance": 12168.3}, {"date": "2026-09-17 08:36", "balance": 11922.14}, {"date": "2026-09-17 09:43", "balance": 11802.92}, {"date": "2026-09-18 06:54", "balance": 12171.17}, {"date": "2026-09-18 08:18", "balance": 12420.18}, {"date": "2026-09-18 10:43", "balance": 12266.99}, {"date": "2026-09-18 11:36", "balance": 12635.82}, {"date": "2026-09-18 13:37", "balance": 13014.9}, {"date": "2026-09-18 18:50", "balance": 12749.89}, {"date": "2026-09-18 19:01", "balance": 12605.39}], maxConsecutiveLosses: 7, maxConsecutiveWins: 2, bestTradePips: 50.6, worstTradePips: -18.5, recoveryFactor: 2.99, avgWinPips: 45.7, avgLossPips: 15.2, pctLong: 100.0 },
+    priceLabel: "$7.99",
+    strategy_config_id: "usdjpy-macd-momentum-h1",
+    blockly_state: {"blocks": {"languageVersion": 0, "blocks": [{"type": "trade_if", "id": "mp0001", "x": 20, "y": 20, "extraState": {"positionsMode": "SINGLE"}, "fields": {"POSITIONS_MODE": "SINGLE"}, "inputs": {"ASSET": {"shadow": {"type": "asset_block", "id": "mp0002", "extraState": {"asset": "USDJPY"}, "fields": {"ASSET": "USDJPY"}}}, "TIMEFRAME": {"shadow": {"type": "timeframe_block", "id": "mp0003", "fields": {"TIMEFRAME": "PERIOD_H1"}}}, "CONDITION": {"block": {"type": "comparison_block", "id": "mp0004", "fields": {"OP": ">"}, "inputs": {"LEFT": {"block": {"type": "indicator_macd", "id": "mp0005", "fields": {"OUTPUT": "HIST"}}}, "RIGHT": {"block": {"type": "math_number", "id": "mp0006", "fields": {"NUM": 0.0}}}}}}, "DO": {"block": {"type": "action_block", "id": "mp0009", "fields": {"DIRECTION": "BUY", "LOT": 0.1}, "inputs": {"SL": {"block": {"type": "risk_value_block", "id": "mp0007", "fields": {"VALUE": 15.0, "UNIT": "PIPS"}}}, "TP": {"block": {"type": "risk_value_block", "id": "mp0008", "fields": {"VALUE": 45.0, "UNIT": "PIPS"}}}}}}}}]}},
+  },
+  {
+    id: "usdcad-ema50-trend-m15",
+    tier: "paid",
+    style: "Trend following",
+    timeframe: "M15",
+    symbol: "USDCAD",
+    name: "USDCAD - EMA50 Trend",
+    description: "A trend-following strategy on USD/CAD 15-minute candles. Exact entry conditions and stop sizing unlock after purchase.",
+    stats: { winRate: 40.2, returnPct: 22.1, trades: 92, profitFactor: 1.4, drawdownPct: -7.9, equityCurve: [{"date": "2026-08-20", "balance": 10000.0}, {"date": "2026-08-21 05:38", "balance": 9900.64}, {"date": "2026-08-21 20:01", "balance": 9997.12}, {"date": "2026-08-24 01:03", "balance": 10456.36}, {"date": "2026-08-24 02:00", "balance": 10240.7}, {"date": "2026-08-24 10:21", "balance": 10446.84}, {"date": "2026-08-24 15:13", "balance": 10870.75}, {"date": "2026-08-24 17:16", "balance": 10654.22}, {"date": "2026-08-25 01:03", "balance": 10744.56}, {"date": "2026-08-25 01:45", "balance": 10526.71}, {"date": "2026-08-25 08:10", "balance": 10630.15}, {"date": "2026-08-25 11:03", "balance": 10731.25}, {"date": "2026-08-25 13:35", "balance": 10623.13}, {"date": "2026-08-26 01:03", "balance": 10246.93}, {"date": "2026-08-26 09:08", "balance": 10665.97}, {"date": "2026-08-26 10:25", "balance": 10446.75}, {"date": "2026-08-26 15:59", "balance": 10547.29}, {"date": "2026-08-26 18:22", "balance": 10649.51}, {"date": "2026-08-27 17:14", "balance": 10440.25}, {"date": "2026-08-28 14:16", "balance": 10334.43}, {"date": "2026-08-31 17:37", "balance": 10121.85}, {"date": "2026-09-01 13:29", "balance": 10221.29}, {"date": "2026-09-01 16:25", "balance": 10321.2}, {"date": "2026-09-02 07:29", "balance": 10744.7}, {"date": "2026-09-02 14:15", "balance": 11189.55}, {"date": "2026-09-02 16:04", "balance": 10964.76}, {"date": "2026-09-02 16:21", "balance": 10852.19}, {"date": "2026-09-04 11:54", "balance": 10955.4}, {"date": "2026-09-04 16:24", "balance": 10734.62}, {"date": "2026-09-07 12:15", "balance": 10521.48}, {"date": "2026-09-09 15:28", "balance": 10308.64}, {"date": "2026-09-09 19:14", "balance": 10729.59}, {"date": "2026-09-10 16:39", "balance": 10837.12}, {"date": "2026-09-10 17:23", "balance": 10728.22}, {"date": "2026-09-11 14:10", "balance": 10832.91}, {"date": "2026-09-11 16:30", "balance": 11304.47}, {"date": "2026-09-11 20:33", "balance": 11417.0}, {"date": "2026-09-14 15:04", "balance": 11532.18}, {"date": "2026-09-14 17:41", "balance": 11999.33}, {"date": "2026-09-14 21:11", "balance": 11759.08}, {"date": "2026-09-15 15:53", "balance": 11996.95}, {"date": "2026-09-15 17:42", "balance": 11757.05}, {"date": "2026-09-16 06:05", "balance": 11876.56}, {"date": "2026-09-16 08:38", "balance": 11637.49}, {"date": "2026-09-16 10:40", "balance": 11748.68}, {"date": "2026-09-16 16:46", "balance": 11861.76}, {"date": "2026-09-16 22:01", "balance": 11977.93}, {"date": "2026-09-16 22:34", "balance": 12218.39}, {"date": "2026-09-18 11:48", "balance": 12341.94}, {"date": "2026-09-18 16:37", "balance": 12466.23}, {"date": "2026-09-18 21:46", "balance": 12211.56}], maxConsecutiveLosses: 6, maxConsecutiveWins: 4, bestTradePips: 52.1, worstTradePips: -18.9, recoveryFactor: 2.51, avgWinPips: 17.5, avgLossPips: 8.4, pctLong: 100.0 },
+    priceLabel: "$4.99",
+    strategy_config_id: "usdcad-ema50-trend-m15",
+    blockly_state: {"blocks": {"languageVersion": 0, "blocks": [{"type": "trade_if", "id": "mp0001", "x": 20, "y": 20, "extraState": {"positionsMode": "SINGLE"}, "fields": {"POSITIONS_MODE": "SINGLE"}, "inputs": {"ASSET": {"shadow": {"type": "asset_block", "id": "mp0002", "extraState": {"asset": "USDCAD"}, "fields": {"ASSET": "USDCAD"}}}, "TIMEFRAME": {"shadow": {"type": "timeframe_block", "id": "mp0003", "fields": {"TIMEFRAME": "PERIOD_M15"}}}, "CONDITION": {"block": {"type": "comparison_block", "id": "mp0004", "fields": {"OP": ">"}, "inputs": {"LEFT": {"block": {"type": "candle_block", "id": "mp0005", "fields": {"CANDLE_TYPE": "CURRENT"}}}, "RIGHT": {"block": {"type": "indicator_ma", "id": "mp0006", "fields": {"PERIOD": 50, "TYPE": "MODE_EMA"}}}}}}, "DO": {"block": {"type": "action_block", "id": "mp0013", "fields": {"DIRECTION": "BUY", "LOT": 0.1}, "inputs": {"SL": {"block": {"type": "math_multiply_block", "id": "mp0007", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0008", "fields": {"NUM": 1.5}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0009", "fields": {"PERIOD": 14}}}}}}, "TP": {"block": {"type": "math_multiply_block", "id": "mp0010", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0011", "fields": {"NUM": 3.0}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0012", "fields": {"PERIOD": 14}}}}}}}}}}}]}},
+  },
+  {
+    id: "usdcad-ma20-trend-m30",
+    tier: "paid",
+    style: "Trend following",
+    timeframe: "M30",
+    symbol: "USDCAD",
+    name: "USDCAD - MA20 Trend (30-min)",
+    description: "A trend-following strategy on USD/CAD 30-minute candles - one of the lowest max drawdowns of this week's lineup. Exact entry conditions and stop sizing unlock after purchase.",
+    stats: { winRate: 43.1, returnPct: 18.9, trades: 58, profitFactor: 1.47, drawdownPct: -6.3, equityCurve: [{"date": "2026-08-20", "balance": 10000.0}, {"date": "2026-08-21 06:30", "balance": 9898.0}, {"date": "2026-08-24 01:03", "balance": 10301.69}, {"date": "2026-08-24 01:45", "balance": 10198.09}, {"date": "2026-08-24 02:30", "balance": 10093.68}, {"date": "2026-08-24 16:05", "balance": 10505.04}, {"date": "2026-08-24 17:31", "balance": 10399.52}, {"date": "2026-08-24 21:22", "balance": 10608.36}, {"date": "2026-08-25 01:03", "balance": 10483.62}, {"date": "2026-08-25 10:05", "balance": 10694.6}, {"date": "2026-08-25 16:59", "balance": 10586.9}, {"date": "2026-08-26 07:06", "balance": 10641.56}, {"date": "2026-08-26 18:19", "balance": 10855.16}, {"date": "2026-08-26 20:08", "balance": 10746.08}, {"date": "2026-08-27 17:21", "balance": 10640.56}, {"date": "2026-08-28 10:26", "balance": 10533.2}, {"date": "2026-08-28 14:18", "balance": 10425.62}, {"date": "2026-08-31 17:37", "balance": 10206.28}, {"date": "2026-09-01 15:33", "balance": 10412.4}, {"date": "2026-09-01 18:55", "balance": 10621.25}, {"date": "2026-09-02 01:04", "balance": 10512.9}, {"date": "2026-09-02 09:05", "balance": 10725.33}, {"date": "2026-09-02 12:13", "balance": 10940.58}, {"date": "2026-09-04 16:30", "balance": 11046.28}, {"date": "2026-09-04 17:20", "balance": 10932.99}, {"date": "2026-09-07 12:19", "balance": 10825.51}, {"date": "2026-09-08 01:03", "balance": 10674.89}, {"date": "2026-09-08 16:55", "balance": 10567.9}, {"date": "2026-09-09 03:56", "balance": 10460.98}, {"date": "2026-09-09 18:42", "balance": 10556.4}, {"date": "2026-09-09 19:21", "balance": 10771.72}, {"date": "2026-09-09 20:06", "balance": 10662.03}, {"date": "2026-09-11 00:19", "balance": 10880.27}, {"date": "2026-09-11 01:03", "balance": 10765.63}, {"date": "2026-09-11 16:25", "balance": 10981.79}, {"date": "2026-09-14 12:14", "balance": 11436.81}, {"date": "2026-09-14 13:15", "balance": 11666.8}, {"date": "2026-09-14 15:38", "balance": 11548.61}, {"date": "2026-09-14 16:25", "balance": 11779.58}, {"date": "2026-09-14 17:38", "balance": 12016.1}, {"date": "2026-09-14 18:44", "balance": 11895.06}, {"date": "2026-09-16 05:32", "balance": 12015.35}, {"date": "2026-09-16 09:02", "balance": 11894.02}, {"date": "2026-09-16 09:55", "balance": 11770.93}, {"date": "2026-09-16 13:44", "balance": 11651.8}, {"date": "2026-09-16 18:31", "balance": 11534.85}, {"date": "2026-09-16 22:02", "balance": 11769.04}, {"date": "2026-09-17 16:15", "balance": 11888.48}, {"date": "2026-09-18 08:00", "balance": 11769.79}, {"date": "2026-09-18 13:14", "balance": 12006.69}, {"date": "2026-09-18 21:37", "balance": 11886.12}], maxConsecutiveLosses: 6, maxConsecutiveWins: 4, bestTradePips: 52.0, worstTradePips: -20.5, recoveryFactor: 2.71, avgWinPips: 23.0, avgLossPips: 11.9, pctLong: 100.0 },
+    priceLabel: "$4.99",
+    strategy_config_id: "usdcad-ma20-trend-m30",
+    blockly_state: {"blocks": {"languageVersion": 0, "blocks": [{"type": "trade_if", "id": "mp0001", "x": 20, "y": 20, "extraState": {"positionsMode": "SINGLE"}, "fields": {"POSITIONS_MODE": "SINGLE"}, "inputs": {"ASSET": {"shadow": {"type": "asset_block", "id": "mp0002", "extraState": {"asset": "USDCAD"}, "fields": {"ASSET": "USDCAD"}}}, "TIMEFRAME": {"shadow": {"type": "timeframe_block", "id": "mp0003", "fields": {"TIMEFRAME": "PERIOD_M30"}}}, "CONDITION": {"block": {"type": "comparison_block", "id": "mp0004", "fields": {"OP": ">"}, "inputs": {"LEFT": {"block": {"type": "candle_block", "id": "mp0005", "fields": {"CANDLE_TYPE": "CURRENT"}}}, "RIGHT": {"block": {"type": "indicator_ma", "id": "mp0006", "fields": {"PERIOD": 20, "TYPE": "MODE_SMA"}}}}}}, "DO": {"block": {"type": "action_block", "id": "mp0013", "fields": {"DIRECTION": "BUY", "LOT": 0.1}, "inputs": {"SL": {"block": {"type": "math_multiply_block", "id": "mp0007", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0008", "fields": {"NUM": 1.5}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0009", "fields": {"PERIOD": 14}}}}}}, "TP": {"block": {"type": "math_multiply_block", "id": "mp0010", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0011", "fields": {"NUM": 3.0}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0012", "fields": {"PERIOD": 14}}}}}}}}}}}]}},
+  },
+  {
+    id: "nzdusd-bollinger-fade-m5",
+    tier: "paid",
+    style: "Mean reversion",
+    timeframe: "M5",
+    symbol: "NZDUSD",
+    name: "NZDUSD - Bollinger Fade",
+    description: "A mean-reversion strategy built on Bollinger Bands, on NZD/USD 5-minute candles. Exact entry conditions and stop sizing unlock after purchase.",
+    stats: { winRate: 40.6, returnPct: 10.0, trades: 69, profitFactor: 1.53, drawdownPct: -14.2, equityCurve: [{"date": "2026-08-20", "balance": 10000.0}, {"date": "2026-08-20 13:20", "balance": 9899.72}, {"date": "2026-08-20 18:06", "balance": 10098.25}, {"date": "2026-08-21 06:22", "balance": 9895.12}, {"date": "2026-08-21 23:35", "balance": 10093.91}, {"date": "2026-08-25 03:52", "balance": 10175.09}, {"date": "2026-08-25 04:00", "balance": 10067.58}, {"date": "2026-08-25 13:34", "balance": 9965.26}, {"date": "2026-08-25 23:52", "balance": 9757.28}, {"date": "2026-08-27 01:10", "balance": 9610.52}, {"date": "2026-08-27 01:20", "balance": 9349.13}, {"date": "2026-08-27 18:55", "balance": 9426.69}, {"date": "2026-08-28 01:40", "balance": 9218.66}, {"date": "2026-08-28 07:00", "balance": 9032.01}, {"date": "2026-08-28 15:29", "balance": 9213.21}, {"date": "2026-08-28 23:40", "balance": 9118.07}, {"date": "2026-09-01 03:44", "balance": 9205.19}, {"date": "2026-09-01 03:48", "balance": 9107.93}, {"date": "2026-09-01 04:01", "balance": 8924.27}, {"date": "2026-09-01 04:06", "balance": 8833.73}, {"date": "2026-09-01 04:43", "balance": 9012.63}, {"date": "2026-09-01 17:44", "balance": 9103.22}, {"date": "2026-09-01 18:56", "balance": 9287.22}, {"date": "2026-09-02 23:59", "balance": 9016.37}, {"date": "2026-09-03 01:10", "balance": 9230.31}, {"date": "2026-09-03 04:11", "balance": 9132.62}, {"date": "2026-09-03 09:22", "balance": 9509.15}, {"date": "2026-09-03 16:22", "balance": 9700.77}, {"date": "2026-09-04 03:50", "balance": 9602.89}, {"date": "2026-09-04 05:22", "balance": 9407.99}, {"date": "2026-09-04 16:24", "balance": 9311.57}, {"date": "2026-09-07 11:07", "balance": 9397.03}, {"date": "2026-09-07 19:17", "balance": 9586.86}, {"date": "2026-09-08 04:12", "balance": 9785.7}, {"date": "2026-09-09 11:51", "balance": 10185.29}, {"date": "2026-09-09 15:49", "balance": 10078.42}, {"date": "2026-09-11 07:51", "balance": 10178.28}, {"date": "2026-09-11 07:56", "balance": 10073.73}, {"date": "2026-09-11 08:08", "balance": 9971.16}, {"date": "2026-09-14 04:04", "balance": 10381.44}, {"date": "2026-09-14 10:19", "balance": 10590.73}, {"date": "2026-09-14 19:35", "balance": 10694.55}, {"date": "2026-09-15 10:48", "balance": 10909.98}, {"date": "2026-09-16 15:25", "balance": 10794.19}, {"date": "2026-09-16 20:02", "balance": 11232.35}, {"date": "2026-09-17 04:51", "balance": 11460.65}, {"date": "2026-09-17 10:26", "balance": 11345.46}, {"date": "2026-09-17 16:19", "balance": 11112.88}, {"date": "2026-09-17 17:41", "balance": 11336.95}, {"date": "2026-09-18 07:48", "balance": 11108.21}, {"date": "2026-09-18 08:00", "balance": 10997.13}], maxConsecutiveLosses: 8, maxConsecutiveWins: 5, bestTradePips: 12.5, worstTradePips: -9.5, recoveryFactor: 0.68, avgWinPips: 6.8, avgLossPips: 3.1, pctLong: 0.0 },
+    priceLabel: "$4.99",
+    strategy_config_id: "nzdusd-bollinger-fade-m5",
+    blockly_state: {"blocks": {"languageVersion": 0, "blocks": [{"type": "trade_if", "id": "mp0001", "x": 20, "y": 20, "extraState": {"positionsMode": "SINGLE"}, "fields": {"POSITIONS_MODE": "SINGLE"}, "inputs": {"ASSET": {"shadow": {"type": "asset_block", "id": "mp0002", "extraState": {"asset": "NZDUSD"}, "fields": {"ASSET": "NZDUSD"}}}, "TIMEFRAME": {"shadow": {"type": "timeframe_block", "id": "mp0003", "fields": {"TIMEFRAME": "PERIOD_M5"}}}, "CONDITION": {"block": {"type": "comparison_block", "id": "mp0004", "fields": {"OP": ">"}, "inputs": {"LEFT": {"block": {"type": "candle_block", "id": "mp0005", "fields": {"CANDLE_TYPE": "CURRENT"}}}, "RIGHT": {"block": {"type": "indicator_bands", "id": "mp0006", "fields": {"BAND": "UPPER", "PERIOD": 20, "DEVIATION": 2.5}}}}}}, "DO": {"block": {"type": "action_block", "id": "mp0013", "fields": {"DIRECTION": "SELL", "LOT": 0.1}, "inputs": {"SL": {"block": {"type": "math_multiply_block", "id": "mp0007", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0008", "fields": {"NUM": 1.5}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0009", "fields": {"PERIOD": 14}}}}}}, "TP": {"block": {"type": "math_multiply_block", "id": "mp0010", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0011", "fields": {"NUM": 3.0}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0012", "fields": {"PERIOD": 14}}}}}}}}}}}]}},
+  },
+  {
+    id: "xauusd-ma20-short-m5",
+    tier: "paid",
+    style: "Trend following",
+    timeframe: "M5",
+    symbol: "XAUUSD",
+    name: "XAUUSD - MA20 Trend (Short)",
+    description: "A sell-only trend strategy on gold, and it ran in a month when gold fell. It trades often with a thin per-trade edge (see profit factor) and the deepest drawdown of this week's lineup. Exact entry conditions and stop sizing unlock after purchase.",
+    stats: { winRate: 36.3, returnPct: 21.9, trades: 311, profitFactor: 1.04, drawdownPct: -21.1, equityCurve: [{"date": "2026-08-20", "balance": 10000.0}, {"date": "2026-08-19 22:01", "balance": 9897.87}, {"date": "2026-08-20 05:04", "balance": 10194.53}, {"date": "2026-08-20 18:09", "balance": 10078.67}, {"date": "2026-08-21 04:44", "balance": 9774.18}, {"date": "2026-08-21 12:48", "balance": 9471.37}, {"date": "2026-08-23 22:54", "balance": 8890.67}, {"date": "2026-08-24 10:35", "balance": 8364.23}, {"date": "2026-08-24 18:39", "balance": 8358.31}, {"date": "2026-08-25 11:51", "balance": 8528.31}, {"date": "2026-08-25 22:50", "balance": 8525.13}, {"date": "2026-08-26 08:20", "balance": 9059.05}, {"date": "2026-08-26 14:02", "balance": 9277.93}, {"date": "2026-08-27 03:30", "balance": 9267.11}, {"date": "2026-08-27 09:10", "balance": 9835.13}, {"date": "2026-08-27 18:02", "balance": 9734.29}, {"date": "2026-08-28 05:46", "balance": 10021.78}, {"date": "2026-08-28 13:21", "balance": 10326.26}, {"date": "2026-08-31 11:04", "balance": 10527.83}, {"date": "2026-08-31 22:54", "balance": 10535.42}, {"date": "2026-09-01 06:42", "balance": 10841.15}, {"date": "2026-09-01 15:32", "balance": 11388.17}, {"date": "2026-09-01 23:02", "balance": 11753.67}, {"date": "2026-09-02 07:10", "balance": 11754.18}, {"date": "2026-09-02 23:38", "balance": 11617.39}, {"date": "2026-09-03 13:59", "balance": 11263.81}, {"date": "2026-09-04 06:30", "balance": 11254.88}, {"date": "2026-09-04 12:28", "balance": 10908.11}, {"date": "2026-09-06 21:01", "balance": 10799.75}, {"date": "2026-09-07 00:33", "balance": 10788.59}, {"date": "2026-09-07 11:41", "balance": 11106.21}, {"date": "2026-09-08 04:25", "balance": 10788.07}, {"date": "2026-09-08 08:41", "balance": 11112.45}, {"date": "2026-09-08 15:30", "balance": 10721.21}, {"date": "2026-09-09 03:28", "balance": 10608.36}, {"date": "2026-09-09 13:27", "balance": 10287.75}, {"date": "2026-09-09 23:00", "balance": 10560.15}, {"date": "2026-09-10 09:32", "balance": 10425.05}, {"date": "2026-09-10 17:09", "balance": 10740.98}, {"date": "2026-09-11 03:08", "balance": 10728.27}, {"date": "2026-09-13 23:07", "balance": 11281.68}, {"date": "2026-09-14 11:36", "balance": 11992.51}, {"date": "2026-09-14 18:50", "balance": 12367.34}, {"date": "2026-09-15 05:57", "balance": 12593.62}, {"date": "2026-09-15 15:54", "balance": 12577.06}, {"date": "2026-09-16 01:10", "balance": 12567.59}, {"date": "2026-09-16 11:59", "balance": 12076.81}, {"date": "2026-09-16 17:31", "balance": 12078.02}, {"date": "2026-09-17 13:06", "balance": 11710.52}, {"date": "2026-09-18 10:00", "balance": 11952.37}, {"date": "2026-09-18 17:59", "balance": 12192.76}], maxConsecutiveLosses: 11, maxConsecutiveWins: 4, bestTradePips: 631.0, worstTradePips: -332.2, recoveryFactor: 0.98, avgWinPips: 160.3, avgLossPips: 88.1, pctLong: 0.0 },
+    priceLabel: "$4.99",
+    strategy_config_id: "xauusd-ma20-short-m5",
+    blockly_state: {"blocks": {"languageVersion": 0, "blocks": [{"type": "trade_if", "id": "mp0001", "x": 20, "y": 20, "extraState": {"positionsMode": "SINGLE"}, "fields": {"POSITIONS_MODE": "SINGLE"}, "inputs": {"ASSET": {"shadow": {"type": "asset_block", "id": "mp0002", "extraState": {"asset": "XAUUSD"}, "fields": {"ASSET": "XAUUSD"}}}, "TIMEFRAME": {"shadow": {"type": "timeframe_block", "id": "mp0003", "fields": {"TIMEFRAME": "PERIOD_M5"}}}, "CONDITION": {"block": {"type": "comparison_block", "id": "mp0004", "fields": {"OP": "<"}, "inputs": {"LEFT": {"block": {"type": "candle_block", "id": "mp0005", "fields": {"CANDLE_TYPE": "CURRENT"}}}, "RIGHT": {"block": {"type": "indicator_ma", "id": "mp0006", "fields": {"PERIOD": 20, "TYPE": "MODE_SMA"}}}}}}, "DO": {"block": {"type": "action_block", "id": "mp0013", "fields": {"DIRECTION": "SELL", "LOT": 0.1}, "inputs": {"SL": {"block": {"type": "math_multiply_block", "id": "mp0007", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0008", "fields": {"NUM": 1.5}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0009", "fields": {"PERIOD": 14}}}}}}, "TP": {"block": {"type": "math_multiply_block", "id": "mp0010", "inputs": {"A": {"block": {"type": "math_number", "id": "mp0011", "fields": {"NUM": 3.0}}}, "B": {"block": {"type": "indicator_atr", "id": "mp0012", "fields": {"PERIOD": 14}}}}}}}}}}}]}},
+  },
+  {
     id: "usdjpy-prevclose-m15",
+    archived: true,
     tier: "free",
     badge: "Free strategy of the week",
     style: "Momentum",
@@ -58,6 +139,7 @@ const MARKETPLACE_STRATEGIES = [
   },
   {
     id: "xauusd-ma20-trend-m5",
+    archived: true,
     tier: "paid",
     featured: true,
     style: "Trend following",
@@ -72,6 +154,7 @@ const MARKETPLACE_STRATEGIES = [
   },
   {
     id: "xauusd-prevclose-m5",
+    archived: true,
     tier: "paid",
     style: "Momentum",
     timeframe: "M5",
@@ -85,6 +168,7 @@ const MARKETPLACE_STRATEGIES = [
   },
   {
     id: "usdcad-macross-m15",
+    archived: true,
     tier: "paid",
     style: "Trend following",
     timeframe: "M15",
@@ -98,6 +182,7 @@ const MARKETPLACE_STRATEGIES = [
   },
   {
     id: "usdcad-prevclose-m15",
+    archived: true,
     tier: "paid",
     style: "Momentum",
     timeframe: "M15",
@@ -111,6 +196,7 @@ const MARKETPLACE_STRATEGIES = [
   },
   {
     id: "audusd-prevclose-m15",
+    archived: true,
     tier: "paid",
     style: "Momentum",
     timeframe: "M15",
@@ -126,6 +212,20 @@ const MARKETPLACE_STRATEGIES = [
 
 function getMarketplaceStrategy(id) {
   return MARKETPLACE_STRATEGIES.find((s) => s.id === id) || null;
+}
+
+/* Strategies rotated out of the weekly lineup stay in MARKETPLACE_STRATEGIES
+   with `archived: true` (2026-09-19) - buyers own them per strategy id, so
+   deleting an entry would take away something they paid for (My Purchases,
+   "Load into Builder" and downloads all resolve ids through this catalog).
+   Anything that means "what's on offer THIS week" - the Strategy of the Week
+   page, the homepage teaser - must go through this instead of reading
+   MARKETPLACE_STRATEGIES directly; ownership lookups
+   (getMarketplaceStrategy / getOwnedMarketplaceStrategies) deliberately
+   still see archived entries. The backend refuses new checkouts for archived
+   ids too - see ARCHIVED_STRATEGY_IDS in marketplace_strategies.py. */
+function getActiveMarketplaceStrategies() {
+  return MARKETPLACE_STRATEGIES.filter((s) => !s.archived);
 }
 
 /* ------------------------------------------------------------

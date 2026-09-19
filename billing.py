@@ -18,7 +18,7 @@ from typing import Literal, Optional
 
 import stripe
 
-from marketplace_strategies import get_marketplace_strategy_tier
+from marketplace_strategies import get_marketplace_strategy_tier, is_marketplace_strategy_archived
 from settings import settings
 
 Kind = Literal["export_credit", "day_pass", "strategy_purchase"]
@@ -132,6 +132,11 @@ def create_checkout_session(
         tier = get_marketplace_strategy_tier(strategy_id)
         if tier not in ("featured", "standard"):
             raise ValueError(f"strategy {strategy_id!r} is not purchasable (tier={tier!r})")
+        if is_marketplace_strategy_archived(strategy_id):
+            # Rotated out of the weekly lineup - existing owners keep their
+            # download access (main._require_strategy_ownership), but it is
+            # no longer for sale. See marketplace_strategies.ARCHIVED_STRATEGY_IDS.
+            raise ValueError(f"strategy {strategy_id!r} is no longer on sale")
 
     if kind == "export_credit":
         price_id = settings.STRIPE_PRICE_EXPORT

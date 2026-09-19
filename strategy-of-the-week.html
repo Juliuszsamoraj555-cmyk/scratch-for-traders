@@ -279,7 +279,7 @@
     <h1 class="reveal mt-3 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Strategy of the Week</h1>
     <p class="reveal mt-4 text-lg text-gray-400 leading-relaxed max-w-2xl">A new, independently backtested strategy every week. One is always free, five more are available to buy individually. Downloading any of them needs a free account.</p>
     <div class="reveal mt-5 flex items-center gap-3 text-sm text-gray-500 flex-wrap">
-      <span>Tested <span class="text-gray-300 font-medium">Jul 29 &ndash; Aug 28, 2026</span> &middot; published Aug 29</span>
+      <span>Tested <span class="text-gray-300 font-medium">Aug 20 &ndash; Sep 18, 2026</span> &middot; published Sep 19</span>
       <span class="text-gray-700">&middot;</span>
       <a href="#how-we-test" class="text-emerald-400 hover:text-emerald-300 transition">How we test our strategies &rarr;</a>
     </div>
@@ -387,7 +387,7 @@
         <div class="text-xs text-gray-400 leading-relaxed space-y-1.5">
           <p class="font-semibold text-gray-300 text-sm">Before you buy</p>
           <p>Past performance does not guarantee future results.</p>
-          <p>This strategy was tested from Jul 29 to Aug 28, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
+          <p>This strategy was tested from Aug 20 to Sep 18, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
         </div>
       </div>
 
@@ -450,7 +450,7 @@
     </div>
   </div>
 
-<script src="assets/marketplace-data.js"></script>
+<script src="assets/marketplace-data.js?v=20260919"></script>
 <script src="assets/marketplace-auth.js"></script>
 <script src="assets/instrument-marks.js"></script>
 <script>
@@ -557,11 +557,15 @@ function styleIcon(style) {
   if (style === 'Momentum') {
     return `<svg width="13" height="13" viewBox="0 0 24 24" fill="#fbbf24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>`;
   }
+  if (style === 'Mean reversion') {
+    // A wave crossing its own midline - price oscillating back to the mean.
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12c3-8 6-8 9 0s6 8 9 0"/></svg>`;
+  }
   return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18v-3h4v-4h4v-4h4V4h4"/></svg>`;
 }
 
 function renderFreeCard() {
-  const strategy = MARKETPLACE_STRATEGIES.find((s) => s.tier === 'free');
+  const strategy = getActiveMarketplaceStrategies().find((s) => s.tier === 'free');
   if (!strategy) return;
   const owned = isStrategyOwned(strategy.id);
   const s = strategy.stats;
@@ -644,7 +648,7 @@ function rowSparkline(equityCurve, w, h) {
 // label rather than a separate layout, so all five stay comparable
 // column by column.
 function renderTable() {
-  const strategies = MARKETPLACE_STRATEGIES.filter((s) => s.tier === 'paid');
+  const strategies = getActiveMarketplaceStrategies().filter((s) => s.tier === 'paid');
   // Featured first, then the rest in catalog order.
   strategies.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
 

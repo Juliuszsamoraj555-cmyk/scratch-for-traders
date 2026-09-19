@@ -147,7 +147,7 @@
         <div class="text-xs text-gray-400 leading-relaxed space-y-1.5">
           <p class="font-semibold text-gray-300 text-sm">Before you buy</p>
           <p>Past performance does not guarantee future results.</p>
-          <p>This strategy was tested from Jul 29 to Aug 28, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
+          <p>This strategy was tested from Aug 20 to Sep 18, 2026 &mdash; not on your account, your broker, or future market conditions.</p>
         </div>
       </div>
       <label class="mt-4 flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
@@ -194,7 +194,7 @@
     </div>
   </div>
 
-<script src="assets/marketplace-data.js"></script>
+<script src="assets/marketplace-data.js?v=20260919"></script>
 <script src="assets/marketplace-auth.js"></script>
 <script>
 // Same hostname-based API_BASE convention as index_1.html (see that
@@ -521,14 +521,20 @@ function renderLocked() {
              strategy-of-the-week.html: keyStatsRow above already uses
              emerald for win rate/return, so a green price here would blend
              into the same blob it does there. -->
-        <span class="text-2xl font-bold text-gray-50">${s.priceLabel}</span>
-        <button id="buyBtn" class="text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-5 py-2.5 rounded-md">Buy to unlock</button>
+        ${s.archived
+          /* Rotated out of the weekly lineup (see getActiveMarketplaceStrategies
+             in marketplace-data.js): no longer sold - the backend refuses
+             checkout for it too. Owners never reach renderLocked(). */
+          ? `<span class="text-sm text-gray-400" style="max-width:14rem;line-height:1.35">From a previous week. No longer on sale.</span>`
+          : `<span class="text-2xl font-bold text-gray-50">${s.priceLabel}</span>
+        <button id="buyBtn" class="text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-gray-900 px-5 py-2.5 rounded-md">Buy to unlock</button>`}
       </div>
     </div>
     ${extraStatsGrid(s)}
     ${expandableChartSection(s)}
   `;
-  document.getElementById('buyBtn').addEventListener('click', () => openPurchaseModal(s.id));
+  const buyBtnEl = document.getElementById('buyBtn');
+  if (buyBtnEl) buyBtnEl.addEventListener('click', () => openPurchaseModal(s.id));
   document.getElementById('chartExpandToggle').addEventListener('click', () => toggleChartSection(s, 'chartExpand'));
 }
 
