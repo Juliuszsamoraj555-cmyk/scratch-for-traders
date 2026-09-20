@@ -25,12 +25,16 @@ import html
 import io
 import itertools
 import json
+import os
+import time
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Annotated, List, Literal, Optional, Union
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
@@ -43,7 +47,7 @@ import db
 # devices.ip_hash.
 from device_identity import get_device_id
 from marketplace_strategies import get_marketplace_strategy_config, get_marketplace_strategy_tier
-from supabase_auth import get_current_user
+from supabase_auth import get_current_user, verify_email_otp, OtpRateLimited, OtpServiceError
 from settings import settings
 
 # --------------------------------------------------------------------------
@@ -3121,7 +3125,7 @@ class StrategySaveLogRequest(BaseModel):
 
 @app.post("/api/strategies/log-save")
 async def log_strategy_save(body: StrategySaveLogRequest, request: Request, device_id: str = Depends(get_device_id)):
-    if not settings.DATABASE_URL:
+    if not settings.DATABASE_URL or _is_dev_request(request):
         return {"logged": False}
 
     try:
@@ -3240,7 +3244,7 @@ async def _log_sotw_download_best_effort(strategy_id: str, platform: str, device
     be delivered. Never allowed to fail the actual download: any error here
     is swallowed, same "must never look broken" stance as
     /api/strategies/log-save above."""
-    if not settings.DATABASE_URL:
+    if not settings.DATABASE_URL or _is_dev_request(request):
         return
     try:
         user_id = get_current_user(request)
@@ -3339,6 +3343,18 @@ ALLOWED_ANALYTICS_EVENTS = {
     "export_succeeded",   # the real activation event: a file was delivered
     "strategy_downloaded",  # a marketplace strategy file was delivered
     "purchase_completed",   # returned from Stripe having actually paid
+    # 2026-09-19: the step before the login wall, plus the first-run
+    # onboarding (assets/onboarding.js) so its effect can be measured.
+    "export_clicked",       # an export button was pressed (before login/validation/paywall)
+    "onboarding_shown",     # the "Try an example / guide" card appeared; metadata.source says why
+    "example_loaded",       # "Try an example" was used
+    "guide_started",        # the step-by-step build guide was opened
+    "guide_step_done",      # a guide step was completed by a real action; metadata.step
+    "guide_completed",      # every guide step finished; metadata.path = build | example
+    "guide_dismissed",      # the card or guide was closed early; metadata.where
+    # Email verification now happens at purchase time, not at signup.
+    "verify_email_shown",
+    "verify_email_completed",
 }
 
 # Generous but bounded - this is lightweight product instrumentation
@@ -3355,6 +3371,37 @@ class AnalyticsEventIn(BaseModel):
     path: Optional[str] = None
 
 
+def _is_dev_request(request: Request) -> bool:
+    """True when the request comes from a page served on the developer's own
+    machine (Origin / Referer on localhost, 127.0.0.1, ::1, or the literal
+    "null" a file:// page sends).
+
+    Why it exists (2026-09-20): a local backend reads .env, and .env's
+    DATABASE_URL is the PRODUCTION Supabase project. Every click made while
+    building or testing a feature on localhost was therefore written to the
+    real analytics_events / strategy_save_log tables (60 rows of a guide event
+    in a day, for a guide that was not deployed). Analytics-type logging is
+    skipped for these requests. Set LOG_DEV_ANALYTICS=1 to opt back in, and
+    point DATABASE_URL at a throw-away database first.
+
+    Deliberately NOT applied to entitlement writes (exports, purchases): local
+    testing of those has to work, and they are the developer's own account."""
+    if os.getenv("LOG_DEV_ANALYTICS") == "1":
+        return False
+    for header in ("origin", "referer"):
+        value = (request.headers.get(header) or "").strip().lower()
+        if value == "null":
+            return True
+        try:
+            # The exact host, not a substring: "localhost.example.com" is a real site.
+            host = urlparse(value).hostname
+        except ValueError:
+            host = None
+        if host in ("localhost", "127.0.0.1", "::1"):
+            return True
+    return False
+
+
 @app.post("/api/analytics/event", status_code=204)
 async def track_event(body: AnalyticsEventIn, request: Request, device_id: str = Depends(get_device_id)):
     """Fire-and-forget site-behavior event logging - see trackEvent() in
@@ -3363,7 +3410,7 @@ async def track_event(body: AnalyticsEventIn, request: Request, device_id: str =
     DATABASE_URL configured, even a DB error) - this is instrumentation,
     never a feature anything else depends on, so a bug in it should never
     surface as a visible error to a real trader trying to use the app."""
-    if not settings.DATABASE_URL or body.event_type not in ALLOWED_ANALYTICS_EVENTS:
+    if not settings.DATABASE_URL or body.event_type not in ALLOWED_ANALYTICS_EVENTS or _is_dev_request(request):
         return
 
     user_id = get_current_user(request)
@@ -3437,6 +3484,91 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
     }
 
 
+class VerifyEmailRequest(BaseModel):
+    code: str
+
+
+# Wrong-code attempts per account, in memory. A 6-digit code has only a
+# million possibilities, and Supabase's own limit is per IP - which for
+# calls made from this server is one shared address - so it can't be the
+# only brake. Per-process and reset on restart, which is fine: it only has
+# to make guessing impractical, not be an audit log.
+_VERIFY_FAILURES: dict[str, list[float]] = {}
+_VERIFY_MAX_FAILURES = 5
+_VERIFY_WINDOW_SECONDS = 600
+
+
+def _verify_recent_failures(user_id: str) -> int:
+    now = time.time()
+    kept = [t for t in _VERIFY_FAILURES.get(user_id, []) if now - t < _VERIFY_WINDOW_SECONDS]
+    _VERIFY_FAILURES[user_id] = kept
+    return len(kept)
+
+
+@app.post("/api/account/verify-email")
+async def account_verify_email(body: VerifyEmailRequest, request: Request):
+    """Checks the one-time code Supabase emailed to this account (the browser
+    asks for it, see assets/email-verify.js) and, if it is right, records
+    that the account controls its address. Needed only before a purchase -
+    see _require_verified_email_for_purchase."""
+    user_id = get_current_user(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Log in to confirm your email.")
+    if not settings.DATABASE_URL:
+        raise HTTPException(status_code=503, detail="Email confirmation is not available right now.")
+
+    code = (body.code or "").strip().replace(" ", "")
+    if not code.isdigit() or not 4 <= len(code) <= 10:
+        raise HTTPException(status_code=400, detail={"error": "invalid_code", "message": "Enter the digits from the email."})
+
+    if _verify_recent_failures(user_id) >= _VERIFY_MAX_FAILURES:
+        raise HTTPException(
+            status_code=429,
+            detail={"error": "too_many_attempts", "message": "Too many wrong codes. Wait a few minutes and request a new one."},
+        )
+
+    email = await db.get_user_email(user_id)
+    if not email:
+        raise HTTPException(status_code=400, detail={"error": "no_email", "message": "This account has no email address."})
+
+    try:
+        verified_id = await run_in_threadpool(verify_email_otp, email, code)
+    except OtpRateLimited:
+        raise HTTPException(status_code=429, detail={"error": "rate_limited", "message": "Too many attempts. Wait a minute and try again."})
+    except OtpServiceError as e:
+        print(f"[email_verify] Supabase Auth problem: {e}")
+        raise HTTPException(status_code=503, detail={"error": "service_unavailable", "message": "Could not check the code right now. Try again in a moment."})
+
+    if not verified_id or verified_id.lower() != user_id.lower():
+        _VERIFY_FAILURES.setdefault(user_id, []).append(time.time())
+        raise HTTPException(status_code=400, detail={"error": "invalid_code", "message": "That code is not right or has expired."})
+
+    await db.mark_email_verified(user_id)
+    _VERIFY_FAILURES.pop(user_id, None)
+    return {"verified": True}
+
+
+async def _require_verified_email_for_purchase(user_id: Optional[str]) -> None:
+    """Email verification is needed only to BUY (2026-09-19) - signing up and
+    the free exports never ask for it. Raises 403 `email_not_verified`, which
+    the frontend answers by asking for a one-time code and then retrying the
+    same checkout. Anonymous requests pass through untouched: the checkout
+    call itself already 401s them (billing.LoginRequired), and that should
+    stay the message they see."""
+    if not settings.REQUIRE_VERIFIED_EMAIL:
+        return  # ships dark: see settings.REQUIRE_VERIFIED_EMAIL
+    if not user_id or not settings.DATABASE_URL:
+        return
+    if not await db.is_email_verified(user_id):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "email_not_verified",
+                "message": "Confirm your email address before your first purchase.",
+            },
+        )
+
+
 @app.post("/api/billing/checkout/export")
 async def billing_checkout_export(request: Request, device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for a single export credit and
@@ -3445,6 +3577,7 @@ async def billing_checkout_export(request: Request, device_id: str = Depends(get
     a credit that couldn't be spent without an account would be worse
     than useless. See billing.LoginRequired."""
     user_id = get_current_user(request)
+    await _require_verified_email_for_purchase(user_id)
     try:
         url = billing.create_checkout_session(device_id, "export_credit", user_id=user_id)
     except billing.LoginRequired as e:
@@ -3460,6 +3593,7 @@ async def billing_checkout_pass(request: Request, device_id: str = Depends(get_d
     and returns its hosted URL for the frontend to redirect to. Requires
     login (401 if not) - see billing.LoginRequired."""
     user_id = get_current_user(request)
+    await _require_verified_email_for_purchase(user_id)
     try:
         url = billing.create_checkout_session(device_id, "day_pass", user_id=user_id)
     except billing.LoginRequired as e:
@@ -3485,6 +3619,7 @@ async def billing_checkout_strategy(
     strategy_id (ValueError from billing.py - never reaches Stripe with a
     bad id)."""
     user_id = get_current_user(request)
+    await _require_verified_email_for_purchase(user_id)
     try:
         url = billing.create_checkout_session(
             device_id, "strategy_purchase", user_id=user_id, strategy_id=body.strategy_id

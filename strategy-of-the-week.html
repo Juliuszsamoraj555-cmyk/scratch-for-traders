@@ -450,8 +450,9 @@
     </div>
   </div>
 
-<script src="assets/marketplace-data.js?v=20260919"></script>
+<script src="assets/marketplace-data.js?v=20260920"></script>
 <script src="assets/marketplace-auth.js"></script>
+<script src="assets/email-verify.js?v=1"></script>
 <script src="assets/instrument-marks.js"></script>
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
@@ -809,6 +810,14 @@ async function confirmPurchase() {
     if (err.isAuthRequired) {
       closePurchaseModal();
       showMarketplaceAuthOverlay(() => { openPurchaseModal(strategy.id); confirmPurchase(); });
+      return;
+    }
+    if (err.isEmailUnverified && typeof window.apVerifyEmail === 'function') {
+      // First purchase on this account: prove the email once (see
+      // assets/email-verify.js), then retry the same checkout.
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      if (await window.apVerifyEmail(MARKETPLACE_API_BASE)) confirmPurchase();
       return;
     }
     alert(`Could not start checkout: ${err.message}`);

@@ -107,3 +107,59 @@ def get_current_user(request: Request) -> Optional[str]:
 
     user_id = payload.get("sub")
     return user_id if user_id else None
+
+
+# --------------------------------------------------------------------------
+# One-time email codes (2026-09-19) - proof that an account controls its
+# address, asked for right before its first payment rather than at signup.
+#
+# The browser asks Supabase to email the code (POST /auth/v1/otp) and this
+# side only CHECKS it, by asking Supabase Auth to verify it. Verifying here
+# instead of in the browser is what makes the result trustworthy: a
+# client-set flag would prove nothing. Supabase remains the only thing that
+# ever knows whether a code is right; this app never generates or stores one.
+#
+# stdlib urllib on purpose (no new dependency for a single call); the
+# blocking call is run in a threadpool by the caller.
+# --------------------------------------------------------------------------
+import json as _json
+import urllib.error as _urlerror
+import urllib.request as _urlrequest
+
+
+class OtpServiceError(RuntimeError):
+    """Supabase Auth could not be reached, or answered with a server error.
+    Distinct from a wrong code, which is an ordinary None result."""
+
+
+class OtpRateLimited(RuntimeError):
+    """Supabase Auth throttled the request (HTTP 429)."""
+
+
+def verify_email_otp(email: str, code: str) -> Optional[str]:
+    """Returns the Supabase user id the code belongs to, or None when the
+    code is wrong or expired. Raises OtpServiceError / OtpRateLimited for
+    infrastructure problems so the caller can tell them apart from a typo."""
+    if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
+        raise OtpServiceError("Supabase Auth is not configured.")
+
+    req = _urlrequest.Request(
+        f"{settings.SUPABASE_URL}/auth/v1/verify",
+        data=_json.dumps({"type": "email", "email": email, "token": code}).encode("utf-8"),
+        headers={"Content-Type": "application/json", "apikey": settings.SUPABASE_ANON_KEY},
+        method="POST",
+    )
+    try:
+        with _urlrequest.urlopen(req, timeout=10) as resp:
+            body = _json.loads(resp.read().decode("utf-8") or "{}")
+    except _urlerror.HTTPError as e:
+        if e.code == 429:
+            raise OtpRateLimited("Too many attempts.") from e
+        if 400 <= e.code < 500:
+            return None  # wrong / expired / already used code
+        raise OtpServiceError(f"Supabase Auth returned HTTP {e.code}.") from e
+    except (_urlerror.URLError, TimeoutError, ValueError) as e:
+        raise OtpServiceError("Could not reach Supabase Auth.") from e
+
+    user = body.get("user") or {}
+    return user.get("id") or None

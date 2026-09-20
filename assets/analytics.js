@@ -48,7 +48,23 @@
   /* ---------- end of config ---------- */
 
   const CONSENT_KEY = 'algoPuzzle.consent.v1';
-  const hasGoogleTags = Boolean(GA4_ID || ADS_ID);
+
+  /* Nothing is recorded from a developer's own machine.
+     (2026-09-20) A local page talks to a local backend, and that backend reads
+     .env, whose DATABASE_URL is the PRODUCTION Supabase project - so every
+     click made while building or testing a feature was written to the real
+     analytics_events table (60 "guide_step_done" rows in a day for a guide
+     that is not even deployed), and the Google tag sent pings to the real GA4
+     property too. Off by default on localhost / 127.0.0.1 / file://; to test the
+     analytics itself, opt in with localStorage.setItem('ap.devTracking', '1')
+     and point .env at a database you can throw away first. */
+  const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
+    || window.location.protocol === 'file:';
+  let devOptIn = false;
+  try { devOptIn = localStorage.getItem('ap.devTracking') === '1'; } catch (_) {}
+  const TRACKING_OFF = IS_LOCAL_DEV && !devOptIn;
+
+  const hasGoogleTags = Boolean(GA4_ID || ADS_ID) && !TRACKING_OFF;
 
   /* ------------------------------------------------------------
      Backend event logging - unchanged behaviour, just centralised.
@@ -60,8 +76,7 @@
      a second top-level declaration of that name would be a SyntaxError
      that takes the whole page down.
      ------------------------------------------------------------ */
-  const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
-    || window.location.protocol === 'file:';
+  // (IS_LOCAL_DEV is defined at the top of this file, with the tracking switch.)
   const IS_STAGING = window.location.hostname === 'algopuzzle-frontend-staging.onrender.com';
   const BACKEND = IS_LOCAL_DEV
     ? (window.location.origin.includes('null') || window.location.protocol === 'file:'
@@ -89,6 +104,7 @@
   }
 
   function logToBackend(eventType, metadata) {
+    if (TRACKING_OFF) return;
     try {
       const headers = { 'Content-Type': 'application/json' };
       const token = accessToken();
@@ -239,6 +255,7 @@
   // No-op until ADS_ID and the matching label are filled in, so call
   // sites can be written now and start reporting the moment they are.
   window.apConversion = function (name, params) {
+    if (TRACKING_OFF) return;
     if (!ADS_ID || !ADS_LABELS[name]) return;
     if (typeof window.gtag !== 'function') return;
     const payload = Object.assign(

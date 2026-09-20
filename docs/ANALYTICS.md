@@ -114,11 +114,31 @@ reports nothing, so one sale can't be counted twice.
 
 ## Local development writes to the production database
 
-`DATABASE_URL` in `.env` points at the live Supabase project, so events
-fired while testing on `localhost` land in the real
-`analytics_events` table. A handful of `landing_view` / `cta_clicked`
-rows from 2026-09-03 with `path = /index.html` are from setting this up.
-Filter by date if it matters; nothing separates them automatically.
+`DATABASE_URL` in `.env` points at the live Supabase project, and a local
+backend reads it. Until 2026-09-20 that meant every event fired while testing
+on `localhost` landed in the real `analytics_events` table (and the Google tag
+pinged the real GA4 property). It stopped being a footnote when a day of
+testing the first-visit guide wrote 60 `guide_step_done` rows, for a guide that
+was not even deployed. A handful of `landing_view` / `cta_clicked` rows from
+2026-09-03 with `path = /index.html` are from the same cause.
+
+**Now guarded in three places, so testing locally records nothing:**
+- `assets/analytics.js`: on `localhost` / `127.0.0.1` / `file://` the backend
+  beacon, the Google tag and the Ads conversions are all off.
+- `index_1.html`: `trackEvent()` and the strategy save log honour the same
+  switch (`DEV_TRACKING_OFF`).
+- `main.py::_is_dev_request`: the analytics beacon, `/api/strategies/log-save`
+  and the Strategy of the Week download log ignore any request whose
+  Origin/Referer host is exactly `localhost`, `127.0.0.1` or `::1` (or `null`
+  from a `file://` page), even if a page forgot the front-end switch.
+
+To test the analytics itself: `localStorage.setItem('ap.devTracking', '1')` in
+the page, `LOG_DEV_ANALYTICS=1` for the backend, and FIRST point `DATABASE_URL`
+at a database you can throw away. **Not covered:** entitlement writes
+(`export_log`, purchases) still go to whatever `DATABASE_URL` says, because
+testing those locally has to work; use a separate database for that too.
+The one-off tidy-up for the 2026-09-20 rows is
+`supabase/2026-09-20_cleanup_dev_analytics.sql` (run by hand, step by step).
 
 ## Beyond the lightweight events: strategy_save_log and strategy_of_the_week_downloads
 

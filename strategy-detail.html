@@ -194,8 +194,9 @@
     </div>
   </div>
 
-<script src="assets/marketplace-data.js?v=20260919"></script>
+<script src="assets/marketplace-data.js?v=20260920"></script>
 <script src="assets/marketplace-auth.js"></script>
+<script src="assets/email-verify.js?v=1"></script>
 <script>
 // Same hostname-based API_BASE convention as index_1.html (see that
 // file's own comment for the full reasoning) - kept as its own small copy
@@ -694,6 +695,14 @@ async function confirmPurchase() {
       const id = pendingStrategyId;
       closePurchaseModal();
       showMarketplaceAuthOverlay(() => { openPurchaseModal(id); confirmPurchase(); });
+      return;
+    }
+    if (err.isEmailUnverified && typeof window.apVerifyEmail === 'function') {
+      // First purchase on this account: prove the email once (see
+      // assets/email-verify.js), then retry the same checkout.
+      btn.disabled = false;
+      btn.textContent = originalText;
+      if (await window.apVerifyEmail(MARKETPLACE_API_BASE)) confirmPurchase();
       return;
     }
     alert(`Could not start checkout: ${err.message}`);

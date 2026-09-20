@@ -166,6 +166,17 @@
     </div>
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <div class="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-3 mr-1 border-r border-gray-800">
+        <!-- Re-opens the first-run card (Try an example / guide) - see
+             assets/onboarding.js. Same classes as its neighbours so nothing
+             here depends on a utility that might be missing from the
+             precompiled Tailwind build. -->
+        <button id="openGuideBtn" title="Try an example or follow a short guide"
+          class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="hidden sm:inline">Guide</span>
+        </button>
         <button id="openHowToRunBtn" title="How to run your strategy?"
           class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 text-sm font-medium px-2 sm:px-3 py-2 rounded-md transition flex items-center gap-1.5">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1788,6 +1799,7 @@ async function handleSaveClick() {
   // one save has no detail beyond what the analytics event above
   // already logged - it must never make Save itself look broken.
   try {
+    if (DEV_TRACKING_OFF) return;   // never write a local save into the production save log
     const saveLogConfig = serializeWorkspace(workspace);
     (async () => {
       const token = await getValidAccessToken();
@@ -2776,6 +2788,10 @@ const STAGING_API_BASE = 'https://algopuzzle-api-staging.onrender.com';
 const IS_STAGING = window.location.hostname === 'algopuzzle-frontend-staging.onrender.com';
 
 const IS_LOCAL_DEV = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
+// Nothing is recorded from a developer's machine: the local backend writes to
+// the PRODUCTION database (see the note at the top of assets/analytics.js).
+// Opt in with localStorage.setItem('ap.devTracking', '1').
+const DEV_TRACKING_OFF = IS_LOCAL_DEV && (() => { try { return localStorage.getItem('ap.devTracking') !== '1'; } catch (_) { return true; } })();
 
 const API_BASE = IS_LOCAL_DEV
   ? (window.location.origin.includes('null') || window.location.protocol === 'file:'
@@ -2802,6 +2818,7 @@ const API_BASE = IS_LOCAL_DEV
 // somehow fails to load; it must never become the reason an export
 // breaks.
 async function trackEvent(eventType, metadata) {
+  if (DEV_TRACKING_OFF) return;
   if (typeof window.apTrack === 'function') {
     window.apTrack(eventType, metadata);
     return;
@@ -2955,6 +2972,16 @@ async function startCheckout(kind) {
     const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', credentials: 'include', headers });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
+      // Email is verified once, right before the first purchase (signup
+      // and free exports never ask) - see assets/email-verify.js. On
+      // success, resume the same checkout rather than making the trader
+      // click "buy" again.
+      if (res.status === 403 && errJson.detail && errJson.detail.error === 'email_not_verified'
+          && typeof window.apVerifyEmail === 'function') {
+        hidePaywall();
+        if (await window.apVerifyEmail(API_BASE)) startCheckout(kind);
+        return;
+      }
       throw new Error((errJson.detail && errJson.detail.message) || errJson.detail || 'Could not start checkout.');
     }
     const { url } = await res.json();
@@ -3052,6 +3079,11 @@ function assetSlugForFilename(rules) {
 // download-a-.zip flow, only the endpoint / filename prefix / button /
 // in-flight status label differ per target platform.
 async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
+  // The step BEFORE the login wall. Until now the funnel jumped from "opened
+  // the builder" straight to "login modal shown", so a visitor who tried to
+  // export and bounced on a validation error was indistinguishable from one
+  // who never tried. (export_succeeded stays the real activation event.)
+  trackEvent('export_clicked', { platform: filenamePrefix });
   let payload;
   try {
     payload = serializeWorkspace(workspace);
@@ -3195,6 +3227,27 @@ exportMt4Btn.addEventListener('click', () => exportStrategy({
   button: exportMt4Btn,
   busyLabel: 'Generating EA...',
 }));
+
+// Small bridge for assets/onboarding.js (first-run card, example strategy,
+// guide). Exposes only what it needs so that file never reaches into this
+// script's internals, and this script does not need refactoring for it.
+window.apBuilder = {
+  workspace,
+  createDefaultRuleBlock,
+  trackEvent,
+  confirmDiscardIfNeeded,
+  confirm: showConfirmDialog,
+  exportButtons,
+  // Same bookkeeping New/Load do after programmatically replacing the
+  // canvas: the loaded state counts as saved, not as an unsaved edit.
+  markFresh() {
+    currentStrategyId = null;
+    markSynced();
+    saveWorkspaceToLocalStorage();
+  },
+};
 </script>
+<script src="assets/email-verify.js?v=1"></script>
+<script src="assets/onboarding.js?v=33"></script>
 </body>
 </html>

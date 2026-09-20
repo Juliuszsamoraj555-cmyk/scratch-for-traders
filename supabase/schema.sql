@@ -690,3 +690,22 @@ create table if not exists strategy_of_the_week_downloads (
 
 create index if not exists sotw_downloads_user_id_idx on strategy_of_the_week_downloads (user_id);
 create index if not exists sotw_downloads_strategy_id_idx on strategy_of_the_week_downloads (strategy_id);
+
+-- ============================================================
+-- EMAIL VERIFICATION AT PURCHASE TIME (2026-09-19). Signing up and the free
+-- exports no longer need an email round trip (Supabase's "Confirm email"
+-- setting is switched off): before the 2026-09-19 change 10 of 27 accounts
+-- never confirmed, so they never got to their free exports. An account now
+-- proves it controls its address once, right before its first payment
+-- (POST /api/account/verify-email in main.py). This column is that proof.
+--
+-- It is NOT auth.users.email_confirmed_at: once "Confirm email" is off,
+-- Supabase fills that in automatically at signup, so it stops meaning
+-- anything. NULL here = not verified yet.
+--
+-- Only the column is created here, because this file is safe to re-run.
+-- The one-time backfill for accounts that already confirmed lives in
+-- supabase/2026-09-19_email_verification_backfill.sql and must NOT be
+-- re-run (see the warning at the top of that file).
+-- ============================================================
+alter table user_entitlements add column if not exists email_verified_at timestamptz;

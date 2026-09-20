@@ -341,6 +341,14 @@ async function createStrategyCheckoutUrl(strategyId) {
   });
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
+    // 403 email_not_verified: the account has not proved its email yet (only
+    // asked before a first purchase, see email-verify.js). The detail is an
+    // object in that case, not a string.
+    if (res.status === 403 && detail.detail && detail.detail.error === 'email_not_verified') {
+      const err = new Error(detail.detail.message || 'Confirm your email address before your first purchase.');
+      err.isEmailUnverified = true;
+      throw err;
+    }
     const err = new Error(detail.detail || `Could not start checkout (HTTP ${res.status}).`);
     if (res.status === 401) err.isAuthRequired = true;
     throw err;

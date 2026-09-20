@@ -114,6 +114,14 @@ class Settings:
     PASS_PRICE_CENTS: int = int(os.getenv("PASS_PRICE_CENTS", "999"))      # $9.99
     PASS_DURATION_DAYS: int = int(os.getenv("PASS_DURATION_DAYS", "30"))
 
+    # --- Email verification before the first PURCHASE (2026-09-19) ---
+    # OFF unless REQUIRE_VERIFIED_EMAIL=1. The code ships dark on purpose: the
+    # gate is only safe once (in this order) the migration in
+    # supabase/2026-09-19_email_verification_backfill.sql has been run, the
+    # "Magic Link" email template contains {{ .Token }}, and Supabase's
+    # "Confirm email" is off. Until then checkout behaves exactly as before.
+    REQUIRE_VERIFIED_EMAIL: bool = os.getenv("REQUIRE_VERIFIED_EMAIL") == "1"
+
     # --- Abuse mitigation: per-IP cap on the FREE bucket only ---
     # A device_id cookie alone resets to a fresh 2 free exports the moment
     # it's cleared (incognito, "clear site data", a different browser) -

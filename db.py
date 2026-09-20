@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from typing import Optional
 
 from fastapi.concurrency import run_in_threadpool
+from psycopg import errors as pg_errors
 # Jsonb, not Json - psycopg3 has two separate wrapper classes, one per
 # Postgres type (json vs jsonb). Every jsonb-typed column/function
 # parameter in schema.sql (export_log.strategy_meta, analytics_events.
@@ -274,6 +275,56 @@ def _has_active_pass_sync(user_id: str) -> bool:
 
 async def has_active_pass(user_id: str) -> bool:
     return await run_in_threadpool(_has_active_pass_sync, user_id)
+
+
+# --------------------------------------------------------------------------
+# Email verification at PURCHASE time (2026-09-19). Supabase's own "Confirm
+# email" setting is switched off so signing up and the free exports need no
+# email round trip at all; instead an account has to prove it controls its
+# address once, right before its first payment (see /api/account/verify-email
+# in main.py). user_entitlements.email_verified_at holds that proof - NOT
+# auth.users.email_confirmed_at, which Supabase fills in automatically at
+# signup once confirmation is off and so no longer means anything.
+# --------------------------------------------------------------------------
+
+def _is_email_verified_sync(user_id: str) -> bool:
+    try:
+        with _conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "select email_verified_at is not null from user_entitlements where user_id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            return bool(row and row[0])
+    except pg_errors.UndefinedColumn:
+        # The migration in schema.sql has not been run against this
+        # database yet. Failing CLOSED here would turn every purchase into
+        # a 403 on a revenue path over a missing column, so fail open and
+        # say so loudly instead. Verification protects account recovery,
+        # it is not a security boundary.
+        print("[email_verify] WARNING: user_entitlements.email_verified_at is missing - "
+              "run the 2026-09-19 migration in supabase/schema.sql. Treating the account as verified.")
+        return True
+
+
+async def is_email_verified(user_id: str) -> bool:
+    return await run_in_threadpool(_is_email_verified_sync, user_id)
+
+
+def _mark_email_verified_sync(user_id: str) -> None:
+    with _conn() as conn, conn.cursor() as cur:
+        # Upsert: the auth.users trigger normally created the row at signup,
+        # but a token issued before that trigger existed has none.
+        cur.execute(
+            "insert into user_entitlements (user_id, email_verified_at) values (%s, now()) "
+            "on conflict (user_id) do update "
+            "set email_verified_at = coalesce(user_entitlements.email_verified_at, now())",
+            (user_id,),
+        )
+
+
+async def mark_email_verified(user_id: str) -> None:
+    return await run_in_threadpool(_mark_email_verified_sync, user_id)
 
 
 def _get_user_email_sync(user_id: str) -> Optional[str]:
