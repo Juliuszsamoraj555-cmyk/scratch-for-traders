@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>What Is Slippage in Trading? - AlgoPuzzle</title>
+<meta name="description" content="Slippage is the gap between the price you expected and the price you got. Why it happens, positive vs. negative slippage, and why backtests miss it." />
+<link rel="canonical" href="https://algopuzzle.com/blog/what-is-slippage-in-trading.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="What Is Slippage in Trading?" />
+<meta property="og:description" content="The price you expected and the price you got are rarely identical. Why slippage happens, which direction it can go, and why a backtest never has it." />
+<meta property="og:url" content="https://algopuzzle.com/blog/what-is-slippage-in-trading.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "What Is Slippage in Trading?",
+  "description": "Slippage is the gap between the price you expected and the price you got. Why it happens, positive vs. negative slippage, and why backtests miss it.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-22",
+  "dateModified": "2026-09-22",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/what-is-slippage-in-trading.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is slippage in trading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Slippage is the difference between the price a trade was expected to fill at and the price it actually filled at. It happens because price can move in the time between an order being sent and the broker actually executing it, so the fill reflects wherever the market is at that later instant, not the price shown when the order was placed." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is slippage always bad?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Slippage can be negative (a worse price than expected) or positive (a better price than expected), and on a market-execution account both are possible on any given order. It's an unavoidable side effect of price moving between order and fill, not a one-directional cost." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why doesn't a backtest show slippage?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A standard backtest fills every order at the exact historical price in the data file, because that's what the file recorded - it has no concept of the delay, spread widening, or liquidity gaps that cause real slippage. Some backtesters let you add a fixed slippage assumption manually, but by default the number is zero, which is why a strategy can look better in a backtest than it performs live." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I reduce the impact of slippage on an automated strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Avoid trading in the seconds around major scheduled news releases, when spreads and slippage both spike; use a maximum-deviation setting so an order is rejected rather than filled at an unacceptably worse price; and size positions and stops with some slippage margin built in rather than assuming the exact historical price will always be available." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "What Is Slippage in Trading?", "item": "https://algopuzzle.com/blog/what-is-slippage-in-trading.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; vertical-align: top; }
+  article th { background: #111827; }
+  .table-wrap { overflow-x: auto; max-width: 100%; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">What Is Slippage in Trading?</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Slippage is the difference between the price a trade was expected to fill at and the price it actually filled at. An order sent at one price doesn't fill instantly - there's always some delay, even if it's a fraction of a second - and if the market moves during that gap, the fill reflects wherever price actually is by the time the broker executes it, not the price shown on screen when the button was clicked. It's most visible during fast-moving conditions: a news release, a thin-liquidity session, or a weekend gap between Friday's close and Sunday's open can all move price enough in that brief window to produce a noticeably different fill. Slippage isn't a broker malfunction or a sign something is wrong - it's a structural feature of how market-execution trading works, and it can move the fill in either direction, not just against the trader. The practical question isn't how to eliminate it, which isn't fully possible on a market-execution account, but how to know when it's likely to be larger and how to keep a strategy's risk sizing honest about it.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why it happens</h2>
+      <p>Every order takes some real time to travel from the trading terminal to the broker's server and back, and price is free to move during that window. Four conditions make the gap bigger: high volatility (price is simply moving faster, so the same delay covers more distance), low liquidity (fewer resting orders at each price level, so a market order has to reach further to get filled), scheduled news events (volatility and liquidity both move against the trader at once, for a few minutes), and gaps between sessions, where price can open somewhere completely different from where it closed with no trading in between to fill the difference gradually.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Positive vs. negative slippage</h2>
+      <p>Negative slippage means a worse fill than expected - a buy filled higher than requested, or a sell filled lower. Positive slippage is the mirror image: a buy filled lower than requested, or a sell filled higher, which is a better outcome than intended. Both are the same underlying phenomenon - price moving during the fill delay - and on a genuine market-execution account either one is possible on any given order, not just the unfavorable one. A trader who has only ever noticed the negative kind usually just hasn't been paying attention to the other half.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Market execution vs. instant execution</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Instant execution</th><th>Market execution</th></tr></thead>
+        <tbody>
+          <tr><td>Fill price</td><td>The quoted price, or the order is rejected/requoted</td><td>Whatever price is available at execution - can differ from the quote</td></tr>
+          <tr><td>Can slip</td><td>No - it either fills at the quote or doesn't fill at all</td><td>Yes, in either direction</td></tr>
+          <tr><td>Can get a requote instead</td><td>Yes, common on this model</td><td>No - it fills somewhere, rather than bouncing back unfilled</td></tr>
+          <tr><td>Where it's common</td><td>Some dealing-desk/fixed-spread brokers</td><td>Most ECN/STP and MT4/MT5/cTrader retail accounts</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Most retail forex and CFD accounts run market execution, which is why slippage - not requotes - is the thing an automated strategy actually needs to plan for.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why a backtest doesn't have it</h2>
+      <p>A standard backtest fills every order at the exact price recorded in the historical data file, because that's the only price the file has - there's no delay to model and no alternate price to fill at instead. That makes backtested results systematically optimistic compared to live trading unless slippage is explicitly added back in, which most platforms support as a manual assumption but don't apply by default. See <a href="backtesting-vs-demo-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a> for the fuller list of what a backtest can and can't tell you - a demo account, running against a real live feed, is the step that actually exposes a strategy to slippage for the first time.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Reducing its impact, not eliminating it</h2>
+      <p>A maximum-deviation (or "max slippage") setting tells the broker to reject a fill rather than accept one worse than a specified tolerance - the order might not execute at all in a fast move, but it won't silently fill far from where intended either. Avoiding new entries in the minute or two around major scheduled news releases sidesteps the single largest, most predictable spike in both slippage and spread. And sizing stops with a small buffer beyond the bare minimum, rather than placing them exactly at the theoretical risk limit, keeps an ordinary bit of slippage from turning an expected loss into a larger surprise one. None of this requires predicting the market - it's the same category of fix as <a href="atr-stop-loss-sizing.html" class="text-emerald-400 hover:text-emerald-300 underline">ATR-based stop sizing</a>: building for realistic conditions instead of the exact number a backtest happened to show.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is slippage in trading?</p>
+          <p class="mt-1">Slippage is the difference between the price a trade was expected to fill at and the price it actually filled at. It happens because price can move in the time between an order being sent and the broker actually executing it, so the fill reflects wherever the market is at that later instant, not the price shown when the order was placed.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Is slippage always bad?</p>
+          <p class="mt-1">No. Slippage can be negative (a worse price than expected) or positive (a better price than expected), and on a market-execution account both are possible on any given order. It's an unavoidable side effect of price moving between order and fill, not a one-directional cost.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why doesn't a backtest show slippage?</p>
+          <p class="mt-1">A standard backtest fills every order at the exact historical price in the data file, because that's what the file recorded - it has no concept of the delay, spread widening, or liquidity gaps that cause real slippage. Some backtesters let you add a fixed slippage assumption manually, but by default the number is zero, which is why a strategy can look better in a backtest than it performs live.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How do I reduce the impact of slippage on an automated strategy?</p>
+          <p class="mt-1">Avoid trading in the seconds around major scheduled news releases, when spreads and slippage both spike; use a maximum-deviation setting so an order is rejected rather than filled at an unacceptably worse price; and size positions and stops with some slippage margin built in rather than assuming the exact historical price will always be available.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a strategy that plans for it - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
