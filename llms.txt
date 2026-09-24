@@ -2,7 +2,7 @@
 
 > AlgoPuzzle is a no-code, block-based visual builder for algorithmic trading strategies. Connect blocks to define entry conditions, risk management, and position sizing, then export a ready-to-run strategy file for MetaTrader 5, MetaTrader 4, or cTrader - no programming required.
 
-AlgoPuzzle generates real platform code from the visual strategy: a MetaTrader 5 Expert Advisor (`.mq5`), a MetaTrader 4 Expert Advisor (`.mq4`), or a cTrader cBot (`.cs`), packaged with a setup guide. No account is required to build or backtest; an account is required to export, including the first two free exports. Strategy details are stored to operate and improve AlgoPuzzle; they are not sold to third parties.
+AlgoPuzzle generates real platform code from the visual strategy: a MetaTrader 5 Expert Advisor (`.mq5`), a MetaTrader 4 Expert Advisor (`.mq4`), or a cTrader cBot (`.cs`), packaged with a setup guide. Building, backtesting and exporting are currently free and don't require an account; an account is used for marketplace purchases. Strategy details are stored to operate and improve AlgoPuzzle; they are not sold to third parties.
 
 ## Platforms supported
 - MetaTrader 5 (MQL5 Expert Advisor)
@@ -10,7 +10,7 @@ AlgoPuzzle generates real platform code from the visual strategy: a MetaTrader 5
 - cTrader (C# cBot via cAlgo)
 
 ## Pricing
-Free to start: the first 2 exports are free, with no account or payment required. Beyond that, pay-as-you-go, one-time payments only (no subscription): $2.00 per additional export, or $9.99 for a 30-day pass with unlimited exports (requires a free login, used only to unlock the pass).
+Currently free: unlimited exports to MT5, MT4 and cTrader and unlimited saved strategies, with no account or payment needed. The only paid items are individual strategies in the Strategy of the Week marketplace (one-time payments, a free account is used to keep purchases).
 
 ## Key pages
 - [Home](https://algopuzzle.com/): product overview, how it works, platforms, FAQ.
