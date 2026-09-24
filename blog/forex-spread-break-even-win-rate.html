@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>How Spread Sets Your Break-Even Win Rate - AlgoPuzzle</title>
+<meta name="description" content="The spread is a fixed cost on every trade, so it raises the win rate a strategy needs to break even. The formula, the numbers, and why small targets suffer." />
+<link rel="canonical" href="https://algopuzzle.com/blog/forex-spread-break-even-win-rate.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How Spread Sets Your Break-Even Win Rate" />
+<meta property="og:description" content="A 1:1 strategy needs 50% to break even - until the spread shows up. The one-line formula, and why small stops and targets get hit hardest." />
+<meta property="og:url" content="https://algopuzzle.com/blog/forex-spread-break-even-win-rate.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Forex Spread Explained: How It Raises Your Break-Even Win Rate",
+  "description": "The spread is a fixed cost on every trade, so it raises the win rate a strategy needs to break even. The formula, the numbers, and why small targets suffer most.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-24",
+  "dateModified": "2026-09-24",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/forex-spread-break-even-win-rate.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the spread in forex trading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The spread is the difference between the Ask price, where a buy order fills, and the Bid price, where a sell order fills. A trade opens at one side and closes at the other, so every round trip costs the spread - a position starts slightly under water by exactly that amount." }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the spread affect my break-even win rate?",
+      "acceptedAnswer": { "@type": "Answer", "text": "With a stop of S pips, a target of T pips, and a total cost of c pips per trade, the break-even win rate is (S + c) / (S + T). For a 10-pip stop and a 10-pip target it is 50% with no spread, 55% with a 1-pip spread, and 60% with a 2-pip spread." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why do scalping strategies suffer most from the spread?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The spread is a fixed cost per trade, so it takes a larger share of a small target. A 2-pip spread consumes 40% of a 5-pip target but only 4% of a 50-pip target, which means the same spread that is a rounding error for a swing strategy can erase the entire edge of a scalping one." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does a commission account remove the spread problem?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Commission-based accounts usually quote a tighter spread but charge a fee per lot, and the two together are the real cost per trade. The same break-even formula applies once the commission is converted into pips and added to the spread." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "How Spread Sets Your Break-Even Win Rate", "item": "https://algopuzzle.com/blog/forex-spread-break-even-win-rate.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; vertical-align: top; }
+  article th { background: #111827; }
+  /* Tables scroll inside their own box on narrow screens instead of
+     pushing the whole page wider than the viewport. */
+  .table-wrap { overflow-x: auto; max-width: 100%; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">Forex Spread Explained: How It Raises Your Break-Even Win Rate</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>The spread is the difference between the price you can buy at (the Ask) and the price you can sell at (the Bid), and you pay it on every trade the moment it opens - a new position starts slightly under water by exactly that amount. Because it is a fixed cost per trade rather than a share of the outcome, it raises the win rate a strategy needs just to break even. A strategy with a 10-pip stop and a 10-pip target breaks even at a 50% win rate when the spread is zero, but needs 55% with a 1-pip spread and 60% with a 2-pip spread. The smaller the stop and target, the bigger the share of each trade the spread consumes, which is why scalping-sized strategies are far more sensitive to it than swing-sized ones. The formula is short enough to check by hand, and it is worth running before a strategy goes live rather than after a few hundred trades have already paid the difference.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What the spread actually is</h2>
+      <p>A buy order fills at the Ask and is later closed by selling at the Bid, while a sell order fills at the Bid and is closed by buying at the Ask. Since the Ask is always above the Bid, every round trip gives up the gap between them, whichever way the trade goes and whether it wins or loses. Some accounts quote a wider spread and charge no commission; others quote a tighter spread and add a fee per lot. What matters for a strategy is the total, so a commission is best converted into pips and added to the spread before doing any math.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The break-even formula</h2>
+      <p>Take a stop of S pips, a target of T pips, and a total cost of c pips per trade (spread plus any commission). A winning trade nets T &minus; c and a losing trade loses S + c, so the win rate at which the two balance out is:</p>
+      <p><strong class="text-gray-100">break-even win rate = (S + c) / (S + T)</strong></p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stop / target (pips)</th><th>Total cost (pips)</th><th>Break-even win rate</th></tr></thead>
+        <tbody>
+          <tr><td>10 / 10</td><td>0</td><td>50.0%</td></tr>
+          <tr><td>10 / 10</td><td>1</td><td>55.0%</td></tr>
+          <tr><td>10 / 10</td><td>2</td><td>60.0%</td></tr>
+          <tr><td>10 / 10</td><td>3</td><td>65.0%</td></tr>
+          <tr><td>30 / 30</td><td>2</td><td>53.3%</td></tr>
+          <tr><td>10 / 20</td><td>0</td><td>33.3%</td></tr>
+          <tr><td>10 / 20</td><td>2</td><td>40.0%</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>A break-even win rate is not a profit target - it is the line below which the strategy loses money even if its signals are genuinely good. A strategy that wins 52% of the time looks profitable on paper and still loses money at 10 / 10 with a 2-pip cost.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why small targets suffer most</h2>
+      <p>The spread is the same number of pips whatever the target is, so its share of the trade shrinks as the target grows. With a 2-pip cost, it takes 40% of a 5-pip target, 20% of a 10-pip target, 10% of a 20-pip target, and 4% of a 50-pip target. A swing strategy barely notices it; a scalping strategy can spend most of its edge there, which is why a backtest built on a low, fixed spread flatters short-term strategies far more than long-term ones.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">The spread is not a constant</h2>
+      <p>Spreads differ between brokers and account types, and they change through the day: they typically widen around scheduled news releases, in thin liquidity such as the daily rollover, and when markets are unusually volatile. A strategy tested at the tightest spread its broker ever quotes is tested against a cost it will not always get. The same widening feeds into <a href="what-is-slippage-in-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">slippage</a>, and it is one more reason a backtest is optimistic compared with a demo account running on a live feed - see <a href="backtesting-vs-demo-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a>.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What to do with the number</h2>
+      <p>Run the formula with the widest spread the strategy will realistically face, not the average, and check that the break-even win rate is comfortably below what the backtest achieved. Prefer targets that are many multiples of the typical spread, size the stop and target together rather than tightening one, and consider skipping entries when the current spread is above a limit you choose - a common precaution in hand-coded EAs. On the AlgoPuzzle side, the MT5 and cTrader exports measure stop loss and take profit from the exit-side price (Bid for a buy, Ask for a sell), so the distances you set are the real distances from where the trade would close and the spread is never mistaken for an instant stop-out. It is still a cost you pay, which is exactly why it belongs in the break-even math above. For how stop and target size interact with risk, see <a href="stop-loss-take-profit-guide.html" class="text-emerald-400 hover:text-emerald-300 underline">stop loss vs. take profit</a> and <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a>.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is the spread in forex trading?</p>
+          <p class="mt-1">The spread is the difference between the Ask price, where a buy order fills, and the Bid price, where a sell order fills. A trade opens at one side and closes at the other, so every round trip costs the spread - a position starts slightly under water by exactly that amount.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How does the spread affect my break-even win rate?</p>
+          <p class="mt-1">With a stop of S pips, a target of T pips, and a total cost of c pips per trade, the break-even win rate is (S + c) / (S + T). For a 10-pip stop and a 10-pip target it is 50% with no spread, 55% with a 1-pip spread, and 60% with a 2-pip spread.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why do scalping strategies suffer most from the spread?</p>
+          <p class="mt-1">The spread is a fixed cost per trade, so it takes a larger share of a small target. A 2-pip spread consumes 40% of a 5-pip target but only 4% of a 50-pip target, which means the same spread that is a rounding error for a swing strategy can erase the entire edge of a scalping one.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Does a commission account remove the spread problem?</p>
+          <p class="mt-1">No. Commission-based accounts usually quote a tighter spread but charge a fee per lot, and the two together are the real cost per trade. The same break-even formula applies once the commission is converted into pips and added to the spread.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a strategy with the spread in mind - Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

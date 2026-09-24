@@ -89,8 +89,35 @@
            algorithmic trading" section in ../index.html (bump whichever
            post falls out of the top 3 there), plus sitemap.xml. Only the
            top card keeps the "New" badge - move it, don't duplicate it. -->
-      <a href="what-is-slippage-in-trading.html" data-category="Basics" class="relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
+      <a href="forex-spread-break-even-win-rate.html" data-category="Basics" class="relative group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <span class="absolute top-3 px-2 py-1 text-xs font-bold uppercase tracking-wide bg-emerald-500 text-gray-900 rounded-md" style="right: 0.75rem;">New</span>
+        <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ask line above, Bid line below, the shaded gap between them
+               marked with a double-headed arrow: the spread, the cost every
+               trade pays before it has moved at all. -->
+          <rect x="20" y="58" width="200" height="44" fill="#f59e0b" opacity="0.2"/>
+          <line x1="20" y1="58" x2="220" y2="58" stroke="#e5e7eb" stroke-width="3"/>
+          <line x1="20" y1="102" x2="220" y2="102" stroke="#9ca3af" stroke-width="3"/>
+          <path d="M190 63 L190 97 M186 68 L190 62 L194 68 M186 92 L190 98 L194 92" stroke="#fbbf24" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="26" y="50" fill="#e5e7eb" font-size="11" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="start">ASK</text>
+          <text x="26" y="118" fill="#9ca3af" font-size="11" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="start">BID</text>
+          <text x="26" y="84" fill="#fbbf24" font-size="11" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="start">SPREAD</text>
+        </svg>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Basics</span>
+            <span class="text-xs text-gray-600">&middot;</span>
+            <time datetime="2026-09-24" class="text-xs text-gray-500">Sep 24, 2026</time>
+          </div>
+          <h2 class="mt-2 text-lg font-semibold text-gray-100 group-hover:text-emerald-300 transition">Forex Spread Explained: How It Raises Your Break-Even Win Rate</h2>
+          <p class="mt-2 text-sm text-gray-400 leading-relaxed">A 1:1 strategy needs 50% to break even - until the spread shows up. The one-line formula and why small targets suffer most.</p>
+          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-400">Read article
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="what-is-slippage-in-trading.html" data-category="Basics" class="group flex flex-col sm:flex-row gap-6 items-stretch bg-gray-900/60 border border-gray-800 hover:border-emerald-700 rounded-xl p-6 transition">
         <svg class="w-full sm:w-56 h-36 shrink-0 rounded-lg bg-gray-950/60" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- A dashed "expected" price line and a solid "actual fill" line
                that splits away from it partway across - a small gap
