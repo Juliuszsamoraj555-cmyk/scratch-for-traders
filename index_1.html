@@ -1762,6 +1762,7 @@ async function isBlockedBySavedStrategyLimit() {
   const isNewStrategy = !currentStrategyId;
   if (!isNewStrategy || Object.keys(strategiesLibrary).length < 2) return false;
   const status = await fetchBillingStatus();
+  if (status ? status.free_mode : isFreeMode()) return false; // free mode: no cap at all
   if (status && status.billing_configured && status.pass_active) return false; // 30-day pass: unlimited
   return true;
 }
@@ -2609,7 +2610,9 @@ function setAuthMode(mode) {
   // most traders will see it.
   if (mode === 'login') {
     authTitle.textContent = 'Log in';
-    authSubtitle.textContent = "Your free exports and anything you buy are tied to your account, so they work on every device.";
+    authSubtitle.textContent = isFreeMode()
+      ? 'Your account keeps your marketplace purchases, on every device.'
+      : "Your free exports and anything you buy are tied to your account, so they work on every device.";
     authPasswordRow.classList.remove('hidden');
     authSubmitBtn.textContent = 'Log in';
     authToggleModeBtn.textContent = 'Need an account? Sign up';
@@ -2620,7 +2623,9 @@ function setAuthMode(mode) {
     // lives in settings.py and reaches the UI through the backend (see
     // the billing-status pill and the paywall message), so repeating it
     // in a third place is just something to drift.
-    authSubtitle.textContent = 'Free to create. Your free exports and anything you buy live on your account.';
+    authSubtitle.textContent = isFreeMode()
+      ? 'Free to create. Your marketplace purchases live on your account.'
+      : 'Free to create. Your free exports and anything you buy live on your account.';
     authPasswordRow.classList.remove('hidden');
     authSubmitBtn.textContent = 'Sign up';
     authToggleModeBtn.textContent = 'Already have an account? Log in';
@@ -2862,6 +2867,23 @@ const billingIndicator = document.getElementById('billingIndicator');
 // feedback and a trader reasonably assumes the feature is broken. A short
 // first attempt plus one longer retry (below) surfaces a "loading" state
 // immediately and still catches a slow-but-real cold-start wake-up.
+// Free mode (settings.FREE_MODE on the backend, 2026-09-24): exports and
+// saved strategies are unlimited and need no account, and every upgrade
+// element (billing pill, "Go unlimited", paywall) stays hidden. The backend
+// is the only switch - this page just follows free_mode from
+// /api/billing/status. The last answer is remembered in localStorage so a
+// returning visitor doesn't see a billing "Loading..." pill flash on a cold
+// backend; a first visit starts from "unknown" and shows nothing either.
+const FREE_MODE_CACHE_KEY = 'ap.freeMode';
+let lastBillingStatus = null;
+function cachedFreeMode() {
+  try { return localStorage.getItem(FREE_MODE_CACHE_KEY); } catch (_) { return null; }
+}
+function isFreeMode() {
+  if (lastBillingStatus) return !!lastBillingStatus.free_mode;
+  return cachedFreeMode() !== '0';
+}
+
 async function fetchBillingStatus(timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -2870,7 +2892,10 @@ async function fetchBillingStatus(timeoutMs = 8000) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await fetch(`${API_BASE}/api/billing/status`, { credentials: 'include', headers, signal: controller.signal });
     if (!res.ok) return null;
-    return await res.json();
+    const status = await res.json();
+    lastBillingStatus = status;
+    try { localStorage.setItem(FREE_MODE_CACHE_KEY, status.free_mode ? '1' : '0'); } catch (_) {}
+    return status;
   } catch (_) {
     return null; // backend unreachable or timed out - caller decides whether to retry
   } finally {
@@ -2881,7 +2906,7 @@ async function fetchBillingStatus(timeoutMs = 8000) {
 const upgradeBtn = document.getElementById('upgradeBtn');
 
 function renderBillingIndicator(status) {
-  if (!status || !status.billing_configured) {
+  if (!status || status.free_mode || !status.billing_configured) {
     billingIndicator.classList.add('hidden');
     upgradeBtn.classList.add('hidden');
     return;
@@ -2915,16 +2940,21 @@ async function refreshBillingIndicator() {
   // billingIndicator/upgradeBtn invisible for however long the first
   // fetch takes - see fetchBillingStatus's comment for why that fetch
   // can legitimately take a while on a cold backend.
-  billingIndicator.textContent = 'Loading...';
-  billingIndicator.classList.remove('hidden');
   upgradeBtn.classList.add('hidden');
+  // Only a visitor last seen in paid mode gets the loading pill - in free
+  // mode (or on a first visit) there is nothing to load a balance for.
+  const showLoading = cachedFreeMode() === '0';
+  if (showLoading) {
+    billingIndicator.textContent = 'Loading...';
+    billingIndicator.classList.remove('hidden');
+  }
 
   let status = await fetchBillingStatus(8000);
   if (!status) {
     // Most likely a Render free-plan cold start, not a real outage - one
     // longer retry catches the instance waking up rather than giving up
     // on the very request that triggered the wake-up.
-    billingIndicator.textContent = 'Loading... (server may be waking up)';
+    if (showLoading) billingIndicator.textContent = 'Loading... (server may be waking up)';
     status = await fetchBillingStatus(25000);
   }
   renderBillingIndicator(status);
@@ -3105,7 +3135,10 @@ async function exportStrategy({ endpoint, filenamePrefix, button, busyLabel }) {
   // startCheckout() already uses for the 30-day pass. Validating the
   // workspace first (above) is deliberate: being asked to sign in only
   // to then be told the strategy is incomplete would be a worse order.
-  if (!(await getValidAccessToken())) {
+  // Skipped in free mode, where exports need no account at all. While the
+  // mode isn't known yet (cold backend), the request just goes out and the
+  // 401 branch below still catches paid mode.
+  if (!isFreeMode() && !(await getValidAccessToken())) {
     showAuthOverlay(() => exportStrategy({ endpoint, filenamePrefix, button, busyLabel }));
     return;
   }

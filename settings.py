@@ -109,6 +109,16 @@ class Settings:
     # Price objects themselves (STRIPE_PRICE_EXPORT/PASS below), these
     # two are only used for display text that has to exist before ever
     # talking to Stripe, e.g. the 402 paywall message in main.py) ---
+    # --- Free mode (2026-09-24) - the ONE switch for "the builder is free" ---
+    # ON unless FREE_MODE=0. While on: exports need no account and are
+    # unlimited, saved strategies are unlimited, the export/pass checkouts
+    # are refused and the frontend hides every upgrade/paywall element
+    # (it reads free_mode from /api/billing/status). Marketplace strategies
+    # stay paid either way. Nothing billing-related is deleted: set
+    # FREE_MODE=0 on the Render API service and redeploy to bring the
+    # 2-free-exports-then-pay model back exactly as it was.
+    FREE_MODE: bool = os.getenv("FREE_MODE", "1") != "0"
+
     FREE_EXPORT_LIMIT: int = int(os.getenv("FREE_EXPORT_LIMIT", "2"))
     EXPORT_PRICE_CENTS: int = int(os.getenv("EXPORT_PRICE_CENTS", "200"))   # $2.00
     PASS_PRICE_CENTS: int = int(os.getenv("PASS_PRICE_CENTS", "999"))      # $9.99

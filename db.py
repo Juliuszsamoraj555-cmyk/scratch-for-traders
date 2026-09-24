@@ -595,6 +595,25 @@ async def log_user_pass_export(
     return await run_in_threadpool(_log_user_pass_export_sync, user_id, device_id, platform, strategy_meta)
 
 
+def _log_free_mode_export_sync(
+    device_id: str, user_id: Optional[str], platform: str, strategy_meta: Optional[dict]
+) -> None:
+    # Delivery log only, like the pass branch above - nothing is deducted
+    # while settings.FREE_MODE is on. user_id is null for a logged-out export.
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into export_log (device_id, user_id, platform, consumed_from, strategy_meta) "
+            "values (%s, %s, %s, 'free_mode', %s)",
+            (device_id, user_id, platform, Jsonb(strategy_meta) if strategy_meta is not None else None),
+        )
+
+
+async def log_free_mode_export(
+    device_id: str, user_id: Optional[str], platform: str, strategy_meta: Optional[dict] = None
+) -> None:
+    return await run_in_threadpool(_log_free_mode_export_sync, device_id, user_id, platform, strategy_meta)
+
+
 # --------------------------------------------------------------------------
 # General site-behavior events (2026-08-15 addition) - see analytics_events
 # in schema.sql for the table and the two convenience views, and

@@ -37,6 +37,9 @@ def _never_touch_production(monkeypatch):
     # The gate ships dark (off unless REQUIRE_VERIFIED_EMAIL=1); these tests are
     # about how it behaves once it is on.
     monkeypatch.setattr(main.settings, "REQUIRE_VERIFIED_EMAIL", True, raising=False)
+    # The export/pass checkouts only exist in paid mode (settings.FREE_MODE
+    # refuses them with 409), which is the mode this gate protects.
+    monkeypatch.setattr(main.settings, "FREE_MODE", False, raising=False)
     main.app.dependency_overrides[get_device_id] = lambda: "device-test"
     main._VERIFY_FAILURES.clear()
     yield

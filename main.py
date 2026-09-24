@@ -2966,6 +2966,19 @@ async def _require_export_entitlement(
         return
 
     user_id = get_current_user(request)
+
+    # Free mode (settings.FREE_MODE): no login, no allowance, nothing
+    # deducted. The export is still logged for the export stats, but best
+    # effort only - a logging hiccup must never block a free export - and
+    # never for a localhost page (see _is_dev_request).
+    if settings.FREE_MODE:
+        if not _is_dev_request(request):
+            try:
+                await db.log_free_mode_export(device_id, user_id, platform, strategy_meta)
+            except Exception as e:
+                print(f"[billing] free-mode export log failed ({platform}): {e}")
+        return
+
     if not user_id:
         raise HTTPException(
             status_code=401,
@@ -3456,8 +3469,24 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
     issued/refreshed on this call, same as every other endpoint - it no
     longer decides any entitlement."""
     user_id = get_current_user(request)
+    if settings.FREE_MODE:
+        # Everything but the marketplace is free - the frontend hides the
+        # billing pill, "Go unlimited", the paywall and the saved-strategy
+        # cap when it sees free_mode. The other keys stay so older cached
+        # pages reading this shape don't break.
+        return {
+            "free_mode": True,
+            "free_exports_used": 0,
+            "free_exports_remaining": settings.FREE_EXPORT_LIMIT,
+            "paid_export_credits": 0,
+            "pass_active": False,
+            "pass_expires_at": None,
+            "billing_configured": bool(settings.DATABASE_URL),
+            "logged_in": bool(user_id),
+        }
     if not settings.DATABASE_URL or not user_id:
         return {
+            "free_mode": False,
             "free_exports_used": 0,
             "free_exports_remaining": settings.FREE_EXPORT_LIMIT,
             "paid_export_credits": 0,
@@ -3470,6 +3499,7 @@ async def billing_status(request: Request, device_id: str = Depends(get_device_i
     account = await db.get_account_status(user_id)
     free_used = account["free_exports_used"]
     return {
+        "free_mode": False,
         "free_exports_used": free_used,
         "free_exports_remaining": max(0, settings.FREE_EXPORT_LIMIT - free_used),
         # Named paid_export_credits for the frontend's sake - it's the
@@ -3569,6 +3599,17 @@ async def _require_verified_email_for_purchase(user_id: Optional[str]) -> None:
         )
 
 
+def _refuse_export_checkout_in_free_mode() -> None:
+    """Exports cost nothing while settings.FREE_MODE is on, so selling an
+    export credit or a pass would take money for nothing (e.g. from a tab
+    opened before the switch). Marketplace checkout is not affected."""
+    if settings.FREE_MODE:
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "free_mode", "message": "Exports are free right now - no purchase needed."},
+        )
+
+
 @app.post("/api/billing/checkout/export")
 async def billing_checkout_export(request: Request, device_id: str = Depends(get_device_id)):
     """Creates a Stripe Checkout Session for a single export credit and
@@ -3576,6 +3617,7 @@ async def billing_checkout_export(request: Request, device_id: str = Depends(get
     login (401 if not) as of 2026-09-03 - exports themselves now do, so
     a credit that couldn't be spent without an account would be worse
     than useless. See billing.LoginRequired."""
+    _refuse_export_checkout_in_free_mode()
     user_id = get_current_user(request)
     await _require_verified_email_for_purchase(user_id)
     try:
@@ -3592,6 +3634,7 @@ async def billing_checkout_pass(request: Request, device_id: str = Depends(get_d
     """Creates a Stripe Checkout Session for the 30-day unlimited pass
     and returns its hosted URL for the frontend to redirect to. Requires
     login (401 if not) - see billing.LoginRequired."""
+    _refuse_export_checkout_in_free_mode()
     user_id = get_current_user(request)
     await _require_verified_email_for_purchase(user_id)
     try:
