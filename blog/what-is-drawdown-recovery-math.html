@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>What Is Drawdown? Why -50% Needs +100% - AlgoPuzzle</title>
+<meta name="description" content="Drawdown is the fall from an account's peak to its next low. Why recovering takes a bigger gain than the loss, and how a losing streak digs it." />
+<link rel="canonical" href="https://algopuzzle.com/blog/what-is-drawdown-recovery-math.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="What Is Drawdown? Why -50% Needs +100%" />
+<meta property="og:description" content="Losing 50% and gaining 50% does not get you back to even. The recovery math, and what ten losses in a row do at different risk sizes." />
+<meta property="og:url" content="https://algopuzzle.com/blog/what-is-drawdown-recovery-math.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "What Is Drawdown? Why a 50% Loss Needs a 100% Gain",
+  "description": "Drawdown is the fall from an account's peak to its next low. Why recovering takes a bigger gain than the loss, and how a losing streak digs it.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-25",
+  "dateModified": "2026-09-25",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/what-is-drawdown-recovery-math.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is drawdown in trading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Drawdown is the decline in an account from its highest point to a subsequent low, usually expressed as a percentage of that peak. The largest such decline over a period is called the maximum drawdown, and it is the standard measure of how deep the worst losing stretch was." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does a 50% loss need a 100% gain to recover?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Because the gain is measured against a smaller balance. If 10,000 falls 50% to 5,000, a 50% gain only brings it to 7,500; getting back to 10,000 needs 5,000 of profit on a 5,000 balance, which is a 100% gain. The general formula is gain needed = drawdown / (1 - drawdown)." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is a backtest's maximum drawdown the worst that can happen?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. A backtest's maximum drawdown is the worst stretch within the specific period tested, and live trading can produce a deeper one - a longer losing streak, wider spreads, or a market regime the test period never contained. It is a floor for planning, not a ceiling." }
+    },
+    {
+      "@type": "Question",
+      "name": "How can I limit drawdown in an automated strategy?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The main lever is risk per trade: a smaller percentage risked on each position makes any losing streak dig a shallower hole. Beyond that, avoid position sizes that grow after losses, avoid holding several positions that move together, and set a maximum acceptable drawdown in advance so the strategy is sized to it rather than discovering it live." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "What Is Drawdown? Why a 50% Loss Needs a 100% Gain", "item": "https://algopuzzle.com/blog/what-is-drawdown-recovery-math.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul { max-width: 68ch; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; vertical-align: top; }
+  article th { background: #111827; }
+  /* Tables scroll inside their own box on narrow screens instead of
+     pushing the whole page wider than the viewport. */
+  .table-wrap { overflow-x: auto; max-width: 100%; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Risk management</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">What Is Drawdown? Why a 50% Loss Needs a 100% Gain</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Drawdown is the decline in an account from its highest point to the next low, usually expressed as a percentage of that peak, and the largest such decline over a period is called the maximum drawdown. It matters because recovery is asymmetric: a loss of 50% does not need a 50% gain to undo, it needs a 100% gain, since the gain is earned on a balance that is now half the size. The general formula is gain needed = drawdown / (1 &minus; drawdown), which means the required recovery grows much faster than the loss itself - a 20% drawdown needs 25% back, a 50% drawdown needs 100%, and a 90% drawdown needs 900%. That asymmetry is the reason risk management is mostly about avoiding deep drawdowns rather than chasing returns, and why the size of each individual bet matters far more than it looks when a strategy is winning. The rest of this article puts numbers on both halves: how much a given drawdown costs to climb out of, and how quickly a plain losing streak digs one at different risk sizes.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What drawdown measures</h2>
+      <p>Drawdown is measured from a peak, not from the starting balance: if an account grows from 10,000 to 12,000 and then falls to 9,000, the drawdown is 25% of the 12,000 peak, even though the account is only 10% below where it started. Measured on equity rather than balance, it also counts floating losses on positions that are still open, which is why an account can show a deep drawdown without a single losing trade having closed yet. Maximum drawdown is the single worst peak-to-low stretch in the period being examined, and it is the usual headline number for how painful a strategy was to hold.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why recovery is asymmetric</h2>
+      <p>A percentage gain is always earned on the current balance, so after a loss the same percentage is worth less money. The table shows the gain required to get back to the previous peak from each drawdown depth:</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Drawdown</th><th>Gain needed to recover</th></tr></thead>
+        <tbody>
+          <tr><td>10%</td><td>11.1%</td></tr>
+          <tr><td>20%</td><td>25.0%</td></tr>
+          <tr><td>30%</td><td>42.9%</td></tr>
+          <tr><td>50%</td><td>100.0%</td></tr>
+          <tr><td>75%</td><td>300.0%</td></tr>
+          <tr><td>90%</td><td>900.0%</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>The curve is gentle at first and then bends sharply upward. Below about 20% the recovery is roughly proportionate; past 50% it stops being a realistic goal for most strategies, which is why many traders treat 50% as the point of no return rather than a mere setback.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">How fast a losing streak digs the hole</h2>
+      <p>Risking a fixed percentage of the current balance on each trade, ten losses in a row leave (1 &minus; r)<sup>10</sup> of the account, where r is the risk per trade. A streak that long is unlikely in any single run of ten trades but becomes a matter of when, not if, over enough trades, and the damage it does depends almost entirely on how much is risked per trade:</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Risk per trade</th><th>Drawdown after 10 losses</th><th>Gain needed to recover</th></tr></thead>
+        <tbody>
+          <tr><td>1%</td><td>9.6%</td><td>10.6%</td></tr>
+          <tr><td>2%</td><td>18.3%</td><td>22.4%</td></tr>
+          <tr><td>5%</td><td>40.1%</td><td>67.0%</td></tr>
+          <tr><td>10%</td><td>65.1%</td><td>186.8%</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>The same ten losses are a nuisance at 1% risk and close to fatal at 10%. Nothing about the strategy changed between the rows - only the size of each bet - which is exactly the point made in <a href="position-sizing-how-much-to-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">position sizing</a>, and the reason methods that increase size after a loss, covered in <a href="martingale-grid-trading-risk.html" class="text-emerald-400 hover:text-emerald-300 underline">why martingale and grid strategies blow up</a>, move a streak along this table in the wrong direction.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">A backtest's maximum drawdown is a floor, not a ceiling</h2>
+      <p>The maximum drawdown a backtest reports is the worst stretch inside the specific period that was tested. A longer losing streak, wider spreads, or a market regime the sample never contained can all produce a deeper one live, so it is safer to size a strategy for a drawdown noticeably worse than the tested one. Drawdown limits also show up as hard rules in funded-account programs, where a static and a trailing limit behave very differently - see <a href="prop-firm-challenge-rules-that-break-eas.html" class="text-emerald-400 hover:text-emerald-300 underline">why profitable EAs fail prop firm challenges</a>. Several positions that move together deepen a drawdown faster than their count suggests, which is the subject of <a href="correlation-risk-multiple-pairs.html" class="text-emerald-400 hover:text-emerald-300 underline">correlation risk</a>.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">What to do with the number</h2>
+      <p>Decide the largest drawdown that is genuinely tolerable before going live, then work backward: pick a risk per trade small enough that a streak well beyond the backtest's worst still stays under that limit. Compare the tested maximum drawdown against that ceiling with a margin, not against zero. And keep the recovery table in mind when a drawdown is already under way - the temptation to take bigger risks to win it back quickly is exactly what pushes an account further down the curve.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is drawdown in trading?</p>
+          <p class="mt-1">Drawdown is the decline in an account from its highest point to a subsequent low, usually expressed as a percentage of that peak. The largest such decline over a period is called the maximum drawdown, and it is the standard measure of how deep the worst losing stretch was.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why does a 50% loss need a 100% gain to recover?</p>
+          <p class="mt-1">Because the gain is measured against a smaller balance. If 10,000 falls 50% to 5,000, a 50% gain only brings it to 7,500; getting back to 10,000 needs 5,000 of profit on a 5,000 balance, which is a 100% gain. The general formula is gain needed = drawdown / (1 - drawdown).</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Is a backtest's maximum drawdown the worst that can happen?</p>
+          <p class="mt-1">No. A backtest's maximum drawdown is the worst stretch within the specific period tested, and live trading can produce a deeper one - a longer losing streak, wider spreads, or a market regime the test period never contained. It is a floor for planning, not a ceiling.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How can I limit drawdown in an automated strategy?</p>
+          <p class="mt-1">The main lever is risk per trade: a smaller percentage risked on each position makes any losing streak dig a shallower hole. Beyond that, avoid position sizes that grow after losses, avoid holding several positions that move together, and set a maximum acceptable drawdown in advance so the strategy is sized to it rather than discovering it live.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a strategy with a risk limit in mind
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
