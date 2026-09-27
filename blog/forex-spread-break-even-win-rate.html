@@ -145,7 +145,7 @@
         </tbody>
       </table>
       </div>
-      <p>A break-even win rate is not a profit target - it is the line below which the strategy loses money even if its signals are genuinely good. A strategy that wins 52% of the time looks profitable on paper and still loses money at 10 / 10 with a 2-pip cost.</p>
+      <p>A break-even win rate is not a profit target - it is the line below which the strategy loses money even if its signals are genuinely good, and it's really the same math as <a href="trade-expectancy-explained.html" class="text-emerald-400 hover:text-emerald-300 underline">trade expectancy</a> solved for the point where expectancy hits exactly zero. A strategy that wins 52% of the time looks profitable on paper and still loses money at 10 / 10 with a 2-pip cost.</p>
 
       <h2 class="text-xl font-semibold text-gray-100 pt-2">Why small targets suffer most</h2>
       <p>The spread is the same number of pips whatever the target is, so its share of the trade shrinks as the target grows. With a 2-pip cost, it takes 40% of a 5-pip target, 20% of a 10-pip target, 10% of a 20-pip target, and 4% of a 50-pip target. A swing strategy barely notices it; a scalping strategy can spend most of its edge there, which is why a backtest built on a low, fixed spread flatters short-term strategies far more than long-term ones.</p>
