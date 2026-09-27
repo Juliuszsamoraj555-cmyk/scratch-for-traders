@@ -28,7 +28,7 @@ import json
 import os
 import time
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Annotated, List, Literal, Optional, Union
 from urllib.parse import urlparse
@@ -87,12 +87,18 @@ class Operand(BaseModel):
     """One side of a comparison, OR a Stop-Loss/Take-Profit distance value:
     an indicator, candle/volume data, a literal number/pips/percent risk
     value, or a MULTIPLY node combining two nested operands (e.g. `2 * ATR(14)`)."""
-    kind: Literal["MA", "RSI", "MACD", "BANDS", "CANDLE", "ATR", "STOCH", "VOLUME", "NUMBER", "MULTIPLY", "RISK_VALUE"]
-    period: Optional[int] = None          # for MA / RSI / BANDS / ATR
-    ma_type: Optional[str] = None         # MODE_SMA / MODE_EMA               (MA)
-    deviation: Optional[float] = None     # standard-deviation multiplier     (BANDS)
-    band: Optional[str] = None            # UPPER / MIDDLE / LOWER            (BANDS)
-    line: Optional[str] = None            # MAIN / HIST                      (MACD)
+    kind: Literal[
+        "MA", "RSI", "MACD", "BANDS", "CANDLE", "ATR", "STOCH", "VOLUME", "NUMBER", "MULTIPLY", "RISK_VALUE",
+        # Wave 1 additions
+        "CCI", "WPR", "SAR", "MOMENTUM", "STDDEV", "MFI", "ENVELOPES", "DEMARKER", "BULLS", "BEARS",
+        "AO", "AC", "ADX", "ICHIMOKU", "ALLIGATOR", "HIGHEST", "LOWEST", "SPREAD", "PIPS", "ARITH", "ABS",
+    ]
+    period: Optional[int] = None          # for MA / RSI / BANDS / ATR / CCI / WPR / MOMENTUM / STDDEV / MFI / ENVELOPES / DEMARKER / BULLS / BEARS / ADX / HIGHEST / LOWEST
+    ma_type: Optional[str] = None         # MODE_SMA / MODE_EMA / MODE_SMMA / MODE_LWMA   (MA, ENVELOPES)
+    deviation: Optional[float] = None     # std-dev multiplier (BANDS) / percent (ENVELOPES)
+    band: Optional[str] = None            # UPPER / MIDDLE / LOWER            (BANDS, ENVELOPES: UPPER / LOWER)
+    line: Optional[str] = None            # MAIN / SIGNAL / HIST (MACD), ADX / PLUS_DI / MINUS_DI (ADX),
+                                          # TENKAN / KIJUN / SENKOU_A / SENKOU_B (ICHIMOKU), JAW / TEETH / LIPS (ALLIGATOR)
     candle_type: Optional[str] = None     # CURRENT / PREV_OPEN / PREV_CLOSE / PREV_HIGH / PREV_LOW (CANDLE)
     k_period: Optional[int] = None        # %K period                         (STOCH)
     d_period: Optional[int] = None        # %D period                         (STOCH)
@@ -101,8 +107,27 @@ class Operand(BaseModel):
     volume_bar: Optional[str] = None      # CURRENT / PREVIOUS                (VOLUME)
     unit: Optional[str] = None            # PIPS / PERCENT / PRICE            (RISK_VALUE)
     value: Optional[float] = None         # for NUMBER / RISK_VALUE
-    left: Optional["Operand"] = None      # for MULTIPLY
-    right: Optional["Operand"] = None     # for MULTIPLY
+    left: Optional["Operand"] = None      # for MULTIPLY / ARITH / ABS (ABS uses left only)
+    right: Optional["Operand"] = None     # for MULTIPLY / ARITH
+    # Wave 1 additions - all optional, so every pre-existing saved strategy
+    # still validates and renders exactly as before.
+    applied_price: Optional[str] = None   # PRICE_CLOSE / OPEN / HIGH / LOW / MEDIAN / TYPICAL / WEIGHTED
+    macd_fast: Optional[int] = None       # (MACD) default 12
+    macd_slow: Optional[int] = None       # (MACD) default 26
+    macd_signal: Optional[int] = None     # (MACD) default 9
+    sar_step: Optional[float] = None      # (SAR) acceleration step, default 0.02
+    sar_max: Optional[float] = None       # (SAR) maximum acceleration, default 0.2
+    tenkan: Optional[int] = None          # (ICHIMOKU) default 9
+    kijun: Optional[int] = None           # (ICHIMOKU) default 26
+    senkou_b: Optional[int] = None        # (ICHIMOKU) default 52
+    op: Optional[str] = None              # + - * /                           (ARITH)
+    # "N bars ago" offset, added on top of the operand's own base bar (see
+    # _normalize_operand). On composite nodes (ARITH/MULTIPLY/ABS) it is
+    # pushed down into every leaf.
+    shift: int = Field(default=0, ge=0, le=500)
+    # Timeframe override for this value ("RSI on H4" inside an M15 rule).
+    # None = the rule's own timeframe. Pushed down into leaves like shift.
+    timeframe: Optional[str] = None
 
     @field_validator("period")
     @classmethod
@@ -126,8 +151,54 @@ class ComparisonNode(BaseModel):
     """A leaf condition: compare two operands directly."""
     type: Literal["comparison"] = "comparison"
     left: Operand
-    operator: Literal[">", "<", "=="]
+    operator: Literal[">", "<", "==", ">=", "<="]
     right: Operand
+
+
+class CrossNode(BaseModel):
+    """`left` crosses above/below `right`: on the evaluated bar left is on
+    the new side, and one bar earlier it was not. `closed_bar` evaluates
+    on the last completed bar ([1] vs [2]) instead of the just-opened one
+    ([0] vs [1]) - what traders normally mean by "crossed"."""
+    type: Literal["cross"] = "cross"
+    left: Operand
+    direction: Literal["ABOVE", "BELOW"]
+    right: Operand
+    closed_bar: bool = True
+
+
+class BetweenNode(BaseModel):
+    """low <= value <= high (inclusive)."""
+    type: Literal["between"] = "between"
+    value: Operand
+    low: Operand
+    high: Operand
+
+
+class TrendNode(BaseModel):
+    """`value` has risen (or fallen) on each of the last `bars` bars."""
+    type: Literal["trend"] = "trend"
+    value: Operand
+    direction: Literal["RISING", "FALLING"]
+    bars: int = Field(default=3, ge=1, le=20)
+    closed_bar: bool = True
+
+
+class PatternNode(BaseModel):
+    """A candlestick pattern on one bar (`shift` bars ago, 1 = last
+    completed bar), on the rule's timeframe unless `timeframe` is set."""
+    type: Literal["pattern"] = "pattern"
+    pattern: Literal[
+        "BULLISH", "BEARISH", "BULLISH_ENGULFING", "BEARISH_ENGULFING", "DOJI",
+        "HAMMER", "SHOOTING_STAR", "INSIDE_BAR", "OUTSIDE_BAR",
+    ]
+    shift: int = Field(default=1, ge=0, le=500)
+    timeframe: Optional[str] = None
+
+
+class NotNode(BaseModel):
+    type: Literal["not"] = "not"
+    inner: "ConditionNode"
 
 
 class LogicalNode(BaseModel):
@@ -140,8 +211,12 @@ class LogicalNode(BaseModel):
     right: "ConditionNode"
 
 
-ConditionNode = Annotated[Union[ComparisonNode, LogicalNode], Field(discriminator="type")]
+ConditionNode = Annotated[
+    Union[ComparisonNode, LogicalNode, CrossNode, BetweenNode, TrendNode, PatternNode, NotNode],
+    Field(discriminator="type"),
+]
 LogicalNode.model_rebuild()
+NotNode.model_rebuild()
 
 
 class TradeAction(BaseModel):
@@ -223,9 +298,33 @@ VALID_TIMEFRAMES = {
     "PERIOD_M1", "PERIOD_M5", "PERIOD_M15", "PERIOD_M30",
     "PERIOD_H1", "PERIOD_H4", "PERIOD_D1", "PERIOD_W1", "PERIOD_MN1",
 }
-VALID_MA_TYPES = {"MODE_SMA", "MODE_EMA"}
+VALID_MA_TYPES = {"MODE_SMA", "MODE_EMA", "MODE_SMMA", "MODE_LWMA"}
 VALID_BANDS = {"UPPER", "MIDDLE", "LOWER"}
-VALID_MACD_LINES = {"MAIN", "HIST"}
+VALID_ENVELOPE_BANDS = {"UPPER", "LOWER"}
+VALID_MACD_LINES = {"MAIN", "SIGNAL", "HIST"}
+VALID_ADX_LINES = {"ADX", "PLUS_DI", "MINUS_DI"}
+VALID_ICHIMOKU_LINES = {"TENKAN", "KIJUN", "SENKOU_A", "SENKOU_B"}
+VALID_ALLIGATOR_LINES = {"JAW", "TEETH", "LIPS"}
+VALID_APPLIED_PRICES = {
+    "PRICE_CLOSE", "PRICE_OPEN", "PRICE_HIGH", "PRICE_LOW",
+    "PRICE_MEDIAN", "PRICE_TYPICAL", "PRICE_WEIGHTED",
+}
+VALID_ARITH_OPS = {"+", "-", "*", "/"}
+# Kinds whose value is read from a price/indicator series - the only ones a
+# "bars ago" shift or a timeframe override actually changes.
+_SERIES_KINDS = {
+    "MA", "RSI", "MACD", "BANDS", "CANDLE", "ATR", "STOCH", "VOLUME",
+    "CCI", "WPR", "SAR", "MOMENTUM", "STDDEV", "MFI", "ENVELOPES", "DEMARKER",
+    "BULLS", "BEARS", "AO", "AC", "ADX", "ICHIMOKU", "HIGHEST", "LOWEST",
+}
+# Composite kinds: shift/timeframe on these are pushed down into children.
+_COMPOSITE_KINDS = {"MULTIPLY", "ARITH", "ABS"}
+# Alligator = three smoothed (SMMA) moving averages of the median price,
+# each displaced forward by a fixed number of bars (Bill Williams'
+# standard 13/8, 8/5, 5/3). Lowered to MA(SMMA, MEDIAN) + extra shift in
+# _normalize_operand, so every renderer gets it for free, with identical
+# semantics on all three platforms.
+_ALLIGATOR_LINES = {"JAW": (13, 8), "TEETH": (8, 5), "LIPS": (5, 3)}
 VALID_CANDLE_TYPES = {"CURRENT", "PREV_OPEN", "PREV_CLOSE", "PREV_HIGH", "PREV_LOW"}
 VALID_STOCH_LINES = {"K", "D"}
 VALID_VOLUME_BARS = {"CURRENT", "PREVIOUS"}
@@ -274,6 +373,20 @@ class OperandIR:
     value: Optional[float] = None
     left: Optional["OperandIR"] = None
     right: Optional["OperandIR"] = None
+    applied_price: Optional[str] = None
+    macd_fast: Optional[int] = None
+    macd_slow: Optional[int] = None
+    macd_signal: Optional[int] = None
+    sar_step: Optional[float] = None
+    sar_max: Optional[float] = None
+    tenkan: Optional[int] = None
+    kijun: Optional[int] = None
+    senkou_b: Optional[int] = None
+    op: Optional[str] = None
+    # After _normalize_operand: only meaningful on series leaves - the
+    # final "bars ago" offset and the timeframe (None = the rule's own).
+    shift: int = 0
+    timeframe: Optional[str] = None
 
 
 @dataclass
@@ -290,7 +403,23 @@ class LogicalIR:
     right: "ConditionIR"
 
 
-ConditionIR = Union[ComparisonIR, LogicalIR]
+@dataclass
+class NotIR:
+    inner: "ConditionIR"
+
+
+@dataclass
+class PatternIR:
+    pattern: str
+    shift: int
+    timeframe: Optional[str] = None
+
+
+# Cross / Between / Rising-Falling never reach the renderers: parse_strategy
+# lowers them into plain ComparisonIR/LogicalIR trees over shifted operands
+# (see _condition_to_ir), so each renderer only has to support shifts, the
+# comparison operators, AND/OR/NOT and candle patterns.
+ConditionIR = Union[ComparisonIR, LogicalIR, NotIR, PatternIR]
 
 
 @dataclass
@@ -324,6 +453,10 @@ class StrategyIR:
 
 
 def _validate_operand(op: Operand) -> None:
+    if op.timeframe is not None and op.timeframe not in VALID_TIMEFRAMES:
+        raise StrategyValidationError(f"Unsupported timeframe override: {op.timeframe}")
+    if op.applied_price is not None and op.applied_price not in VALID_APPLIED_PRICES:
+        raise StrategyValidationError(f"Unsupported price source: {op.applied_price}")
     if op.kind == "MA" and (op.ma_type not in VALID_MA_TYPES or not op.period):
         raise StrategyValidationError("Invalid Moving Average configuration")
     if op.kind == "RSI" and not op.period:
@@ -336,28 +469,68 @@ def _validate_operand(op: Operand) -> None:
         op.stoch_line not in VALID_STOCH_LINES or not op.k_period or not op.d_period or not op.slowing
     ):
         raise StrategyValidationError("Invalid Stochastic Oscillator configuration")
-    if op.kind == "MACD" and op.line not in VALID_MACD_LINES:
-        raise StrategyValidationError("Invalid MACD configuration")
+    if op.kind == "MACD":
+        if op.line not in VALID_MACD_LINES:
+            raise StrategyValidationError("Invalid MACD configuration")
+        fast = op.macd_fast or MACD_FAST
+        slow = op.macd_slow or MACD_SLOW
+        signal = op.macd_signal or MACD_SIGNAL
+        if min(fast, slow, signal) < 1 or fast >= slow:
+            raise StrategyValidationError("Invalid MACD configuration: the fast period must be smaller than the slow period")
     if op.kind == "CANDLE" and op.candle_type not in VALID_CANDLE_TYPES:
         raise StrategyValidationError("Invalid Candle Data configuration")
     if op.kind == "VOLUME" and op.volume_bar not in VALID_VOLUME_BARS:
         raise StrategyValidationError("Invalid Volume configuration")
     if op.kind == "RISK_VALUE" and (op.unit not in VALID_RISK_UNITS or op.value is None or op.value < 0):
         raise StrategyValidationError("Invalid risk value (Pips/Percent/Price) configuration")
-    if op.kind == "NUMBER" and op.value is None:
+    if op.kind in ("NUMBER", "PIPS") and op.value is None:
         raise StrategyValidationError("Number block is missing a value")
-    if op.kind == "MULTIPLY":
+    if op.kind in ("CCI", "WPR", "MOMENTUM", "STDDEV", "MFI", "DEMARKER", "BULLS", "BEARS", "HIGHEST", "LOWEST") and not op.period:
+        raise StrategyValidationError(f"Invalid {op.kind} configuration: period is required")
+    if op.kind == "SAR" and not (0 < (op.sar_step or 0.02) <= (op.sar_max or 0.2)):
+        raise StrategyValidationError("Invalid Parabolic SAR configuration: step must be > 0 and not above the maximum")
+    if op.kind == "ENVELOPES" and (
+        op.band not in VALID_ENVELOPE_BANDS or not op.period or op.deviation is None or op.deviation <= 0
+        or (op.ma_type is not None and op.ma_type not in VALID_MA_TYPES)
+    ):
+        raise StrategyValidationError("Invalid Envelopes configuration")
+    if op.kind == "ADX" and (op.line not in VALID_ADX_LINES or not op.period):
+        raise StrategyValidationError("Invalid ADX configuration")
+    if op.kind == "ICHIMOKU" and (
+        op.line not in VALID_ICHIMOKU_LINES or min(op.tenkan or 9, op.kijun or 26, op.senkou_b or 52) < 1
+    ):
+        raise StrategyValidationError("Invalid Ichimoku configuration")
+    if op.kind == "ALLIGATOR" and op.line not in VALID_ALLIGATOR_LINES:
+        raise StrategyValidationError("Invalid Alligator configuration")
+    if op.kind in ("MULTIPLY", "ARITH"):
         if op.left is None or op.right is None:
-            raise StrategyValidationError("A Multiply block is missing one of its two inputs")
+            raise StrategyValidationError("A math block is missing one of its two inputs")
+        if op.kind == "ARITH" and op.op not in VALID_ARITH_OPS:
+            raise StrategyValidationError(f"Unsupported math operator: {op.op}")
         _validate_operand(op.left)
         _validate_operand(op.right)
+    if op.kind == "ABS":
+        if op.left is None:
+            raise StrategyValidationError("An Absolute Value block is missing its input")
+        _validate_operand(op.left)
 
 
 def _validate_condition(node: "ConditionNode") -> None:
     """Recursively validate every operand in a (possibly nested) condition tree."""
-    if node.type == "comparison":
+    if node.type in ("comparison", "cross"):
         _validate_operand(node.left)
         _validate_operand(node.right)
+    elif node.type == "between":
+        _validate_operand(node.value)
+        _validate_operand(node.low)
+        _validate_operand(node.high)
+    elif node.type == "trend":
+        _validate_operand(node.value)
+    elif node.type == "pattern":
+        if node.timeframe is not None and node.timeframe not in VALID_TIMEFRAMES:
+            raise StrategyValidationError(f"Unsupported timeframe override: {node.timeframe}")
+    elif node.type == "not":
+        _validate_condition(node.inner)
     else:  # logical
         _validate_condition(node.left)
         _validate_condition(node.right)
@@ -366,18 +539,121 @@ def _validate_condition(node: "ConditionNode") -> None:
 def _operand_to_ir(op: Optional[Operand]) -> Optional[OperandIR]:
     if op is None:
         return None
+    return _normalize_operand(_raw_operand_to_ir(op))
+
+
+def _raw_operand_to_ir(op: Optional[Operand]) -> Optional[OperandIR]:
+    if op is None:
+        return None
     return OperandIR(
         kind=op.kind, period=op.period, ma_type=op.ma_type, deviation=op.deviation,
         band=op.band, line=op.line, candle_type=op.candle_type, k_period=op.k_period,
         d_period=op.d_period, slowing=op.slowing, stoch_line=op.stoch_line,
         volume_bar=op.volume_bar, unit=op.unit, value=op.value,
-        left=_operand_to_ir(op.left), right=_operand_to_ir(op.right),
+        left=_raw_operand_to_ir(op.left), right=_raw_operand_to_ir(op.right),
+        applied_price=op.applied_price, macd_fast=op.macd_fast, macd_slow=op.macd_slow,
+        macd_signal=op.macd_signal, sar_step=op.sar_step, sar_max=op.sar_max,
+        tenkan=op.tenkan, kijun=op.kijun, senkou_b=op.senkou_b, op=op.op,
+        shift=op.shift, timeframe=op.timeframe,
     )
+
+
+def _normalize_operand(op: Optional[OperandIR], extra_shift: int = 0, inherited_tf: Optional[str] = None) -> Optional[OperandIR]:
+    """Returns a copy of `op` where every composite node's shift/timeframe
+    has been pushed down into its series leaves (the innermost timeframe
+    wins; shifts add up), defaults are filled in, and sugar kinds are
+    lowered - after this, renderers only ever read `shift`/`timeframe` on
+    leaves, and never see ALLIGATOR."""
+    if op is None:
+        return None
+    total_shift = op.shift + extra_shift
+    tf = op.timeframe or inherited_tf
+    if op.kind in _COMPOSITE_KINDS:
+        return replace(
+            op, shift=0, timeframe=None,
+            left=_normalize_operand(op.left, total_shift, tf),
+            right=_normalize_operand(op.right, total_shift, tf),
+        )
+    if op.kind == "ALLIGATOR":
+        period, displacement = _ALLIGATOR_LINES[op.line]
+        return OperandIR(
+            kind="MA", period=period, ma_type="MODE_SMMA", applied_price="PRICE_MEDIAN",
+            shift=total_shift + displacement, timeframe=tf,
+        )
+    if op.kind not in _SERIES_KINDS:
+        return replace(op, shift=0, timeframe=None)
+    normalized = replace(op, shift=total_shift, timeframe=tf)
+    if op.kind == "MACD":
+        normalized.macd_fast = op.macd_fast or MACD_FAST
+        normalized.macd_slow = op.macd_slow or MACD_SLOW
+        normalized.macd_signal = op.macd_signal or MACD_SIGNAL
+    if op.kind == "SAR":
+        normalized.sar_step = op.sar_step or 0.02
+        normalized.sar_max = op.sar_max or 0.2
+    if op.kind == "ICHIMOKU":
+        normalized.tenkan = op.tenkan or 9
+        normalized.kijun = op.kijun or 26
+        normalized.senkou_b = op.senkou_b or 52
+    if op.kind == "ENVELOPES":
+        normalized.ma_type = op.ma_type or "MODE_SMA"
+    return normalized
+
+
+def _shifted(op: OperandIR, n: int) -> OperandIR:
+    """`op` evaluated `n` bars further back (input already normalized)."""
+    if n == 0:
+        return op
+    if op.kind in _COMPOSITE_KINDS:
+        return replace(
+            op,
+            left=_shifted(op.left, n) if op.left else None,
+            right=_shifted(op.right, n) if op.right else None,
+        )
+    if op.kind in _SERIES_KINDS:
+        return replace(op, shift=op.shift + n)
+    return op
+
+
+def _and_all(nodes: List["ConditionIR"]) -> "ConditionIR":
+    result = nodes[0]
+    for node in nodes[1:]:
+        result = LogicalIR(operator="AND", left=result, right=node)
+    return result
 
 
 def _condition_to_ir(node: "ConditionNode") -> ConditionIR:
     if node.type == "comparison":
         return ComparisonIR(left=_operand_to_ir(node.left), operator=node.operator, right=_operand_to_ir(node.right))
+    if node.type == "cross":
+        # Crossed above = on the evaluated bar left > right, and one bar
+        # earlier left <= right (mirrored for below).
+        base = 1 if node.closed_bar else 0
+        left, right = _operand_to_ir(node.left), _operand_to_ir(node.right)
+        now_op, before_op = (">", "<=") if node.direction == "ABOVE" else ("<", ">=")
+        return LogicalIR(
+            operator="AND",
+            left=ComparisonIR(left=_shifted(left, base), operator=now_op, right=_shifted(right, base)),
+            right=ComparisonIR(left=_shifted(left, base + 1), operator=before_op, right=_shifted(right, base + 1)),
+        )
+    if node.type == "between":
+        value = _operand_to_ir(node.value)
+        return LogicalIR(
+            operator="AND",
+            left=ComparisonIR(left=value, operator=">=", right=_operand_to_ir(node.low)),
+            right=ComparisonIR(left=value, operator="<=", right=_operand_to_ir(node.high)),
+        )
+    if node.type == "trend":
+        base = 1 if node.closed_bar else 0
+        value = _operand_to_ir(node.value)
+        operator = ">" if node.direction == "RISING" else "<"
+        return _and_all([
+            ComparisonIR(left=_shifted(value, base + k), operator=operator, right=_shifted(value, base + k + 1))
+            for k in range(node.bars)
+        ])
+    if node.type == "pattern":
+        return PatternIR(pattern=node.pattern, shift=node.shift, timeframe=node.timeframe)
+    if node.type == "not":
+        return NotIR(inner=_condition_to_ir(node.inner))
     return LogicalIR(operator=node.operator, left=_condition_to_ir(node.left), right=_condition_to_ir(node.right))
 
 
@@ -435,7 +711,11 @@ def parse_strategy(config: WorkspaceConfig) -> StrategyIR:
 # to this set, since "does anyone actually use Stochastic" is a much
 # more useful analytics question than "does anyone compare against a
 # raw number" (every strategy does, trivially).
-_INDICATOR_OPERAND_KINDS = {"MA", "RSI", "MACD", "BANDS", "ATR", "STOCH"}
+_INDICATOR_OPERAND_KINDS = {
+    "MA", "RSI", "MACD", "BANDS", "ATR", "STOCH",
+    "CCI", "WPR", "SAR", "MOMENTUM", "STDDEV", "MFI", "ENVELOPES", "DEMARKER",
+    "BULLS", "BEARS", "AO", "AC", "ADX", "ICHIMOKU", "HIGHEST", "LOWEST",
+}
 
 
 def _collect_operand_kinds(op: Optional[OperandIR], kinds: set) -> None:
@@ -450,6 +730,10 @@ def _collect_condition_kinds(node: ConditionIR, kinds: set) -> None:
     if isinstance(node, ComparisonIR):
         _collect_operand_kinds(node.left, kinds)
         _collect_operand_kinds(node.right, kinds)
+    elif isinstance(node, NotIR):
+        _collect_condition_kinds(node.inner, kinds)
+    elif isinstance(node, PatternIR):
+        kinds.add("PATTERN")
     else:
         _collect_condition_kinds(node.left, kinds)
         _collect_condition_kinds(node.right, kinds)
@@ -535,7 +819,23 @@ def _describe_operand(op: Optional[OperandIR]) -> str:
         return f"{op.value} {unit_label}"
     if op.kind == "MULTIPLY":
         return f"({_describe_operand(op.left)} * {_describe_operand(op.right)})"
-    return "?"
+    if op.kind == "ARITH":
+        return f"({_describe_operand(op.left)} {op.op} {_describe_operand(op.right)})"
+    if op.kind == "ABS":
+        return f"|{_describe_operand(op.left)}|"
+    if op.kind == "PIPS":
+        return f"{op.value} pips"
+    if op.kind == "SPREAD":
+        return "Spread (pips)"
+    label = {"HIGHEST": "Highest High", "LOWEST": "Lowest Low", "WPR": "Williams %R", "SAR": "Parabolic SAR"}.get(op.kind, op.kind)
+    detail = op.line or op.band or (str(op.period) if op.period else "")
+    base = f"{label}({detail})" if detail else label
+    suffix = ""
+    if op.timeframe:
+        suffix += f" on {op.timeframe.replace('PERIOD_', '')}"
+    if op.shift:
+        suffix += f" [{op.shift} bars ago]"
+    return base + suffix
 
 
 def _describe_actions(rule: "RuleIR") -> str:
@@ -575,17 +875,65 @@ def _mql5_handle_error_check(handle_var: str, label: str) -> str:
     )
 
 
-def _mql5_copy_buffer_block(handle_var: str, buffer_index: int, arr_var: str, val_var: str) -> str:
+def _mql5_copy_buffer_block(handle_var: str, buffer_index: int, arr_var: str, val_var: str, start: int = 0) -> str:
     return (
         f"   double {arr_var}[];\n"
         f"   ArraySetAsSeries({arr_var}, true);\n"
-        f"   if(CopyBuffer({handle_var}, {buffer_index}, 0, 1, {arr_var}) < 1)\n"
+        f"   if(CopyBuffer({handle_var}, {buffer_index}, {start}, 1, {arr_var}) < 1)\n"
         f"     {{\n"
         f'      Print("Failed to copy indicator buffer. Error: ", GetLastError());\n'
         f"      return;\n"
         f"     }}\n"
         f"   double {val_var} = {arr_var}[0];\n"
     )
+
+
+def _mql5_handle_operand(prefix: str, label: str, index: int, create_call: str,
+                         buffer_index: int, start: int) -> _MqlBuiltOperand:
+    """One indicator handle, one buffer read at `start` bars ago - the
+    shape shared by every single-output MT5 built-in indicator."""
+    handle_var = f"h_{prefix}_{index}"
+    arr_var, val_var = f"buf_{prefix}_{index}", f"val_{prefix}_{index}"
+    return _MqlBuiltOperand(
+        global_decl=f"int {handle_var} = INVALID_HANDLE;",
+        init_code=f"   {handle_var} = {create_call.format(h=handle_var)};\n" + _mql5_handle_error_check(handle_var, label),
+        copy_code=_mql5_copy_buffer_block(handle_var, buffer_index, arr_var, val_var, start),
+        value_expr=val_var,
+        handle_vars=[handle_var],
+    )
+
+
+# Candlestick pattern ids shared by the helper function every renderer
+# emits (AP_CandlePattern) - the order is the `switch` case order.
+_PATTERN_IDS = {
+    "BULLISH": 0, "BEARISH": 1, "BULLISH_ENGULFING": 2, "BEARISH_ENGULFING": 3, "DOJI": 4,
+    "HAMMER": 5, "SHOOTING_STAR": 6, "INSIDE_BAR": 7, "OUTSIDE_BAR": 8,
+}
+
+_ADX_BUFFER_INDEX = {"ADX": 0, "PLUS_DI": 1, "MINUS_DI": 2}
+_ENVELOPES_BUFFER_INDEX = {"UPPER": 0, "LOWER": 1}
+_MACD_BUFFER_INDEX = {"MAIN": 0, "SIGNAL": 1}
+
+
+def _ichimoku_expr(midrange: str, operand: OperandIR, sym: str, tf: str) -> str:
+    """Ichimoku lines from highest-high/lowest-low midpoints, identically
+    on every platform. Senkou A/B are "the cloud under this bar" - i.e.
+    computed `kijun` bars earlier, the way the cloud is drawn on a chart.
+    Deliberately NOT read from the platforms' own Ichimoku buffers: MT5,
+    MT4 and cTrader each index the forward-displaced cloud differently,
+    which would make the same block mean three different things."""
+    s, t, k, b = operand.shift, operand.tenkan, operand.kijun, operand.senkou_b
+
+    def mid(n, at):
+        return f"{midrange}({sym}, {tf}, {n}, {at})"
+
+    if operand.line == "TENKAN":
+        return mid(t, s)
+    if operand.line == "KIJUN":
+        return mid(k, s)
+    if operand.line == "SENKOU_A":
+        return f"(({mid(t, s + k)} + {mid(k, s + k)}) / 2.0)"
+    return mid(b, s + k)
 
 
 def _mql5_build_operand(operand: OperandIR, index: int, timeframe: str, counter, symbol_var: str) -> _MqlBuiltOperand:
@@ -595,10 +943,24 @@ def _mql5_build_operand(operand: OperandIR, index: int, timeframe: str, counter,
     not just this one) so every operand - including nested ones inside a
     MULTIPLY, and across different rules - gets its own unique variable
     names. `symbol_var` is the per-rule TradeSymbol_N variable this operand
-    reads its price/indicator data from."""
+    reads its price/indicator data from. `timeframe` is the rule's own;
+    an operand's timeframe override (operand.timeframe) wins over it, and
+    operand.shift is how many bars back the value is read."""
+
+    tf = operand.timeframe or timeframe
+    s = operand.shift
+    price = operand.applied_price or "PRICE_CLOSE"
 
     if operand.kind == "NUMBER":
         return _MqlBuiltOperand(value_expr=f"{operand.value}")
+
+    if operand.kind == "PIPS":
+        return _MqlBuiltOperand(value_expr=f"({operand.value} * PipSize({symbol_var}))")
+
+    if operand.kind == "SPREAD":
+        return _MqlBuiltOperand(value_expr=(
+            f"((SymbolInfoDouble({symbol_var}, SYMBOL_ASK) - SymbolInfoDouble({symbol_var}, SYMBOL_BID)) / PipSize({symbol_var}))"
+        ))
 
     if operand.kind == "RISK_VALUE":
         if operand.unit == "PRICE":
@@ -617,113 +979,124 @@ def _mql5_build_operand(operand: OperandIR, index: int, timeframe: str, counter,
         raise StrategyValidationError(f"Unsupported risk value unit: {operand.unit}")
 
     if operand.kind == "CANDLE":
+        if operand.candle_type == "CURRENT" and s > 0:
+            # "Current price N bars ago" = that bar's close.
+            return _MqlBuiltOperand(value_expr=f"iClose({symbol_var}, {tf}, {s})")
         expr_map = {
             "CURRENT": f"SymbolInfoDouble({symbol_var}, SYMBOL_BID)",
-            "PREV_OPEN": f"iOpen({symbol_var}, {timeframe}, 1)",
-            "PREV_CLOSE": f"iClose({symbol_var}, {timeframe}, 1)",
-            "PREV_HIGH": f"iHigh({symbol_var}, {timeframe}, 1)",
-            "PREV_LOW": f"iLow({symbol_var}, {timeframe}, 1)",
+            "PREV_OPEN": f"iOpen({symbol_var}, {tf}, {1 + s})",
+            "PREV_CLOSE": f"iClose({symbol_var}, {tf}, {1 + s})",
+            "PREV_HIGH": f"iHigh({symbol_var}, {tf}, {1 + s})",
+            "PREV_LOW": f"iLow({symbol_var}, {tf}, {1 + s})",
         }
         return _MqlBuiltOperand(value_expr=expr_map[operand.candle_type])
 
     if operand.kind == "VOLUME":
-        bar_index = 0 if operand.volume_bar == "CURRENT" else 1
-        return _MqlBuiltOperand(value_expr=f"(double)iVolume({symbol_var}, {timeframe}, {bar_index})")
+        bar_index = (0 if operand.volume_bar == "CURRENT" else 1) + s
+        return _MqlBuiltOperand(value_expr=f"(double)iVolume({symbol_var}, {tf}, {bar_index})")
+
+    if operand.kind in ("HIGHEST", "LOWEST"):
+        fn = "AP_Highest" if operand.kind == "HIGHEST" else "AP_Lowest"
+        return _MqlBuiltOperand(value_expr=f"{fn}({symbol_var}, {tf}, {operand.period}, {s})")
+
+    if operand.kind == "ICHIMOKU":
+        return _MqlBuiltOperand(value_expr=_ichimoku_expr("AP_MidRange", operand, symbol_var, tf))
 
     if operand.kind == "MA":
-        handle_var = f"h_ma_{index}"
-        arr_var, val_var = f"buf_ma_{index}", f"val_ma_{index}"
-        init_code = (
-            f"   {handle_var} = iMA({symbol_var}, {timeframe}, {operand.period}, 0, "
-            f"{operand.ma_type}, PRICE_CLOSE);\n" + _mql5_handle_error_check(handle_var, "MA")
-        )
-        return _MqlBuiltOperand(
-            global_decl=f"int {handle_var} = INVALID_HANDLE;",
-            init_code=init_code,
-            copy_code=_mql5_copy_buffer_block(handle_var, 0, arr_var, val_var),
-            value_expr=val_var,
-            handle_vars=[handle_var],
-        )
+        return _mql5_handle_operand(
+            "ma", "MA", index,
+            f"iMA({symbol_var}, {tf}, {operand.period}, 0, {operand.ma_type}, {price})", 0, s)
 
     if operand.kind == "RSI":
-        handle_var = f"h_rsi_{index}"
-        arr_var, val_var = f"buf_rsi_{index}", f"val_rsi_{index}"
-        init_code = (
-            f"   {handle_var} = iRSI({symbol_var}, {timeframe}, {operand.period}, PRICE_CLOSE);\n"
-            + _mql5_handle_error_check(handle_var, "RSI")
-        )
-        return _MqlBuiltOperand(
-            global_decl=f"int {handle_var} = INVALID_HANDLE;",
-            init_code=init_code,
-            copy_code=_mql5_copy_buffer_block(handle_var, 0, arr_var, val_var),
-            value_expr=val_var,
-            handle_vars=[handle_var],
-        )
+        return _mql5_handle_operand("rsi", "RSI", index, f"iRSI({symbol_var}, {tf}, {operand.period}, {price})", 0, s)
 
     if operand.kind == "ATR":
-        handle_var = f"h_atr_{index}"
-        arr_var, val_var = f"buf_atr_{index}", f"val_atr_{index}"
-        init_code = (
-            f"   {handle_var} = iATR({symbol_var}, {timeframe}, {operand.period});\n"
-            + _mql5_handle_error_check(handle_var, "ATR")
-        )
-        return _MqlBuiltOperand(
-            global_decl=f"int {handle_var} = INVALID_HANDLE;",
-            init_code=init_code,
-            copy_code=_mql5_copy_buffer_block(handle_var, 0, arr_var, val_var),
-            value_expr=val_var,
-            handle_vars=[handle_var],
-        )
+        return _mql5_handle_operand("atr", "ATR", index, f"iATR({symbol_var}, {tf}, {operand.period})", 0, s)
 
     if operand.kind == "BANDS":
-        handle_var = f"h_bands_{index}"
-        arr_var, val_var = f"buf_bands_{index}", f"val_bands_{index}"
-        buffer_index = _BANDS_BUFFER_INDEX[operand.band]
-        init_code = (
-            f"   {handle_var} = iBands({symbol_var}, {timeframe}, {operand.period}, 0, "
-            f"{operand.deviation}, PRICE_CLOSE);\n" + _mql5_handle_error_check(handle_var, "Bollinger Bands")
-        )
-        return _MqlBuiltOperand(
-            global_decl=f"int {handle_var} = INVALID_HANDLE;",
-            init_code=init_code,
-            copy_code=_mql5_copy_buffer_block(handle_var, buffer_index, arr_var, val_var),
-            value_expr=val_var,
-            handle_vars=[handle_var],
-        )
+        return _mql5_handle_operand(
+            "bands", "Bollinger Bands", index,
+            f"iBands({symbol_var}, {tf}, {operand.period}, 0, {operand.deviation}, {price})",
+            _BANDS_BUFFER_INDEX[operand.band], s)
 
     if operand.kind == "STOCH":
-        handle_var = f"h_stoch_{index}"
-        arr_var, val_var = f"buf_stoch_{index}", f"val_stoch_{index}"
-        buffer_index = _STOCH_BUFFER_INDEX[operand.stoch_line]
-        init_code = (
-            f"   {handle_var} = iStochastic({symbol_var}, {timeframe}, {operand.k_period}, "
-            f"{operand.d_period}, {operand.slowing}, MODE_SMA, STO_LOWHIGH);\n"
-            + _mql5_handle_error_check(handle_var, "Stochastic")
-        )
-        return _MqlBuiltOperand(
-            global_decl=f"int {handle_var} = INVALID_HANDLE;",
-            init_code=init_code,
-            copy_code=_mql5_copy_buffer_block(handle_var, buffer_index, arr_var, val_var),
-            value_expr=val_var,
-            handle_vars=[handle_var],
-        )
+        return _mql5_handle_operand(
+            "stoch", "Stochastic", index,
+            f"iStochastic({symbol_var}, {tf}, {operand.k_period}, {operand.d_period}, {operand.slowing}, MODE_SMA, STO_LOWHIGH)",
+            _STOCH_BUFFER_INDEX[operand.stoch_line], s)
+
+    if operand.kind == "CCI":
+        return _mql5_handle_operand(
+            "cci", "CCI", index, f"iCCI({symbol_var}, {tf}, {operand.period}, {operand.applied_price or 'PRICE_TYPICAL'})", 0, s)
+
+    if operand.kind == "WPR":
+        return _mql5_handle_operand("wpr", "Williams %R", index, f"iWPR({symbol_var}, {tf}, {operand.period})", 0, s)
+
+    if operand.kind == "SAR":
+        return _mql5_handle_operand(
+            "sar", "Parabolic SAR", index, f"iSAR({symbol_var}, {tf}, {operand.sar_step}, {operand.sar_max})", 0, s)
+
+    if operand.kind == "MOMENTUM":
+        return _mql5_handle_operand(
+            "mom", "Momentum", index, f"iMomentum({symbol_var}, {tf}, {operand.period}, {price})", 0, s)
+
+    if operand.kind == "STDDEV":
+        return _mql5_handle_operand(
+            "stddev", "Standard Deviation", index,
+            f"iStdDev({symbol_var}, {tf}, {operand.period}, 0, MODE_SMA, {price})", 0, s)
+
+    if operand.kind == "MFI":
+        return _mql5_handle_operand(
+            "mfi", "Money Flow Index", index, f"iMFI({symbol_var}, {tf}, {operand.period}, VOLUME_TICK)", 0, s)
+
+    if operand.kind == "ENVELOPES":
+        return _mql5_handle_operand(
+            "env", "Envelopes", index,
+            f"iEnvelopes({symbol_var}, {tf}, {operand.period}, 0, {operand.ma_type}, {price}, {operand.deviation})",
+            _ENVELOPES_BUFFER_INDEX[operand.band], s)
+
+    if operand.kind == "DEMARKER":
+        return _mql5_handle_operand("dem", "DeMarker", index, f"iDeMarker({symbol_var}, {tf}, {operand.period})", 0, s)
+
+    if operand.kind == "BULLS":
+        return _mql5_handle_operand("bulls", "Bulls Power", index, f"iBullsPower({symbol_var}, {tf}, {operand.period})", 0, s)
+
+    if operand.kind == "BEARS":
+        return _mql5_handle_operand("bears", "Bears Power", index, f"iBearsPower({symbol_var}, {tf}, {operand.period})", 0, s)
+
+    if operand.kind == "AO":
+        return _mql5_handle_operand("ao", "Awesome Oscillator", index, f"iAO({symbol_var}, {tf})", 0, s)
+
+    if operand.kind == "AC":
+        return _mql5_handle_operand("ac", "Accelerator Oscillator", index, f"iAC({symbol_var}, {tf})", 0, s)
+
+    if operand.kind == "ADX":
+        # iADXWilder, not iADX: MT5's plain iADX smooths differently from
+        # Welles Wilder's original definition, which is what cTrader's
+        # DirectionalMovementSystem (and the MT4 export's own helper) use.
+        return _mql5_handle_operand(
+            "adx", "ADX", index, f"iADXWilder({symbol_var}, {tf}, {operand.period})",
+            _ADX_BUFFER_INDEX[operand.line], s)
 
     if operand.kind == "MACD":
         handle_var = f"h_macd_{index}"
         init_code = (
-            f"   {handle_var} = iMACD({symbol_var}, {timeframe}, {MACD_FAST}, {MACD_SLOW}, "
-            f"{MACD_SIGNAL}, PRICE_CLOSE);\n" + _mql5_handle_error_check(handle_var, "MACD")
+            f"   {handle_var} = iMACD({symbol_var}, {tf}, {operand.macd_fast}, {operand.macd_slow}, "
+            f"{operand.macd_signal}, PRICE_CLOSE);\n" + _mql5_handle_error_check(handle_var, "MACD")
         )
         main_arr, main_val = f"buf_macd_main_{index}", f"val_macd_main_{index}"
+        signal_arr, signal_val = f"buf_macd_signal_{index}", f"val_macd_signal_{index}"
         if operand.line == "MAIN":
-            copy_code = _mql5_copy_buffer_block(handle_var, 0, main_arr, main_val)
+            copy_code = _mql5_copy_buffer_block(handle_var, 0, main_arr, main_val, s)
             value_expr = main_val
+        elif operand.line == "SIGNAL":
+            copy_code = _mql5_copy_buffer_block(handle_var, 1, signal_arr, signal_val, s)
+            value_expr = signal_val
         else:  # HIST: MT5's iMACD only exposes MAIN (0) and SIGNAL (1) buffers,
             # so the histogram is computed as their difference.
-            signal_arr, signal_val = f"buf_macd_signal_{index}", f"val_macd_signal_{index}"
             copy_code = (
-                _mql5_copy_buffer_block(handle_var, 0, main_arr, main_val)
-                + _mql5_copy_buffer_block(handle_var, 1, signal_arr, signal_val)
+                _mql5_copy_buffer_block(handle_var, 0, main_arr, main_val, s)
+                + _mql5_copy_buffer_block(handle_var, 1, signal_arr, signal_val, s)
             )
             value_expr = f"({main_val} - {signal_val})"
         return _MqlBuiltOperand(
@@ -734,15 +1107,27 @@ def _mql5_build_operand(operand: OperandIR, index: int, timeframe: str, counter,
             handle_vars=[handle_var],
         )
 
-    if operand.kind == "MULTIPLY":
+    if operand.kind in ("MULTIPLY", "ARITH"):
         left_built = _mql5_build_operand(operand.left, next(counter), timeframe, counter, symbol_var)
         right_built = _mql5_build_operand(operand.right, next(counter), timeframe, counter, symbol_var)
+        op = "*" if operand.kind == "MULTIPLY" else operand.op
+        if op == "/":
+            value_expr = f"AP_SafeDiv(({left_built.value_expr}), ({right_built.value_expr}))"
+        else:
+            value_expr = f"(({left_built.value_expr}) {op} ({right_built.value_expr}))"
         return _MqlBuiltOperand(
             global_decl="\n".join(x for x in (left_built.global_decl, right_built.global_decl) if x),
             init_code=left_built.init_code + right_built.init_code,
             copy_code=left_built.copy_code + right_built.copy_code,
-            value_expr=f"(({left_built.value_expr}) * ({right_built.value_expr}))",
+            value_expr=value_expr,
             handle_vars=left_built.handle_vars + right_built.handle_vars,
+        )
+
+    if operand.kind == "ABS":
+        inner = _mql5_build_operand(operand.left, next(counter), timeframe, counter, symbol_var)
+        return _MqlBuiltOperand(
+            global_decl=inner.global_decl, init_code=inner.init_code, copy_code=inner.copy_code,
+            value_expr=f"MathAbs({inner.value_expr})", handle_vars=inner.handle_vars,
         )
 
     raise StrategyValidationError(f"Unsupported operand kind: {operand.kind}")
@@ -853,11 +1238,161 @@ def _mql5_build_condition(node: ConditionIR, timeframe: str, counter, symbol_var
         expr = _mql5_comparison_expression(left_built, node.operator, right_built)
         return expr, [left_built, right_built]
 
+    if isinstance(node, NotIR):
+        inner_expr, inner_ops = _mql5_build_condition(node.inner, timeframe, counter, symbol_var)
+        return f"(!{inner_expr})", inner_ops
+    if isinstance(node, PatternIR):
+        return f"AP_CandlePattern({symbol_var}, {node.timeframe or timeframe}, {_PATTERN_IDS[node.pattern]}, {node.shift})", []
+
     # logical: recurse into both branches, then join with && / ||
     left_expr, left_ops = _mql5_build_condition(node.left, timeframe, counter, symbol_var)
     right_expr, right_ops = _mql5_build_condition(node.right, timeframe, counter, symbol_var)
     mql_op = "&&" if node.operator == "AND" else "||"
     return f"({left_expr} {mql_op} {right_expr})", left_ops + right_ops
+
+
+def _data_guard_open(expr: str, indent: str) -> str:
+    """MQL only: the AP_* history helpers flag g_apDataError when a
+    bar they need isn't loaded yet (fresh MTF history, start of a
+    backtest) - reset it before the signal and veto the signal after,
+    rather than let a 0.0 placeholder masquerade as a real price.
+    Emitted only when a helper is actually used, so strategies without
+    one generate exactly the same code as before."""
+    return f"{indent}g_apDataError = false;\n" if "AP_" in expr else ""
+
+
+def _data_guard_close(expr: str, signal_var: str, indent: str) -> str:
+    if "AP_" not in expr:
+        return ""
+    return (
+        f"{indent}if(g_apDataError)\n"
+        f"{indent}   {signal_var} = false; // price history not loaded yet - skip this bar\n"
+    )
+
+
+# ----------------------------------------------------------------------------
+# AP_* helper functions shared by the MQL5 and MQL4 exports. Each is only
+# emitted when the generated code actually calls it (see
+# _mql_helper_block), so strategies that don't use the Wave 1 blocks keep
+# generating byte-identical files. `{TF}` is the timeframe parameter type
+# (ENUM_TIMEFRAMES in MQL5, int in MQL4) - everything else is valid in
+# both languages unchanged.
+# ----------------------------------------------------------------------------
+_MQL_HELPER_DEFS = {
+    "AP_SafeDiv": """//+------------------------------------------------------------------+
+//| Division that returns 0 instead of failing on a zero divisor.     |
+//+------------------------------------------------------------------+
+double AP_SafeDiv(double a, double b)
+  {
+   if(b == 0.0)
+      return(0.0);
+   return(a / b);
+  }
+""",
+    "AP_Highest": """//+------------------------------------------------------------------+
+//| Highest high of `count` bars, starting `start` bars back.         |
+//+------------------------------------------------------------------+
+double AP_Highest(string symbol, {TF} tf, int count, int start)
+  {
+   int idx = iHighest(symbol, tf, MODE_HIGH, count, start);
+   if(idx < 0)
+     {
+      g_apDataError = true;
+      return(0.0);
+     }
+   return(iHigh(symbol, tf, idx));
+  }
+""",
+    "AP_Lowest": """//+------------------------------------------------------------------+
+//| Lowest low of `count` bars, starting `start` bars back.           |
+//+------------------------------------------------------------------+
+double AP_Lowest(string symbol, {TF} tf, int count, int start)
+  {
+   int idx = iLowest(symbol, tf, MODE_LOW, count, start);
+   if(idx < 0)
+     {
+      g_apDataError = true;
+      return(0.0);
+     }
+   return(iLow(symbol, tf, idx));
+  }
+""",
+    "AP_MidRange": """//+------------------------------------------------------------------+
+//| (highest high + lowest low) / 2 over `count` bars - the building  |
+//| block of every Ichimoku line.                                     |
+//+------------------------------------------------------------------+
+double AP_MidRange(string symbol, {TF} tf, int count, int start)
+  {
+   return((AP_Highest(symbol, tf, count, start) + AP_Lowest(symbol, tf, count, start)) / 2.0);
+  }
+""",
+    "AP_CandlePattern": """//+------------------------------------------------------------------+
+//| Candlestick pattern on bar `shift` (compared with bar shift+1).   |
+//| 0 bullish, 1 bearish, 2 bullish engulfing, 3 bearish engulfing,   |
+//| 4 doji, 5 hammer / bullish pin bar, 6 shooting star / bearish pin |
+//| bar, 7 inside bar, 8 outside bar. Same definitions in the MT4 and |
+//| cTrader exports.                                                  |
+//+------------------------------------------------------------------+
+bool AP_CandlePattern(string symbol, {TF} tf, int pattern, int shift)
+  {
+   double o  = iOpen(symbol, tf, shift);
+   double h  = iHigh(symbol, tf, shift);
+   double l  = iLow(symbol, tf, shift);
+   double c  = iClose(symbol, tf, shift);
+   double o1 = iOpen(symbol, tf, shift + 1);
+   double h1 = iHigh(symbol, tf, shift + 1);
+   double l1 = iLow(symbol, tf, shift + 1);
+   double c1 = iClose(symbol, tf, shift + 1);
+   if(h <= 0 || h1 <= 0)
+     {
+      g_apDataError = true;
+      return(false);
+     }
+   double range     = h - l;
+   double body      = MathAbs(c - o);
+   double upperWick = h - MathMax(o, c);
+   double lowerWick = MathMin(o, c) - l;
+   switch(pattern)
+     {
+      case 0: return(c > o);
+      case 1: return(c < o);
+      case 2: return(c1 < o1 && c > o && o <= c1 && c >= o1);
+      case 3: return(c1 > o1 && c < o && o >= c1 && c <= o1);
+      case 4: return(range > 0 && body <= 0.1 * range);
+      case 5: return(range > 0 && lowerWick >= 0.6 * range && upperWick <= 0.15 * range);
+      case 6: return(range > 0 && upperWick >= 0.6 * range && lowerWick <= 0.15 * range);
+      case 7: return(h < h1 && l > l1);
+      case 8: return(h > h1 && l < l1);
+     }
+   return(false);
+  }
+""",
+}
+
+# Helpers that call other helpers.
+_MQL_HELPER_DEPS = {"AP_MidRange": ["AP_Highest", "AP_Lowest"]}
+
+
+def _mql_helper_block(generated_code: str, tf_type: str, extra_defs: Optional[dict] = None) -> str:
+    """Definitions for every AP_* helper referenced in `generated_code`
+    (plus their dependencies), or "" when none is used."""
+    defs = dict(_MQL_HELPER_DEFS)
+    defs.update(extra_defs or {})
+    needed = [name for name in defs if f"{name}(" in generated_code]
+    for name in list(needed):
+        for dep in _MQL_HELPER_DEPS.get(name, []):
+            if dep not in needed:
+                needed.append(dep)
+    if not needed:
+        return ""
+    ordered = [name for name in defs if name in needed]
+    return (
+        "//--- Set by the AP_* helpers below when the price history they need\n"
+        "//--- isn't available yet; a signal computed from it is then ignored.\n"
+        "bool g_apDataError = false;\n\n"
+        + "\n".join(defs[name].replace("{TF}", tf_type) for name in ordered)
+        + "\n"
+    )
 
 
 def render_mql5(ir: StrategyIR) -> str:
@@ -973,8 +1508,10 @@ def render_mql5(ir: StrategyIR) -> str:
             f"        {{\n"
             f"         lastBarTime_{i} = currentBarTime_{i};\n"
             f"{rule_copy}"
-            f"         bool signalTriggered_{i} = {comparison_expr};\n"
-            f"         if(signalTriggered_{i})\n"
+            + _data_guard_open(comparison_expr, "         ")
+            + f"         bool signalTriggered_{i} = {comparison_expr};\n"
+            + _data_guard_close(comparison_expr, f"signalTriggered_{i}", "         ")
+            + f"         if(signalTriggered_{i})\n"
             f"           {{\n"
             f"            if({rounds_var} < {max_pos_var})\n"
             f"              {{\n"
@@ -992,6 +1529,7 @@ def render_mql5(ir: StrategyIR) -> str:
     if not release_body:
         release_body = "   // Nothing to release."
     ontick_body = "".join(ontick_parts)
+    ap_helpers = _mql_helper_block(ontick_body, "ENUM_TIMEFRAMES")
 
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     rule_count = len(ir.rules)
@@ -1255,7 +1793,7 @@ int CountTrackedForMagic(int magic)
    return(count);
   }}
 
-//+------------------------------------------------------------------+
+{ap_helpers}//+------------------------------------------------------------------+
 //| Expert initialization function                                    |
 //+------------------------------------------------------------------+
 int OnInit()
@@ -1512,15 +2050,78 @@ class _CsBuiltOperand:
         # results (.Result.LastValue etc.) are always live, read directly.
 
 
-def _csharp_build_operand(operand: OperandIR, index: int, counter, symbol_var: str, bars_var: str) -> _CsBuiltOperand:
+class _CsBars:
+    """Hands out the Bars field for a timeframe within one rule: the rule's
+    own _tradeBars[i] for its own timeframe, or an extra per-rule field
+    (loaded with MarketData.GetBars in OnStart) for a timeframe override
+    such as "RSI on H4" inside an M15 rule."""
+
+    def __init__(self, rule_index: int, default_var: str, default_tf: str):
+        self.rule_index = rule_index
+        self.default_var = default_var
+        self.default_tf = default_tf
+        self.extra: dict = {}  # timeframe constant -> field name
+
+    def for_tf(self, tf: Optional[str]) -> str:
+        if not tf or tf == self.default_tf:
+            return self.default_var
+        if tf not in self.extra:
+            self.extra[tf] = f"_tfBars{self.rule_index}_{tf.replace('PERIOD_', '')}"
+        return self.extra[tf]
+
+
+_CS_PRICE_SERIES = {
+    "PRICE_CLOSE": "ClosePrices", "PRICE_OPEN": "OpenPrices", "PRICE_HIGH": "HighPrices",
+    "PRICE_LOW": "LowPrices", "PRICE_MEDIAN": "MedianPrices", "PRICE_TYPICAL": "TypicalPrices",
+    "PRICE_WEIGHTED": "WeightedPrices",
+}
+_CS_MA_TYPE = {
+    "MODE_SMA": "MovingAverageType.Simple",
+    "MODE_EMA": "MovingAverageType.Exponential",
+    # MT's "smoothed" MA is Welles Wilder's smoothing, and MT's "linear
+    # weighted" MA is cTrader's Weighted.
+    "MODE_SMMA": "MovingAverageType.WilderSmoothing",
+    "MODE_LWMA": "MovingAverageType.Weighted",
+}
+
+
+def _cs_last(series: str, shift: int) -> str:
+    # .LastValue for the current bar keeps previously generated cBots
+    # byte-identical; .Last(n) is "n bars ago".
+    return f"{series}.LastValue" if shift == 0 else f"{series}.Last({shift})"
+
+
+def _cs_indicator(field_type: str, prefix: str, index: int, create_call: str, output: str, shift: int) -> _CsBuiltOperand:
+    field = f"_{prefix}{index}"
+    return _CsBuiltOperand(
+        field_decl=f"private {field_type} {field} = null!;",
+        init_code=f"            {field} = {create_call};\n",
+        value_expr=_cs_last(f"{field}.{output}", shift),
+    )
+
+
+def _csharp_build_operand(operand: OperandIR, index: int, counter, symbol_var: str, bars_var: "_CsBars") -> _CsBuiltOperand:
     """Translate one OperandIR into cAlgo field/init code and the C#
     expression representing its live value. Mirrors _mql5_build_operand()
     one-for-one - same operand kinds, same semantics, different target API.
-    `symbol_var`/`bars_var` are the per-rule _tradeSymbolN/_tradeBarsN
-    fields this operand reads its price/indicator data from."""
+    `symbol_var` is the per-rule _tradeSymbolN field; `bars_var` resolves
+    the Bars series for the operand's timeframe (the rule's own unless the
+    operand overrides it). Every indicator is created on those Bars
+    explicitly - the overloads without a Bars/DataSeries argument silently
+    use the chart the cBot is attached to, not the rule's asset."""
+
+    bars = bars_var.for_tf(operand.timeframe)
+    s = operand.shift
+    price_series = f"{bars}.{_CS_PRICE_SERIES[operand.applied_price or 'PRICE_CLOSE']}"
 
     if operand.kind == "NUMBER":
         return _CsBuiltOperand(value_expr=f"{operand.value}")
+
+    if operand.kind == "PIPS":
+        return _CsBuiltOperand(value_expr=f"({operand.value} * {symbol_var}.PipSize)")
+
+    if operand.kind == "SPREAD":
+        return _CsBuiltOperand(value_expr=f"({symbol_var}.Spread / {symbol_var}.PipSize)")
 
     if operand.kind == "RISK_VALUE":
         if operand.unit == "PRICE":
@@ -1534,82 +2135,143 @@ def _csharp_build_operand(operand: OperandIR, index: int, counter, symbol_var: s
         raise StrategyValidationError(f"Unsupported risk value unit: {operand.unit}")
 
     if operand.kind == "CANDLE":
+        if operand.candle_type == "CURRENT" and s > 0:
+            return _CsBuiltOperand(value_expr=f"{bars}.ClosePrices.Last({s})")
         expr_map = {
             "CURRENT": f"{symbol_var}.Bid",
-            "PREV_OPEN": f"{bars_var}.OpenPrices.Last(1)",
-            "PREV_CLOSE": f"{bars_var}.ClosePrices.Last(1)",
-            "PREV_HIGH": f"{bars_var}.HighPrices.Last(1)",
-            "PREV_LOW": f"{bars_var}.LowPrices.Last(1)",
+            "PREV_OPEN": f"{bars}.OpenPrices.Last({1 + s})",
+            "PREV_CLOSE": f"{bars}.ClosePrices.Last({1 + s})",
+            "PREV_HIGH": f"{bars}.HighPrices.Last({1 + s})",
+            "PREV_LOW": f"{bars}.LowPrices.Last({1 + s})",
         }
         return _CsBuiltOperand(value_expr=expr_map[operand.candle_type])
 
     if operand.kind == "VOLUME":
-        bar_index = 0 if operand.volume_bar == "CURRENT" else 1
-        return _CsBuiltOperand(value_expr=f"{bars_var}.TickVolumes.Last({bar_index})")
+        bar_index = (0 if operand.volume_bar == "CURRENT" else 1) + s
+        return _CsBuiltOperand(value_expr=f"{bars}.TickVolumes.Last({bar_index})")
+
+    if operand.kind in ("HIGHEST", "LOWEST"):
+        fn = "AP_Highest" if operand.kind == "HIGHEST" else "AP_Lowest"
+        return _CsBuiltOperand(value_expr=f"{fn}({bars}, {operand.period}, {s})")
+
+    if operand.kind == "ICHIMOKU":
+        # _ichimoku_expr builds "fn(symbol, tf, n, start)" calls for MQL;
+        # the C# helpers take the Bars object instead of symbol + tf.
+        expr = _ichimoku_expr("AP_MidRange", operand, "__SYM__", "__TF__")
+        return _CsBuiltOperand(value_expr=expr.replace("__SYM__, __TF__", bars))
 
     if operand.kind == "MA":
-        field = f"_ma{index}"
-        ma_type = "MovingAverageType.Exponential" if operand.ma_type == "MODE_EMA" else "MovingAverageType.Simple"
-        return _CsBuiltOperand(
-            field_decl=f"private MovingAverage {field} = null!;",
-            init_code=f"            {field} = Indicators.MovingAverage({bars_var}.ClosePrices, {operand.period}, {ma_type});\n",
-            value_expr=f"{field}.Result.LastValue",
-        )
+        ma_type = _CS_MA_TYPE[operand.ma_type]
+        return _cs_indicator("MovingAverage", "ma", index,
+                             f"Indicators.MovingAverage({price_series}, {operand.period}, {ma_type})", "Result", s)
 
     if operand.kind == "RSI":
-        field = f"_rsi{index}"
-        return _CsBuiltOperand(
-            field_decl=f"private RelativeStrengthIndex {field} = null!;",
-            init_code=f"            {field} = Indicators.RelativeStrengthIndex({bars_var}.ClosePrices, {operand.period});\n",
-            value_expr=f"{field}.Result.LastValue",
-        )
+        return _cs_indicator("RelativeStrengthIndex", "rsi", index,
+                             f"Indicators.RelativeStrengthIndex({price_series}, {operand.period})", "Result", s)
 
     if operand.kind == "ATR":
-        field = f"_atr{index}"
-        return _CsBuiltOperand(
-            field_decl=f"private AverageTrueRange {field} = null!;",
-            init_code=f"            {field} = Indicators.AverageTrueRange({operand.period}, MovingAverageType.Simple);\n",
-            value_expr=f"{field}.Result.LastValue",
-        )
+        return _cs_indicator("AverageTrueRange", "atr", index,
+                             f"Indicators.AverageTrueRange({bars}, {operand.period}, MovingAverageType.Simple)", "Result", s)
 
     if operand.kind == "BANDS":
-        field = f"_bands{index}"
         line_map = {"MIDDLE": "Main", "UPPER": "Top", "LOWER": "Bottom"}
-        return _CsBuiltOperand(
-            field_decl=f"private BollingerBands {field} = null!;",
-            init_code=f"            {field} = Indicators.BollingerBands({bars_var}.ClosePrices, {operand.period}, {operand.deviation}, MovingAverageType.Simple);\n",
-            value_expr=f"{field}.{line_map[operand.band]}.LastValue",
-        )
+        return _cs_indicator(
+            "BollingerBands", "bands", index,
+            f"Indicators.BollingerBands({price_series}, {operand.period}, {operand.deviation}, MovingAverageType.Simple)",
+            line_map[operand.band], s)
 
     if operand.kind == "STOCH":
-        field = f"_stoch{index}"
         line_map = {"K": "PercentK", "D": "PercentD"}
-        # cAlgo's StochasticOscillator(kPeriods, kSlowing, dPeriods, maType)
+        # cAlgo's StochasticOscillator(bars, kPeriods, kSlowing, dPeriods, maType)
         # param order differs from MT5's iStochastic(k, d, slowing, ...) -
         # mapped so operand.k_period/slowing/d_period keep their meaning.
-        return _CsBuiltOperand(
-            field_decl=f"private StochasticOscillator {field} = null!;",
-            init_code=f"            {field} = Indicators.StochasticOscillator({operand.k_period}, {operand.slowing}, {operand.d_period}, MovingAverageType.Simple);\n",
-            value_expr=f"{field}.{line_map[operand.stoch_line]}.LastValue",
-        )
+        return _cs_indicator(
+            "StochasticOscillator", "stoch", index,
+            f"Indicators.StochasticOscillator({bars}, {operand.k_period}, {operand.slowing}, {operand.d_period}, MovingAverageType.Simple)",
+            line_map[operand.stoch_line], s)
+
+    if operand.kind == "CCI":
+        source = f"{bars}.{_CS_PRICE_SERIES[operand.applied_price or 'PRICE_TYPICAL']}"
+        return _cs_indicator("CommodityChannelIndex", "cci", index,
+                             f"Indicators.CommodityChannelIndex({source}, {operand.period})", "Result", s)
+
+    if operand.kind == "WPR":
+        return _cs_indicator("WilliamsPctR", "wpr", index,
+                             f"Indicators.WilliamsPctR({bars}, {operand.period})", "Result", s)
+
+    if operand.kind == "SAR":
+        return _cs_indicator("ParabolicSAR", "sar", index,
+                             f"Indicators.ParabolicSAR({bars}, {operand.sar_step}, {operand.sar_max})", "Result", s)
+
+    if operand.kind == "MOMENTUM":
+        return _cs_indicator("MomentumOscillator", "mom", index,
+                             f"Indicators.MomentumOscillator({price_series}, {operand.period})", "Result", s)
+
+    if operand.kind == "STDDEV":
+        return _cs_indicator("StandardDeviation", "stddev", index,
+                             f"Indicators.StandardDeviation({price_series}, {operand.period}, MovingAverageType.Simple)", "Result", s)
+
+    if operand.kind == "MFI":
+        return _cs_indicator("MoneyFlowIndex", "mfi", index,
+                             f"Indicators.MoneyFlowIndex({bars}, {operand.period})", "Result", s)
+
+    if operand.kind == "ENVELOPES":
+        return _cs_indicator(
+            "Envelopes", "env", index,
+            f"Indicators.Envelopes({price_series}, {operand.period}, {_CS_MA_TYPE[operand.ma_type]}, {operand.deviation})",
+            "Upper" if operand.band == "UPPER" else "Lower", s)
+
+    if operand.kind == "DEMARKER":
+        return _cs_indicator("DeMarker", "dem", index, f"Indicators.DeMarker({bars}, {operand.period})", "Result", s)
+
+    if operand.kind == "BULLS":
+        # MT's Bulls/Bears Power measure against an EMA of the close.
+        return _cs_indicator("BullsPower", "bulls", index,
+                             f"Indicators.BullsPower({bars}, {operand.period}, MovingAverageType.Exponential)", "Result", s)
+
+    if operand.kind == "BEARS":
+        return _cs_indicator("BearsPower", "bears", index,
+                             f"Indicators.BearsPower({bars}, {operand.period}, MovingAverageType.Exponential)", "Result", s)
+
+    if operand.kind == "AO":
+        return _cs_indicator("AwesomeOscillator", "ao", index, f"Indicators.AwesomeOscillator({bars})", "Result", s)
+
+    if operand.kind == "AC":
+        return _cs_indicator("AcceleratorOscillator", "ac", index, f"Indicators.AcceleratorOscillator({bars})", "Result", s)
+
+    if operand.kind == "ADX":
+        output = {"ADX": "ADX", "PLUS_DI": "DIPlus", "MINUS_DI": "DIMinus"}[operand.line]
+        return _cs_indicator("DirectionalMovementSystem", "adx", index,
+                             f"Indicators.DirectionalMovementSystem({bars}, {operand.period})", output, s)
 
     if operand.kind == "MACD":
-        field = f"_macd{index}"
         # cAlgo's MacdCrossOver(source, longCycle, shortCycle, signalPeriods)
         # exposes MACD/Signal/Histogram directly - no manual main-minus-
         # signal subtraction needed like the MQL5 side has to do.
-        init_code = f"            {field} = Indicators.MacdCrossOver({bars_var}.ClosePrices, {MACD_SLOW}, {MACD_FAST}, {MACD_SIGNAL});\n"
-        value_expr = f"{field}.MACD.LastValue" if operand.line == "MAIN" else f"{field}.Histogram.LastValue"
-        return _CsBuiltOperand(field_decl=f"private MacdCrossOver {field} = null!;", init_code=init_code, value_expr=value_expr)
+        output = {"MAIN": "MACD", "SIGNAL": "Signal", "HIST": "Histogram"}[operand.line]
+        return _cs_indicator(
+            "MacdCrossOver", "macd", index,
+            f"Indicators.MacdCrossOver({bars}.ClosePrices, {operand.macd_slow}, {operand.macd_fast}, {operand.macd_signal})",
+            output, s)
 
-    if operand.kind == "MULTIPLY":
+    if operand.kind in ("MULTIPLY", "ARITH"):
         left_built = _csharp_build_operand(operand.left, next(counter), counter, symbol_var, bars_var)
         right_built = _csharp_build_operand(operand.right, next(counter), counter, symbol_var, bars_var)
+        op = "*" if operand.kind == "MULTIPLY" else operand.op
+        if op == "/":
+            value_expr = f"AP_SafeDiv(({left_built.value_expr}), ({right_built.value_expr}))"
+        else:
+            value_expr = f"(({left_built.value_expr}) {op} ({right_built.value_expr}))"
         return _CsBuiltOperand(
             field_decl="\n".join(x for x in (left_built.field_decl, right_built.field_decl) if x),
             init_code=left_built.init_code + right_built.init_code,
-            value_expr=f"(({left_built.value_expr}) * ({right_built.value_expr}))",
+            value_expr=value_expr,
         )
+
+    if operand.kind == "ABS":
+        inner = _csharp_build_operand(operand.left, next(counter), counter, symbol_var, bars_var)
+        return _CsBuiltOperand(field_decl=inner.field_decl, init_code=inner.init_code,
+                               value_expr=f"Math.Abs({inner.value_expr})")
 
     raise StrategyValidationError(f"Unsupported operand kind: {operand.kind}")
 
@@ -1620,17 +2282,115 @@ def _csharp_comparison_expression(left: _CsBuiltOperand, operator: str, right: _
     return f"(({left.value_expr}) {operator} ({right.value_expr}))"
 
 
-def _csharp_build_condition(node: ConditionIR, counter, symbol_var: str, bars_var: str) -> "tuple[str, List[_CsBuiltOperand]]":
+def _csharp_build_condition(node: ConditionIR, counter, symbol_var: str, bars_var: "_CsBars") -> "tuple[str, List[_CsBuiltOperand]]":
     if isinstance(node, ComparisonIR):
         left_built = _csharp_build_operand(node.left, next(counter), counter, symbol_var, bars_var)
         right_built = _csharp_build_operand(node.right, next(counter), counter, symbol_var, bars_var)
         expr = _csharp_comparison_expression(left_built, node.operator, right_built)
         return expr, [left_built, right_built]
+    if isinstance(node, NotIR):
+        inner_expr, inner_ops = _csharp_build_condition(node.inner, counter, symbol_var, bars_var)
+        return f"(!{inner_expr})", inner_ops
+    if isinstance(node, PatternIR):
+        return f"AP_CandlePattern({bars_var.for_tf(node.timeframe)}, {_PATTERN_IDS[node.pattern]}, {node.shift})", []
 
     left_expr, left_ops = _csharp_build_condition(node.left, counter, symbol_var, bars_var)
     right_expr, right_ops = _csharp_build_condition(node.right, counter, symbol_var, bars_var)
     cs_op = "&&" if node.operator == "AND" else "||"
     return f"({left_expr} {cs_op} {right_expr})", left_ops + right_ops
+
+
+# C# counterparts of _MQL_HELPER_DEFS - same definitions, taking the Bars
+# series instead of (symbol, timeframe). NaN (not enough history) makes
+# every comparison against the result false, so no extra flag is needed.
+_CS_HELPER_DEFS = {
+    "AP_SafeDiv": """        private static double AP_SafeDiv(double a, double b)
+        {
+            return b == 0.0 ? 0.0 : a / b;
+        }
+""",
+    "AP_Highest": """        // Highest high of `count` bars, starting `start` bars back.
+        private static double AP_Highest(Bars bars, int count, int start)
+        {
+            double result = double.NaN;
+            for (int k = start; k < start + count; k++)
+            {
+                double v = bars.HighPrices.Last(k);
+                if (double.IsNaN(v))
+                    return double.NaN;
+                if (double.IsNaN(result) || v > result)
+                    result = v;
+            }
+            return result;
+        }
+""",
+    "AP_Lowest": """        // Lowest low of `count` bars, starting `start` bars back.
+        private static double AP_Lowest(Bars bars, int count, int start)
+        {
+            double result = double.NaN;
+            for (int k = start; k < start + count; k++)
+            {
+                double v = bars.LowPrices.Last(k);
+                if (double.IsNaN(v))
+                    return double.NaN;
+                if (double.IsNaN(result) || v < result)
+                    result = v;
+            }
+            return result;
+        }
+""",
+    "AP_MidRange": """        // (highest high + lowest low) / 2 - the building block of every Ichimoku line.
+        private static double AP_MidRange(Bars bars, int count, int start)
+        {
+            return (AP_Highest(bars, count, start) + AP_Lowest(bars, count, start)) / 2.0;
+        }
+""",
+    "AP_CandlePattern": """        // Candlestick pattern on bar `shift` (compared with bar shift+1).
+        // 0 bullish, 1 bearish, 2 bullish engulfing, 3 bearish engulfing,
+        // 4 doji, 5 hammer / bullish pin bar, 6 shooting star / bearish pin
+        // bar, 7 inside bar, 8 outside bar. Same definitions as the MT5 and
+        // MT4 exports.
+        private static bool AP_CandlePattern(Bars bars, int pattern, int shift)
+        {
+            double o = bars.OpenPrices.Last(shift);
+            double h = bars.HighPrices.Last(shift);
+            double l = bars.LowPrices.Last(shift);
+            double c = bars.ClosePrices.Last(shift);
+            double o1 = bars.OpenPrices.Last(shift + 1);
+            double h1 = bars.HighPrices.Last(shift + 1);
+            double l1 = bars.LowPrices.Last(shift + 1);
+            double c1 = bars.ClosePrices.Last(shift + 1);
+            if (double.IsNaN(h) || double.IsNaN(h1))
+                return false;
+            double range = h - l;
+            double body = Math.Abs(c - o);
+            double upperWick = h - Math.Max(o, c);
+            double lowerWick = Math.Min(o, c) - l;
+            switch (pattern)
+            {
+                case 0: return c > o;
+                case 1: return c < o;
+                case 2: return c1 < o1 && c > o && o <= c1 && c >= o1;
+                case 3: return c1 > o1 && c < o && o >= c1 && c <= o1;
+                case 4: return range > 0 && body <= 0.1 * range;
+                case 5: return range > 0 && lowerWick >= 0.6 * range && upperWick <= 0.15 * range;
+                case 6: return range > 0 && upperWick >= 0.6 * range && lowerWick <= 0.15 * range;
+                case 7: return h < h1 && l > l1;
+                case 8: return h > h1 && l < l1;
+                default: return false;
+            }
+        }
+""",
+}
+
+
+def _cs_helper_block(generated_code: str) -> str:
+    needed = [name for name in _CS_HELPER_DEFS if f"{name}(" in generated_code]
+    if "AP_MidRange" in needed:
+        needed += [n for n in ("AP_Highest", "AP_Lowest") if n not in needed]
+    if not needed:
+        return ""
+    return "\n".join(_CS_HELPER_DEFS[name] for name in _CS_HELPER_DEFS if name in needed) + "\n"
 
 
 def _csharp_action_block(action: ActionIR, index: int,
@@ -1741,7 +2501,7 @@ namespace cAlgo.Robots
         // Indicator handles
 <<FIELD_DECLS>>
 
-        protected override void OnStart()
+<<AP_HELPERS>>        protected override void OnStart()
         {
             Positions.Closed += OnPositionsClosed;
 
@@ -1908,18 +2668,19 @@ def render_csharp(ir: StrategyIR) -> str:
         symbol_name_var = f"TradeSymbolName[{i}]"
         base_name_var = f"TradeSymbolBaseName[{i}]"
         label = f"AlgoPuzzle_Rule{i}"
+        rule_bars = _CsBars(i, bars_var, rule.timeframe)
 
-        comparison_expr, condition_ops = _csharp_build_condition(rule.condition, counter, symbol_var, bars_var)
+        comparison_expr, condition_ops = _csharp_build_condition(rule.condition, counter, symbol_var, rule_bars)
 
         built_sl_by_action: dict = {}
         built_tp_by_action: dict = {}
         extra_ops: List[_CsBuiltOperand] = []
         for ai, action in enumerate(rule.actions):
             if action.sl is not None:
-                built_sl_by_action[ai] = _csharp_build_operand(action.sl, next(counter), counter, symbol_var, bars_var)
+                built_sl_by_action[ai] = _csharp_build_operand(action.sl, next(counter), counter, symbol_var, rule_bars)
                 extra_ops.append(built_sl_by_action[ai])
             if action.tp is not None:
-                built_tp_by_action[ai] = _csharp_build_operand(action.tp, next(counter), counter, symbol_var, bars_var)
+                built_tp_by_action[ai] = _csharp_build_operand(action.tp, next(counter), counter, symbol_var, rule_bars)
                 extra_ops.append(built_tp_by_action[ai])
 
         built_operands = condition_ops + extra_ops
@@ -1927,6 +2688,15 @@ def render_csharp(ir: StrategyIR) -> str:
             if b.field_decl:
                 field_lines.extend(b.field_decl.split("\n"))
         rule_init = "".join(b.init_code for b in built_operands if b.init_code)
+        # Extra Bars for any timeframe override used by this rule's values
+        # ("RSI on H4" inside an M15 rule) - loaded before the indicators
+        # that are built on them.
+        for tf_const, tf_field in rule_bars.extra.items():
+            field_lines.append(f"private Bars {tf_field} = null!;")
+            rule_init = (
+                f"                {tf_field} = MarketData.GetBars({CTRADER_TIMEFRAME[tf_const]}, {symbol_name_var});\n"
+                + rule_init
+            )
 
         actions_body = "".join(
             _csharp_action_block(a, ai, built_sl_by_action.get(ai), built_tp_by_action.get(ai), symbol_var, symbol_name_var, i, label)
@@ -2010,6 +2780,7 @@ def render_csharp(ir: StrategyIR) -> str:
         "<<FIELD_DECLS>>": field_decls,
         "<<INIT_BODY>>": "".join(init_parts),
         "<<BAR_OPENED_HANDLERS>>": "".join(handler_parts),
+        "<<AP_HELPERS>>": _cs_helper_block("".join(handler_parts)),
     }
     result = _CSHARP_TEMPLATE
     for token, value in replacements.items():
@@ -2189,15 +2960,104 @@ _MQL4_BANDS_MODE = {"MIDDLE": "MODE_MAIN", "UPPER": "MODE_UPPER", "LOWER": "MODE
 _MQL4_STOCH_MODE = {"K": "MODE_MAIN", "D": "MODE_SIGNAL"}
 
 
+_MQL4_ENVELOPES_MODE = {"UPPER": "MODE_UPPER", "LOWER": "MODE_LOWER"}
+_MQL4_MACD_MODE = {"MAIN": "MODE_MAIN", "SIGNAL": "MODE_SIGNAL"}
+_MQL4_ADX_LINE = {"ADX": 0, "PLUS_DI": 1, "MINUS_DI": 2}
+
+# MQL4-only helper: MT4 has no iADXWilder, and its own iADX smooths
+# differently from Welles Wilder's definition - which is what MT5's
+# iADXWilder and cTrader's DirectionalMovementSystem both use. Computed
+# from raw bars instead, over a warm-up window of 10x the period, which is
+# far past the point where Wilder smoothing's starting value stops
+# mattering.
+_MQL4_EXTRA_HELPER_DEFS = {
+    "AP_AdxWilder": """//+------------------------------------------------------------------+
+//| Welles Wilder's ADX (line 0), +DI (line 1) or -DI (line 2) on bar |
+//| `shift`, computed from raw bars - MT4's own iADX uses different   |
+//| smoothing and would not match the MT5 / cTrader exports.          |
+//+------------------------------------------------------------------+
+double AP_AdxWilder(string symbol, int tf, int period, int line, int shift)
+  {
+   int available = iBars(symbol, tf) - shift - 2;
+   int lookback = (int)MathMin(available, period * 10 + 100);
+   if(lookback < period * 2 + 1)
+     {
+      g_apDataError = true;
+      return(0.0);
+     }
+   double trSum = 0, plusSum = 0, minusSum = 0, dxSum = 0;
+   double adx = 0, plusDI = 0, minusDI = 0;
+   int count = 0;
+   for(int i = shift + lookback; i >= shift; i--)
+     {
+      double h  = iHigh(symbol, tf, i);
+      double l  = iLow(symbol, tf, i);
+      double ph = iHigh(symbol, tf, i + 1);
+      double pl = iLow(symbol, tf, i + 1);
+      double pc = iClose(symbol, tf, i + 1);
+      double up = h - ph;
+      double down = pl - l;
+      double plusDM  = (up > down && up > 0) ? up : 0;
+      double minusDM = (down > up && down > 0) ? down : 0;
+      double tr = MathMax(h, pc) - MathMin(l, pc);
+      count++;
+      if(count <= period)
+        {
+         trSum    += tr;
+         plusSum  += plusDM;
+         minusSum += minusDM;
+         if(count < period)
+            continue;
+        }
+      else
+        {
+         trSum    = trSum - trSum / period + tr;
+         plusSum  = plusSum - plusSum / period + plusDM;
+         minusSum = minusSum - minusSum / period + minusDM;
+        }
+      plusDI  = (trSum > 0) ? 100.0 * plusSum / trSum : 0;
+      minusDI = (trSum > 0) ? 100.0 * minusSum / trSum : 0;
+      double diSum = plusDI + minusDI;
+      double dx = (diSum > 0) ? 100.0 * MathAbs(plusDI - minusDI) / diSum : 0;
+      int dxCount = count - period + 1;
+      if(dxCount <= period)
+        {
+         dxSum += dx;
+         adx = dxSum / dxCount;
+        }
+      else
+         adx = (adx * (period - 1) + dx) / period;
+     }
+   if(line == 1)
+      return(plusDI);
+   if(line == 2)
+      return(minusDI);
+   return(adx);
+  }
+""",
+}
+
+
 def _mql4_build_operand(operand: OperandIR, timeframe: str, symbol_var: str) -> str:
     """Translate one OperandIR directly into an MQL4 expression string - no
     accompanying declarations needed (see module comment above), so unlike
     the MQL5/C# builders this returns a plain string, not a wrapper object.
     `symbol_var` is the per-rule TradeSymbol_N variable this operand reads
-    its price/indicator data from."""
+    its price/indicator data from; operand.timeframe (if set) overrides the
+    rule's `timeframe`, and operand.shift is the MQL4 `shift` argument."""
+
+    tf = operand.timeframe or timeframe
+    s = operand.shift
+    price = operand.applied_price or "PRICE_CLOSE"
 
     if operand.kind == "NUMBER":
         return f"{operand.value}"
+
+    if operand.kind == "PIPS":
+        return f"({operand.value} * PipSize({symbol_var}))"
+
+    if operand.kind == "SPREAD":
+        return f"((MarketInfo({symbol_var}, MODE_ASK) - MarketInfo({symbol_var}, MODE_BID)) / PipSize({symbol_var}))"
 
     if operand.kind == "RISK_VALUE":
         if operand.unit == "PRICE":
@@ -2209,52 +3069,111 @@ def _mql4_build_operand(operand: OperandIR, timeframe: str, symbol_var: str) -> 
         raise StrategyValidationError(f"Unsupported risk value unit: {operand.unit}")
 
     if operand.kind == "CANDLE":
+        if operand.candle_type == "CURRENT" and s > 0:
+            return f"iClose({symbol_var}, {tf}, {s})"
         expr_map = {
             "CURRENT": f"MarketInfo({symbol_var}, MODE_BID)",
-            "PREV_OPEN": f"iOpen({symbol_var}, {timeframe}, 1)",
-            "PREV_CLOSE": f"iClose({symbol_var}, {timeframe}, 1)",
-            "PREV_HIGH": f"iHigh({symbol_var}, {timeframe}, 1)",
-            "PREV_LOW": f"iLow({symbol_var}, {timeframe}, 1)",
+            "PREV_OPEN": f"iOpen({symbol_var}, {tf}, {1 + s})",
+            "PREV_CLOSE": f"iClose({symbol_var}, {tf}, {1 + s})",
+            "PREV_HIGH": f"iHigh({symbol_var}, {tf}, {1 + s})",
+            "PREV_LOW": f"iLow({symbol_var}, {tf}, {1 + s})",
         }
         return expr_map[operand.candle_type]
 
     if operand.kind == "VOLUME":
-        shift = 0 if operand.volume_bar == "CURRENT" else 1
-        return f"(double)iVolume({symbol_var}, {timeframe}, {shift})"
+        shift = (0 if operand.volume_bar == "CURRENT" else 1) + s
+        return f"(double)iVolume({symbol_var}, {tf}, {shift})"
+
+    if operand.kind in ("HIGHEST", "LOWEST"):
+        fn = "AP_Highest" if operand.kind == "HIGHEST" else "AP_Lowest"
+        return f"{fn}({symbol_var}, {tf}, {operand.period}, {s})"
+
+    if operand.kind == "ICHIMOKU":
+        return _ichimoku_expr("AP_MidRange", operand, symbol_var, tf)
 
     if operand.kind == "MA":
-        return f"iMA({symbol_var}, {timeframe}, {operand.period}, 0, {operand.ma_type}, PRICE_CLOSE, 0)"
+        return f"iMA({symbol_var}, {tf}, {operand.period}, 0, {operand.ma_type}, {price}, {s})"
 
     if operand.kind == "RSI":
-        return f"iRSI({symbol_var}, {timeframe}, {operand.period}, PRICE_CLOSE, 0)"
+        return f"iRSI({symbol_var}, {tf}, {operand.period}, {price}, {s})"
 
     if operand.kind == "ATR":
-        return f"iATR({symbol_var}, {timeframe}, {operand.period}, 0)"
+        return f"iATR({symbol_var}, {tf}, {operand.period}, {s})"
 
     if operand.kind == "BANDS":
         mode = _MQL4_BANDS_MODE[operand.band]
-        return f"iBands({symbol_var}, {timeframe}, {operand.period}, {operand.deviation}, 0, PRICE_CLOSE, {mode}, 0)"
+        return f"iBands({symbol_var}, {tf}, {operand.period}, {operand.deviation}, 0, {price}, {mode}, {s})"
 
     if operand.kind == "STOCH":
         mode = _MQL4_STOCH_MODE[operand.stoch_line]
         return (
-            f"iStochastic({symbol_var}, {timeframe}, {operand.k_period}, {operand.d_period}, "
-            f"{operand.slowing}, MODE_SMA, 0, {mode}, 0)"
+            f"iStochastic({symbol_var}, {tf}, {operand.k_period}, {operand.d_period}, "
+            f"{operand.slowing}, MODE_SMA, 0, {mode}, {s})"
         )
 
+    if operand.kind == "CCI":
+        return f"iCCI({symbol_var}, {tf}, {operand.period}, {operand.applied_price or 'PRICE_TYPICAL'}, {s})"
+
+    if operand.kind == "WPR":
+        return f"iWPR({symbol_var}, {tf}, {operand.period}, {s})"
+
+    if operand.kind == "SAR":
+        return f"iSAR({symbol_var}, {tf}, {operand.sar_step}, {operand.sar_max}, {s})"
+
+    if operand.kind == "MOMENTUM":
+        return f"iMomentum({symbol_var}, {tf}, {operand.period}, {price}, {s})"
+
+    if operand.kind == "STDDEV":
+        return f"iStdDev({symbol_var}, {tf}, {operand.period}, 0, MODE_SMA, {price}, {s})"
+
+    if operand.kind == "MFI":
+        return f"iMFI({symbol_var}, {tf}, {operand.period}, {s})"
+
+    if operand.kind == "ENVELOPES":
+        mode = _MQL4_ENVELOPES_MODE[operand.band]
+        return (
+            f"iEnvelopes({symbol_var}, {tf}, {operand.period}, {operand.ma_type}, 0, {price}, "
+            f"{operand.deviation}, {mode}, {s})"
+        )
+
+    if operand.kind == "DEMARKER":
+        return f"iDeMarker({symbol_var}, {tf}, {operand.period}, {s})"
+
+    if operand.kind == "BULLS":
+        return f"iBullsPower({symbol_var}, {tf}, {operand.period}, PRICE_CLOSE, {s})"
+
+    if operand.kind == "BEARS":
+        return f"iBearsPower({symbol_var}, {tf}, {operand.period}, PRICE_CLOSE, {s})"
+
+    if operand.kind == "AO":
+        return f"iAO({symbol_var}, {tf}, {s})"
+
+    if operand.kind == "AC":
+        return f"iAC({symbol_var}, {tf}, {s})"
+
+    if operand.kind == "ADX":
+        return f"AP_AdxWilder({symbol_var}, {tf}, {operand.period}, {_MQL4_ADX_LINE[operand.line]}, {s})"
+
     if operand.kind == "MACD":
-        main_expr = f"iMACD({symbol_var}, {timeframe}, {MACD_FAST}, {MACD_SLOW}, {MACD_SIGNAL}, PRICE_CLOSE, MODE_MAIN, 0)"
-        if operand.line == "MAIN":
-            return main_expr
+        params = f"{operand.macd_fast}, {operand.macd_slow}, {operand.macd_signal}, PRICE_CLOSE"
+        if operand.line in _MQL4_MACD_MODE:
+            return f"iMACD({symbol_var}, {tf}, {params}, {_MQL4_MACD_MODE[operand.line]}, {s})"
         # HIST: like MT5's iMACD, MQL4's iMACD only exposes MAIN/SIGNAL -
         # the histogram is their difference, computed the same way.
-        signal_expr = f"iMACD({symbol_var}, {timeframe}, {MACD_FAST}, {MACD_SLOW}, {MACD_SIGNAL}, PRICE_CLOSE, MODE_SIGNAL, 0)"
+        main_expr = f"iMACD({symbol_var}, {tf}, {params}, MODE_MAIN, {s})"
+        signal_expr = f"iMACD({symbol_var}, {tf}, {params}, MODE_SIGNAL, {s})"
         return f"({main_expr} - {signal_expr})"
 
-    if operand.kind == "MULTIPLY":
+    if operand.kind in ("MULTIPLY", "ARITH"):
         left = _mql4_build_operand(operand.left, timeframe, symbol_var)
         right = _mql4_build_operand(operand.right, timeframe, symbol_var)
-        return f"(({left}) * ({right}))"
+        op = "*" if operand.kind == "MULTIPLY" else operand.op
+        if op == "/":
+            return f"AP_SafeDiv(({left}), ({right}))"
+        return f"(({left}) {op} ({right}))"
+
+    if operand.kind == "ABS":
+        return f"MathAbs({_mql4_build_operand(operand.left, timeframe, symbol_var)})"
 
     raise StrategyValidationError(f"Unsupported operand kind: {operand.kind}")
 
@@ -2270,6 +3189,10 @@ def _mql4_build_condition(node: ConditionIR, timeframe: str, symbol_var: str) ->
         left = _mql4_build_operand(node.left, timeframe, symbol_var)
         right = _mql4_build_operand(node.right, timeframe, symbol_var)
         return _mql4_comparison_expression(left, node.operator, right)
+    if isinstance(node, NotIR):
+        return f"(!{_mql4_build_condition(node.inner, timeframe, symbol_var)})"
+    if isinstance(node, PatternIR):
+        return f"AP_CandlePattern({symbol_var}, {node.timeframe or timeframe}, {_PATTERN_IDS[node.pattern]}, {node.shift})"
 
     left = _mql4_build_condition(node.left, timeframe, symbol_var)
     right = _mql4_build_condition(node.right, timeframe, symbol_var)
@@ -2519,7 +3442,7 @@ int CountTrackedForMagic(int magic)
    return(count);
   }
 
-//+------------------------------------------------------------------+
+<<AP_HELPERS>>//+------------------------------------------------------------------+
 //| Expert initialization function                                    |
 //+------------------------------------------------------------------+
 int OnInit()
@@ -2669,8 +3592,10 @@ def render_mql4(ir: StrategyIR) -> str:
             f"      if(currentBarTime_{i} != lastBarTime_{i})\n"
             f"        {{\n"
             f"         lastBarTime_{i} = currentBarTime_{i};\n"
-            f"         bool signalTriggered_{i} = {comparison_expr};\n"
-            f"         if(signalTriggered_{i})\n"
+            + _data_guard_open(comparison_expr, "         ")
+            + f"         bool signalTriggered_{i} = {comparison_expr};\n"
+            + _data_guard_close(comparison_expr, f"signalTriggered_{i}", "         ")
+            + f"         if(signalTriggered_{i})\n"
             f"           {{\n"
             f"            if({rounds_var} < {max_pos_var})\n"
             f"              {{\n"
@@ -2689,6 +3614,7 @@ def render_mql4(ir: StrategyIR) -> str:
         "<<GLOBAL_DECLS>>": "".join(global_decls_parts),
         "<<INIT_BODY>>": "".join(init_parts),
         "<<ONTICK_BODY>>": "".join(ontick_parts),
+        "<<AP_HELPERS>>": _mql_helper_block("".join(ontick_parts), "int", _MQL4_EXTRA_HELPER_DEFS),
     }
     result = _MQL4_TEMPLATE
     for token, value in replacements.items():

@@ -91,6 +91,182 @@ def _base_action(direction: str, sl, tp, lot: float = 0.1) -> dict:
     return {"direction": direction, "lot": lot, "sl": sl, "tp": tp}
 
 
+# --- Wave 1 blocks (new indicators, parameters, shifts, timeframe
+# overrides, math, and the new condition types). Same each-choice idea:
+# every new kind and every line/parameter variant that changes generated
+# code appears at least once.
+WAVE1_OPERAND_VARIANTS: List[Tuple[str, dict]] = [
+    ("ma_smma", {"kind": "MA", "period": 13, "ma_type": "MODE_SMMA", "applied_price": "PRICE_MEDIAN"}),
+    ("ma_lwma_typical", {"kind": "MA", "period": 21, "ma_type": "MODE_LWMA", "applied_price": "PRICE_TYPICAL"}),
+    ("ma_ema_open_shift2", {"kind": "MA", "period": 9, "ma_type": "MODE_EMA", "applied_price": "PRICE_OPEN", "shift": 2}),
+    ("ma_sma_weighted_h4", {"kind": "MA", "period": 50, "ma_type": "MODE_SMA", "applied_price": "PRICE_WEIGHTED", "timeframe": "PERIOD_H4"}),
+    ("rsi_high_d1", {"kind": "RSI", "period": 14, "applied_price": "PRICE_HIGH", "timeframe": "PERIOD_D1"}),
+    ("bands_low_price", {"kind": "BANDS", "period": 20, "deviation": 2, "band": "UPPER", "applied_price": "PRICE_LOW", "shift": 1}),
+    ("macd_signal_custom", {"kind": "MACD", "line": "SIGNAL", "macd_fast": 8, "macd_slow": 21, "macd_signal": 5}),
+    ("macd_hist_shift", {"kind": "MACD", "line": "HIST", "shift": 1}),
+    ("macd_main_custom_h1", {"kind": "MACD", "line": "MAIN", "macd_fast": 5, "macd_slow": 35, "macd_signal": 5, "timeframe": "PERIOD_H1"}),
+    ("atr_shift_h4", {"kind": "ATR", "period": 14, "shift": 1, "timeframe": "PERIOD_H4"}),
+    ("stoch_shift", {"kind": "STOCH", "k_period": 14, "d_period": 3, "slowing": 3, "stoch_line": "D", "shift": 3}),
+    ("cci", {"kind": "CCI", "period": 20}),
+    ("cci_close_shift", {"kind": "CCI", "period": 14, "applied_price": "PRICE_CLOSE", "shift": 1}),
+    ("wpr", {"kind": "WPR", "period": 14}),
+    ("sar", {"kind": "SAR", "sar_step": 0.02, "sar_max": 0.2}),
+    ("sar_custom_m30", {"kind": "SAR", "sar_step": 0.01, "sar_max": 0.1, "timeframe": "PERIOD_M30"}),
+    ("momentum", {"kind": "MOMENTUM", "period": 14}),
+    ("momentum_median", {"kind": "MOMENTUM", "period": 10, "applied_price": "PRICE_MEDIAN", "shift": 1}),
+    ("stddev", {"kind": "STDDEV", "period": 20}),
+    ("mfi", {"kind": "MFI", "period": 14}),
+    ("envelopes_upper", {"kind": "ENVELOPES", "period": 14, "deviation": 0.1, "band": "UPPER", "ma_type": "MODE_SMA"}),
+    ("envelopes_lower_ema", {"kind": "ENVELOPES", "period": 20, "deviation": 0.25, "band": "LOWER", "ma_type": "MODE_EMA"}),
+    ("demarker", {"kind": "DEMARKER", "period": 14}),
+    ("bulls", {"kind": "BULLS", "period": 13}),
+    ("bears", {"kind": "BEARS", "period": 13, "shift": 1}),
+    ("ao", {"kind": "AO"}),
+    ("ac", {"kind": "AC", "shift": 1}),
+    ("adx_main", {"kind": "ADX", "period": 14, "line": "ADX"}),
+    ("adx_plus", {"kind": "ADX", "period": 14, "line": "PLUS_DI"}),
+    ("adx_minus_h1", {"kind": "ADX", "period": 10, "line": "MINUS_DI", "timeframe": "PERIOD_H1"}),
+    ("ichimoku_tenkan", {"kind": "ICHIMOKU", "line": "TENKAN"}),
+    ("ichimoku_kijun", {"kind": "ICHIMOKU", "line": "KIJUN", "tenkan": 7, "kijun": 22, "senkou_b": 44}),
+    ("ichimoku_senkou_a", {"kind": "ICHIMOKU", "line": "SENKOU_A"}),
+    ("ichimoku_senkou_b_h4", {"kind": "ICHIMOKU", "line": "SENKOU_B", "timeframe": "PERIOD_H4"}),
+    ("alligator_jaw", {"kind": "ALLIGATOR", "line": "JAW"}),
+    ("alligator_teeth", {"kind": "ALLIGATOR", "line": "TEETH"}),
+    ("alligator_lips", {"kind": "ALLIGATOR", "line": "LIPS", "shift": 1}),
+    ("highest", {"kind": "HIGHEST", "period": 20}),
+    ("lowest_d1", {"kind": "LOWEST", "period": 5, "timeframe": "PERIOD_D1"}),
+    ("candle_current_shift", {"kind": "CANDLE", "candle_type": "CURRENT", "shift": 2}),
+    ("candle_prev_high_shift", {"kind": "CANDLE", "candle_type": "PREV_HIGH", "shift": 4}),
+    ("candle_prev_close_h1", {"kind": "CANDLE", "candle_type": "PREV_CLOSE", "timeframe": "PERIOD_H1"}),
+    ("volume_prev_shift", {"kind": "VOLUME", "volume_bar": "PREVIOUS", "shift": 1}),
+    ("pips", {"kind": "PIPS", "value": 15}),
+    ("arith_minus", {"kind": "ARITH", "op": "-", "left": {"kind": "CANDLE", "candle_type": "CURRENT"}, "right": {"kind": "MA", "period": 20, "ma_type": "MODE_SMA"}}),
+    ("arith_plus_shifted", {"kind": "ARITH", "op": "+", "shift": 1, "left": {"kind": "MA", "period": 20, "ma_type": "MODE_SMA"}, "right": {"kind": "PIPS", "value": 5}}),
+    ("arith_divide", {"kind": "ARITH", "op": "/", "left": {"kind": "ATR", "period": 14}, "right": {"kind": "ATR", "period": 50}}),
+    ("arith_times_tf", {"kind": "ARITH", "op": "*", "timeframe": "PERIOD_H4", "left": {"kind": "NUMBER", "value": 1.5}, "right": {"kind": "STDDEV", "period": 20}}),
+    ("abs_diff", {"kind": "ABS", "left": {"kind": "ARITH", "op": "-", "left": {"kind": "CANDLE", "candle_type": "PREV_CLOSE"}, "right": {"kind": "CANDLE", "candle_type": "PREV_OPEN"}}}),
+]
+
+WAVE1_SL_TP_VARIANTS: List[Tuple[str, dict]] = [
+    ("sl_pips_block", {"kind": "PIPS", "value": 25}),
+    ("sl_atr_h4_x2", {"kind": "ARITH", "op": "*", "left": {"kind": "NUMBER", "value": 2}, "right": {"kind": "ATR", "period": 14, "timeframe": "PERIOD_H4"}}),
+    ("sl_stddev_div", {"kind": "ARITH", "op": "/", "left": {"kind": "STDDEV", "period": 20}, "right": {"kind": "NUMBER", "value": 2}}),
+]
+
+PATTERNS = [
+    "BULLISH", "BEARISH", "BULLISH_ENGULFING", "BEARISH_ENGULFING", "DOJI",
+    "HAMMER", "SHOOTING_STAR", "INSIDE_BAR", "OUTSIDE_BAR",
+]
+
+
+def _wave1_strategies() -> List[Tuple[str, dict]]:
+    out: List[Tuple[str, dict]] = []
+    ops = [">", "<", ">=", "<=", "=="]
+    number = {"kind": "NUMBER", "value": 50}
+
+    # Every new operand variant on the left of a comparison (new operators
+    # cycled in), and every SL/TP variant.
+    for i, (name, definition) in enumerate(WAVE1_OPERAND_VARIANTS):
+        sl_name, sl_def = _cycle(WAVE1_SL_TP_VARIANTS + RISK_VARIANTS, i)
+        out.append((f"w1_left_{name}", {
+            "asset": "EURUSD",
+            "timeframe": _cycle(TIMEFRAMES, i),
+            "condition": {"type": "comparison", "left": definition, "operator": _cycle(ops, i), "right": number},
+            "actions": [_base_action(_cycle(DIRECTIONS, i), sl_def, _cycle(WAVE1_SL_TP_VARIANTS, i + 1)[1])],
+            "max_positions": 1,
+        }))
+
+    ma_fast = {"kind": "MA", "period": 9, "ma_type": "MODE_EMA"}
+    ma_slow = {"kind": "MA", "period": 21, "ma_type": "MODE_EMA"}
+    for direction in ("ABOVE", "BELOW"):
+        for closed in (True, False):
+            out.append((f"w1_cross_{direction.lower()}_{'closed' if closed else 'live'}", {
+                "asset": "GBPUSD", "timeframe": "PERIOD_H1",
+                "condition": {"type": "cross", "left": ma_fast, "direction": direction, "right": ma_slow, "closed_bar": closed},
+                "actions": [_base_action("BUY" if direction == "ABOVE" else "SELL", RISK_VARIANTS[0][1], None)],
+                "max_positions": 1,
+            }))
+    # Cross against a constant level and across timeframes.
+    out.append(("w1_cross_rsi_level_mtf", {
+        "asset": "EURUSD", "timeframe": "PERIOD_M15",
+        "condition": {"type": "cross", "left": {"kind": "RSI", "period": 14, "timeframe": "PERIOD_H4"},
+                      "direction": "ABOVE", "right": {"kind": "NUMBER", "value": 30}},
+        "actions": [_base_action("BUY", WAVE1_SL_TP_VARIANTS[1][1], None)],
+        "max_positions": 1,
+    }))
+    out.append(("w1_cross_price_ichimoku", {
+        "asset": "USDJPY", "timeframe": "PERIOD_H1",
+        "condition": {"type": "cross", "left": {"kind": "CANDLE", "candle_type": "CURRENT"},
+                      "direction": "BELOW", "right": {"kind": "ICHIMOKU", "line": "SENKOU_B"}},
+        "actions": [_base_action("SELL", None, RISK_VARIANTS[0][1])],
+        "max_positions": 1,
+    }))
+    out.append(("w1_between", {
+        "asset": "EURUSD", "timeframe": "PERIOD_M30",
+        "condition": {"type": "between", "value": {"kind": "RSI", "period": 14},
+                      "low": {"kind": "NUMBER", "value": 40}, "high": {"kind": "NUMBER", "value": 60}},
+        "actions": [_base_action("BUY", RISK_VARIANTS[0][1], RISK_VARIANTS[0][1])],
+        "max_positions": 1,
+    }))
+    out.append(("w1_between_bands", {
+        "asset": "EURUSD", "timeframe": "PERIOD_H1",
+        "condition": {"type": "between", "value": {"kind": "CANDLE", "candle_type": "PREV_CLOSE"},
+                      "low": {"kind": "BANDS", "period": 20, "deviation": 2, "band": "LOWER"},
+                      "high": {"kind": "BANDS", "period": 20, "deviation": 2, "band": "UPPER"}},
+        "actions": [_base_action("SELL", RISK_VARIANTS[0][1], None)],
+        "max_positions": 1,
+    }))
+    for i, (direction, closed, bars) in enumerate((("RISING", True, 3), ("FALLING", False, 1), ("RISING", False, 5))):
+        out.append((f"w1_trend_{direction.lower()}_{bars}", {
+            "asset": "EURUSD", "timeframe": _cycle(TIMEFRAMES, i + 2),
+            "condition": {"type": "trend", "value": _cycle([ma_slow, {"kind": "ADX", "period": 14, "line": "ADX"}], i),
+                          "direction": direction, "bars": bars, "closed_bar": closed},
+            "actions": [_base_action(_cycle(DIRECTIONS, i), RISK_VARIANTS[0][1], None)],
+            "max_positions": 1,
+        }))
+    for i, pattern in enumerate(PATTERNS):
+        condition = {"type": "pattern", "pattern": pattern, "shift": 1 + (i % 2)}
+        if i % 3 == 0:
+            condition["timeframe"] = "PERIOD_H4"
+        out.append((f"w1_pattern_{pattern.lower()}", {
+            "asset": "EURUSD", "timeframe": _cycle(TIMEFRAMES, i),
+            "condition": condition,
+            "actions": [_base_action(_cycle(DIRECTIONS, i), RISK_VARIANTS[0][1], RISK_VARIANTS[1][1])],
+            "max_positions": 1,
+        }))
+    out.append(("w1_not_and_spread", {
+        "asset": "EURUSD", "timeframe": "PERIOD_M5",
+        "condition": {
+            "type": "logical", "operator": "AND",
+            "left": {"type": "not", "inner": {"type": "pattern", "pattern": "DOJI", "shift": 1}},
+            "right": {"type": "comparison", "left": {"kind": "SPREAD"}, "operator": "<", "right": {"kind": "NUMBER", "value": 2}},
+        },
+        "actions": [_base_action("BUY", RISK_VARIANTS[0][1], None)],
+        "max_positions": 1,
+    }))
+    # Several timeframe overrides in one rule, plus two rules on different
+    # assets both using overrides (separate extra Bars per rule in cTrader).
+    out.append(("w1_multi_rule_mtf", {"rules": [
+        {
+            "asset": "EURUSD", "timeframe": "PERIOD_M15",
+            "condition": {"type": "logical", "operator": "AND",
+                          "left": {"type": "comparison", "left": {"kind": "RSI", "period": 14, "timeframe": "PERIOD_H4"}, "operator": ">", "right": {"kind": "NUMBER", "value": 50}},
+                          "right": {"type": "cross", "left": ma_fast, "direction": "ABOVE", "right": {"kind": "MA", "period": 50, "ma_type": "MODE_SMA", "timeframe": "PERIOD_D1"}}},
+            "actions": [_base_action("BUY", WAVE1_SL_TP_VARIANTS[1][1], None)],
+            "max_positions": 2,
+        },
+        {
+            "asset": "GBPUSD", "timeframe": "PERIOD_H1",
+            "condition": {"type": "logical", "operator": "OR",
+                          "left": {"type": "pattern", "pattern": "BEARISH_ENGULFING", "shift": 1, "timeframe": "PERIOD_H4"},
+                          "right": {"type": "comparison", "left": {"kind": "CANDLE", "candle_type": "CURRENT"}, "operator": "<", "right": {"kind": "LOWEST", "period": 20, "timeframe": "PERIOD_H4"}}},
+            "actions": [_base_action("SELL", RISK_VARIANTS[0][1], None)],
+            "max_positions": 1,
+        },
+    ]}))
+    return out
+
+
 def generate_matrix() -> List[Tuple[str, dict]]:
     """Returns [(name, workspace_config_dict), ...]."""
     strategies: List[Tuple[str, dict]] = []
@@ -289,6 +465,8 @@ def generate_matrix() -> List[Tuple[str, dict]]:
             },
         ]},
     ))
+
+    strategies.extend(_wave1_strategies())
 
     # Every entry above section 7 was built in the pre-multi-rule shape (a
     # single rule's fields directly at the top level) - wrap each in the

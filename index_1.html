@@ -304,29 +304,68 @@
 
   <!-- Toolbox -->
   <xml id="toolbox" style="display: none">
+    <!-- Category names and the first block in each are relied on by the
+         first-visit tour (assets/onboarding.js: Conditions -> comparison,
+         Indicators -> RSI, Risk & Sizing -> number / Risk Value) - keep
+         those names, and keep those blocks near the top of their flyout.
+         Sections inside a category use labels rather than nested
+         categories for the same reason: the tour matches the selected
+         category by name. -->
     <category name="Conditions" colour="#d97706">
       <block type="comparison_block"></block>
+      <block type="cross_block"></block>
+      <block type="between_block"></block>
+      <block type="trend_block"></block>
+      <block type="pattern_block"></block>
+      <label text="Combine"></label>
       <block type="logical_operator"></block>
+      <block type="not_block"></block>
     </category>
     <category name="Price &amp; Volume" colour="#0891b2">
       <block type="candle_block"></block>
+      <block type="price_extreme_block"></block>
       <block type="volume_block"></block>
+      <block type="spread_block"></block>
     </category>
     <category name="Indicators" colour="#7c3aed">
+      <label text="Most used"></label>
       <block type="indicator_ma"></block>
       <block type="indicator_rsi"></block>
       <block type="indicator_macd"></block>
       <block type="indicator_bands"></block>
       <block type="indicator_atr"></block>
       <block type="indicator_stoch"></block>
+      <label text="Trend"></label>
+      <block type="indicator_adx"></block>
+      <block type="indicator_sar"></block>
+      <block type="indicator_ichimoku"></block>
+      <block type="indicator_envelopes"></block>
+      <block type="indicator_alligator"></block>
+      <label text="Oscillators"></label>
+      <block type="indicator_cci"></block>
+      <block type="indicator_wpr"></block>
+      <block type="indicator_momentum"></block>
+      <block type="indicator_demarker"></block>
+      <block type="indicator_power"></block>
+      <block type="indicator_awesome"></block>
+      <label text="Volatility &amp; volume"></label>
+      <block type="indicator_stddev"></block>
+      <block type="indicator_mfi"></block>
+    </category>
+    <category name="Bars Ago &amp; Timeframe" colour="#4f46e5">
+      <block type="bars_ago_block"></block>
+      <block type="on_timeframe_block"></block>
     </category>
     <category name="THEN" colour="#059669">
       <block type="action_block"></block>
     </category>
     <category name="Risk &amp; Sizing" colour="#0d9488">
       <block type="risk_value_block"></block>
-      <block type="math_multiply_block"></block>
       <block type="math_number"></block>
+      <block type="pips_block"></block>
+      <label text="Math"></label>
+      <block type="math_arith_block"></block>
+      <block type="math_abs_block"></block>
     </category>
     <sep></sep>
     <!-- Separated from the rest on purpose: this is for adding an extra
@@ -880,6 +919,33 @@ const ASSET_OPTIONS = [
   ['Custom / Other...', 'CUSTOM'],
 ];
 
+const MA_TYPE_OPTIONS = [
+  ['Simple (SMA)', 'MODE_SMA'],
+  ['Exponential (EMA)', 'MODE_EMA'],
+  ['Smoothed (SMMA)', 'MODE_SMMA'],
+  ['Linear Weighted (LWMA)', 'MODE_LWMA'],
+];
+const PRICE_SOURCE_OPTIONS = [
+  ['Close', 'PRICE_CLOSE'],
+  ['Open', 'PRICE_OPEN'],
+  ['High', 'PRICE_HIGH'],
+  ['Low', 'PRICE_LOW'],
+  ['Median (H+L)/2', 'PRICE_MEDIAN'],
+  ['Typical (H+L+C)/3', 'PRICE_TYPICAL'],
+  ['Weighted (H+L+2C)/4', 'PRICE_WEIGHTED'],
+];
+const TIMEFRAME_OPTIONS = [
+  ['1 Minute (M1)', 'PERIOD_M1'],
+  ['5 Minutes (M5)', 'PERIOD_M5'],
+  ['15 Minutes (M15)', 'PERIOD_M15'],
+  ['30 Minutes (M30)', 'PERIOD_M30'],
+  ['1 Hour (H1)', 'PERIOD_H1'],
+  ['4 Hours (H4)', 'PERIOD_H4'],
+  ['1 Day (D1)', 'PERIOD_D1'],
+  ['1 Week (W1)', 'PERIOD_W1'],
+  ['1 Month (MN1)', 'PERIOD_MN1'],
+];
+
 Blockly.Blocks['asset_block'] = {
   init: function () {
     this.appendDummyInput('ASSET_ROW')
@@ -955,13 +1021,13 @@ Blockly.Blocks['indicator_ma'] = {
       .appendField('Period')
       .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD')
       .appendField('Type')
-      .appendField(new Blockly.FieldDropdown([
-        ['Simple (SMA)', 'MODE_SMA'],
-        ['Exponential (EMA)', 'MODE_EMA'],
-      ]), 'TYPE');
+      .appendField(new Blockly.FieldDropdown(MA_TYPE_OPTIONS), 'TYPE');
+    this.appendDummyInput()
+      .appendField('Price')
+      .appendField(new Blockly.FieldDropdown(PRICE_SOURCE_OPTIONS), 'PRICE');
     this.setOutput(true, ['Indicator', 'Price']);
     this.setColour('#7c3aed');
-    this.setTooltip('Moving Average indicator value.');
+    this.setTooltip('Moving Average indicator value. Smoothed (SMMA) and Linear Weighted (LWMA) match the MetaTrader MA methods of the same name; Price picks which candle price is averaged.');
   }
 };
 
@@ -970,7 +1036,9 @@ Blockly.Blocks['indicator_rsi'] = {
     this.appendDummyInput()
       .appendField('RSI')
       .appendField('Period')
-      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD');
+      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD')
+      .appendField('Price')
+      .appendField(new Blockly.FieldDropdown(PRICE_SOURCE_OPTIONS), 'PRICE');
     this.setOutput(true, ['Indicator', 'Oscillator']);
     this.setColour('#7c3aed');
     this.setTooltip('Relative Strength Index value.');
@@ -980,14 +1048,22 @@ Blockly.Blocks['indicator_rsi'] = {
 Blockly.Blocks['indicator_macd'] = {
   init: function () {
     this.appendDummyInput()
-      .appendField('MACD (12, 26, 9)')
+      .appendField('MACD')
       .appendField(new Blockly.FieldDropdown([
         ['Main Line', 'MAIN'],
+        ['Signal Line', 'SIGNAL'],
         ['Histogram', 'HIST'],
       ]), 'OUTPUT');
+    this.appendDummyInput()
+      .appendField('Fast')
+      .appendField(new Blockly.FieldNumber(12, 1, 500, 1), 'FAST')
+      .appendField('Slow')
+      .appendField(new Blockly.FieldNumber(26, 2, 1000, 1), 'SLOW')
+      .appendField('Signal')
+      .appendField(new Blockly.FieldNumber(9, 1, 500, 1), 'SIGNAL');
     this.setOutput(true, ['Indicator', 'Macd']);
     this.setColour('#7c3aed');
-    this.setTooltip('MACD value using the standard 12/26/9 parameters.');
+    this.setTooltip('MACD main line, signal line or histogram. 12 / 26 / 9 are the standard periods; the fast period must be smaller than the slow one. Note: MetaTrader draws the signal line as a simple average and cTrader as an exponential one, so Signal and Histogram values differ slightly between the two platforms, exactly as they do on their own charts.');
   }
 };
 
@@ -1005,6 +1081,9 @@ Blockly.Blocks['indicator_bands'] = {
       .appendField(new Blockly.FieldNumber(20, 1, 1000, 1), 'PERIOD')
       .appendField('Deviation')
       .appendField(new Blockly.FieldNumber(2.0, 0.1, 10, 0.1), 'DEVIATION');
+    this.appendDummyInput()
+      .appendField('Price')
+      .appendField(new Blockly.FieldDropdown(PRICE_SOURCE_OPTIONS), 'PRICE');
     this.setOutput(true, ['Indicator', 'Price']);
     this.setColour('#7c3aed');
     this.setTooltip('Bollinger Bands indicator value.');
@@ -1075,6 +1154,322 @@ Blockly.Blocks['volume_block'] = {
   }
 };
 
+/* ------------------------------------------------------------
+   Wave 1 value blocks: more indicators, price extremes, spread
+   ------------------------------------------------------------ */
+
+// Small helper for the many "Name  Period [n]" indicator blocks.
+function defineSimpleIndicator(type, label, defaultPeriod, category, tooltip, extra) {
+  Blockly.Blocks[type] = {
+    init: function () {
+      const row = this.appendDummyInput().appendField(label);
+      if (extra && extra.dropdown) row.appendField(new Blockly.FieldDropdown(extra.dropdown.options), extra.dropdown.name);
+      if (defaultPeriod !== null) {
+        row.appendField('Period').appendField(new Blockly.FieldNumber(defaultPeriod, 1, 1000, 1), 'PERIOD');
+      }
+      if (extra && extra.price) {
+        this.appendDummyInput()
+          .appendField('Price')
+          .appendField(new Blockly.FieldDropdown(extra.priceOptions || PRICE_SOURCE_OPTIONS), 'PRICE');
+      }
+      this.setOutput(true, ['Indicator', category]);
+      this.setColour(extra && extra.colour ? extra.colour : '#7c3aed');
+      this.setTooltip(tooltip);
+    }
+  };
+}
+
+defineSimpleIndicator('indicator_cci', 'CCI', 20, 'Cci',
+  'Commodity Channel Index. Swings around 0; readings above +100 or below -100 are usually treated as overbought / oversold. Calculated on the Typical price by default.',
+  { price: true, priceOptions: [['Typical (H+L+C)/3', 'PRICE_TYPICAL']].concat(PRICE_SOURCE_OPTIONS.filter(o => o[1] !== 'PRICE_TYPICAL')) });
+defineSimpleIndicator('indicator_wpr', 'Williams %R', 14, 'WilliamsR',
+  'Williams Percent Range, from -100 to 0. Above -20 is usually treated as overbought, below -80 as oversold.');
+defineSimpleIndicator('indicator_momentum', 'Momentum', 14, 'Momentum',
+  'Momentum = price now / price N bars ago x 100. Above 100 means price is higher than N bars ago.',
+  { price: true });
+defineSimpleIndicator('indicator_stddev', 'Standard Deviation', 20, 'Volatility',
+  'Standard deviation of price - a volatility measure in price units, like ATR. Can size a Stop Loss / Take Profit (e.g. 2 x StdDev) or be compared with ATR.',
+  { price: true });
+defineSimpleIndicator('indicator_mfi', 'Money Flow Index', 14, 'Oscillator',
+  'Money Flow Index: an RSI that also weighs tick volume. 0 to 100; above 80 is usually treated as overbought, below 20 as oversold.');
+defineSimpleIndicator('indicator_demarker', 'DeMarker', 14, 'DeMarker',
+  'DeMarker oscillator, from 0 to 1. Above 0.7 is usually treated as overbought, below 0.3 as oversold.');
+defineSimpleIndicator('indicator_power', '', 13, 'ElderPower',
+  'Elder\'s Bulls Power (high minus EMA) or Bears Power (low minus EMA). Bulls Power above 0 and Bears Power below 0 are the usual readings in a healthy trend.',
+  { dropdown: { name: 'POWER', options: [['Bulls Power', 'BULLS'], ['Bears Power', 'BEARS']] } });
+defineSimpleIndicator('indicator_awesome', '', null, 'Awesome',
+  'Bill Williams\' Awesome Oscillator (5 vs 34 bar median-price average) or Accelerator Oscillator. Crossing 0 is the classic signal.',
+  { dropdown: { name: 'OSC', options: [['Awesome Oscillator', 'AO'], ['Accelerator Oscillator', 'AC']] } });
+
+Blockly.Blocks['indicator_adx'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('ADX')
+      .appendField(new Blockly.FieldDropdown([
+        ['ADX (trend strength)', 'ADX'],
+        ['+DI', 'PLUS_DI'],
+        ['-DI', 'MINUS_DI'],
+      ]), 'LINE')
+      .appendField('Period')
+      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD');
+    this.setOutput(true, ['Indicator', 'Adx']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Average Directional Index (Welles Wilder). ADX above 25 usually means a trending market; +DI above -DI means buyers are in control. Same Wilder calculation on MT5, MT4 and cTrader.');
+  }
+};
+
+Blockly.Blocks['indicator_sar'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Parabolic SAR')
+      .appendField('Step')
+      .appendField(new Blockly.FieldNumber(0.02, 0.001, 1, 0.001), 'STEP')
+      .appendField('Max')
+      .appendField(new Blockly.FieldNumber(0.2, 0.01, 1, 0.01), 'MAX');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Parabolic SAR - a trailing price level. Price above the SAR suggests an uptrend, below it a downtrend.');
+  }
+};
+
+Blockly.Blocks['indicator_envelopes'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Envelopes')
+      .appendField(new Blockly.FieldDropdown([['Upper Band', 'UPPER'], ['Lower Band', 'LOWER']]), 'BAND');
+    this.appendDummyInput()
+      .appendField('Period')
+      .appendField(new Blockly.FieldNumber(14, 1, 1000, 1), 'PERIOD')
+      .appendField('Deviation %')
+      .appendField(new Blockly.FieldNumber(0.1, 0.01, 50, 0.01), 'DEVIATION');
+    this.appendDummyInput()
+      .appendField('Type')
+      .appendField(new Blockly.FieldDropdown(MA_TYPE_OPTIONS), 'TYPE')
+      .appendField('Price')
+      .appendField(new Blockly.FieldDropdown(PRICE_SOURCE_OPTIONS), 'PRICE');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Envelopes: a moving average shifted up and down by a fixed percentage (0.1 = 0.1%).');
+  }
+};
+
+Blockly.Blocks['indicator_ichimoku'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Ichimoku')
+      .appendField(new Blockly.FieldDropdown([
+        ['Tenkan-sen (conversion)', 'TENKAN'],
+        ['Kijun-sen (base)', 'KIJUN'],
+        ['Senkou Span A (cloud)', 'SENKOU_A'],
+        ['Senkou Span B (cloud)', 'SENKOU_B'],
+      ]), 'LINE');
+    this.appendDummyInput()
+      .appendField('Tenkan')
+      .appendField(new Blockly.FieldNumber(9, 1, 500, 1), 'TENKAN')
+      .appendField('Kijun')
+      .appendField(new Blockly.FieldNumber(26, 1, 500, 1), 'KIJUN')
+      .appendField('Senkou B')
+      .appendField(new Blockly.FieldNumber(52, 1, 1000, 1), 'SENKOU_B');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Ichimoku Kinko Hyo lines. Senkou Span A / B give the cloud under the evaluated bar (the cloud as drawn on the chart), so "price above Senkou Span A and B" means price is above the cloud.');
+  }
+};
+
+Blockly.Blocks['indicator_alligator'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Alligator')
+      .appendField(new Blockly.FieldDropdown([
+        ['Jaw (13, shifted 8)', 'JAW'],
+        ['Teeth (8, shifted 5)', 'TEETH'],
+        ['Lips (5, shifted 3)', 'LIPS'],
+      ]), 'LINE');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#7c3aed');
+    this.setTooltip('Bill Williams\' Alligator: smoothed moving averages of the median price with the standard periods and forward shifts. Lips above Teeth above Jaw is the classic uptrend reading.');
+  }
+};
+
+Blockly.Blocks['price_extreme_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([['Highest High', 'HIGHEST'], ['Lowest Low', 'LOWEST']]), 'EXTREME')
+      .appendField('of the last')
+      .appendField(new Blockly.FieldNumber(20, 1, 1000, 1), 'PERIOD')
+      .appendField('closed bars');
+    this.setOutput(true, ['Indicator', 'Price']);
+    this.setColour('#0891b2');
+    this.setTooltip('The highest high or lowest low of the last N completed bars (the bar still forming is not included) - the building block of breakout strategies, e.g. "Current Price > Highest High of the last 20 closed bars".');
+  }
+};
+
+Blockly.Blocks['spread_block'] = {
+  init: function () {
+    this.appendDummyInput().appendField('Current Spread (pips)');
+    this.setOutput(true, ['Indicator', 'Spread']);
+    this.setColour('#0891b2');
+    this.setTooltip('The live spread in pips. Use it as a filter, e.g. "Current Spread < 2", so the strategy skips entries while spreads are wide (news, rollover).');
+  }
+};
+
+Blockly.Blocks['pips_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldNumber(10, 0, 100000, 0.1), 'VALUE')
+      .appendField('pips');
+    this.setOutput(true, ['Indicator', 'Number']);
+    this.setColour('#0d9488');
+    this.setTooltip('A distance in pips, converted to price for this asset (3/5-digit brokers handled). Use it in math and conditions, e.g. "Current Price - MA > 20 pips", or as a Stop Loss / Take Profit.');
+  }
+};
+
+/* ------------------------------------------------------------
+   Modifiers: read any value N bars ago, or on another timeframe
+   ------------------------------------------------------------ */
+
+Blockly.Blocks['bars_ago_block'] = {
+  init: function () {
+    this.appendValueInput('VALUE').setCheck(ANY_VALUE_CHECK);
+    this.appendDummyInput()
+      .appendField('as of')
+      .appendField(new Blockly.FieldNumber(1, 0, 500, 1), 'BARS')
+      .appendField('bars ago');
+    this.setInputsInline(true);
+    this.setOutput(true, ANY_VALUE_CHECK);
+    this.setColour('#4f46e5');
+    this.setTooltip('Reads the plugged-in value as it was N bars ago. Indicator blocks on their own read the bar that just opened; wrap them in "1 bar ago" to use the last completed bar. Works on any value, including math.');
+  }
+};
+
+Blockly.Blocks['on_timeframe_block'] = {
+  init: function () {
+    this.appendValueInput('VALUE').setCheck(ANY_VALUE_CHECK);
+    this.appendDummyInput()
+      .appendField('on')
+      .appendField(new Blockly.FieldDropdown(TIMEFRAME_OPTIONS), 'TIMEFRAME');
+    this.setInputsInline(true);
+    this.setOutput(true, ANY_VALUE_CHECK);
+    this.setColour('#4f46e5');
+    this.setTooltip('Calculates the plugged-in value on a different timeframe than the rule, e.g. "RSI on 4 Hours" inside an M15 rule for a higher-timeframe filter. "Bars ago" inside it then counts bars of that timeframe.');
+  }
+};
+
+/* ------------------------------------------------------------
+   Math
+   ------------------------------------------------------------ */
+
+Blockly.Blocks['math_arith_block'] = {
+  init: function () {
+    this.appendValueInput('A').setCheck(ANY_VALUE_CHECK);
+    this.appendValueInput('B').setCheck(ANY_VALUE_CHECK)
+      .appendField(new Blockly.FieldDropdown([
+        ['×', '*'], ['+', '+'], ['−', '-'], ['÷', '/'],
+      ]), 'OP');
+    this.setInputsInline(true);
+    this.setOutput(true, ANY_VALUE_CHECK);
+    this.setColour('#0d9488');
+    this.setTooltip('Math on two values: multiply (2 x ATR for a stop), add or subtract (Current Price - MA), divide (ATR 14 / ATR 50 for a volatility ratio). Adding or subtracting needs values of the same kind; division by zero gives 0.');
+  }
+};
+
+Blockly.Blocks['math_abs_block'] = {
+  init: function () {
+    this.appendValueInput('VALUE').setCheck(ANY_VALUE_CHECK).appendField('absolute value of');
+    this.setInputsInline(true);
+    this.setOutput(true, ANY_VALUE_CHECK);
+    this.setColour('#0d9488');
+    this.setTooltip('Removes the sign, e.g. |Close - Open| is the candle body size in either direction.');
+  }
+};
+
+/* ------------------------------------------------------------
+   Condition blocks
+   ------------------------------------------------------------ */
+
+const CLOSED_BAR_OPTIONS = [['on the closed bar', 'CLOSED'], ['on the live bar', 'LIVE']];
+
+Blockly.Blocks['cross_block'] = {
+  init: function () {
+    // Stacked (not inline): each side is often a two-row indicator block,
+    // and a cross nested in AND/OR chains would otherwise run off-screen.
+    this.appendValueInput('LEFT').setCheck(ALL_CATEGORIES);
+    this.appendValueInput('RIGHT').setCheck(ALL_CATEGORIES)
+      .appendField(new Blockly.FieldDropdown([['crosses above', 'ABOVE'], ['crosses below', 'BELOW']]), 'DIRECTION');
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown(CLOSED_BAR_OPTIONS), 'WHEN');
+    this.setInputsInline(false);
+    this.setOutput(true, 'Boolean');
+    this.setColour('#d97706');
+    this.setTooltip('True only on the bar where the first value moves from below the second to above it (or the reverse). "On the closed bar" compares the two most recent completed bars - what a chart shows once the candle has closed. "On the live bar" uses the bar that just opened.');
+  }
+};
+
+Blockly.Blocks['between_block'] = {
+  init: function () {
+    this.appendValueInput('VALUE').setCheck(ALL_CATEGORIES);
+    this.appendValueInput('LOW').setCheck(ALL_CATEGORIES).appendField('is between');
+    this.appendValueInput('HIGH').setCheck(ALL_CATEGORIES).appendField('and');
+    this.setInputsInline(false);
+    this.setOutput(true, 'Boolean');
+    this.setColour('#d97706');
+    this.setTooltip('True when the first value is inside the range (both ends included), e.g. RSI between 40 and 60, or Previous Close between the lower and upper Bollinger Band.');
+  }
+};
+
+Blockly.Blocks['trend_block'] = {
+  init: function () {
+    this.appendValueInput('VALUE').setCheck(ALL_CATEGORIES);
+    this.appendDummyInput()
+      .appendField('is')
+      .appendField(new Blockly.FieldDropdown([['rising', 'RISING'], ['falling', 'FALLING']]), 'DIRECTION')
+      .appendField('for')
+      .appendField(new Blockly.FieldNumber(3, 1, 20, 1), 'BARS')
+      .appendField('bars')
+      .appendField(new Blockly.FieldDropdown(CLOSED_BAR_OPTIONS), 'WHEN');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour('#d97706');
+    this.setTooltip('True when the value went up (or down) on each of the last N bars, e.g. "MA 50 is rising for 3 bars" as a trend filter.');
+  }
+};
+
+Blockly.Blocks['pattern_block'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('Candle pattern')
+      .appendField(new Blockly.FieldDropdown([
+        ['Bullish candle', 'BULLISH'],
+        ['Bearish candle', 'BEARISH'],
+        ['Bullish engulfing', 'BULLISH_ENGULFING'],
+        ['Bearish engulfing', 'BEARISH_ENGULFING'],
+        ['Doji', 'DOJI'],
+        ['Hammer / bullish pin bar', 'HAMMER'],
+        ['Shooting star / bearish pin bar', 'SHOOTING_STAR'],
+        ['Inside bar', 'INSIDE_BAR'],
+        ['Outside bar', 'OUTSIDE_BAR'],
+      ]), 'PATTERN');
+    this.appendDummyInput()
+      .appendField('on the bar')
+      .appendField(new Blockly.FieldNumber(1, 1, 500, 1), 'SHIFT')
+      .appendField('bars ago, timeframe')
+      .appendField(new Blockly.FieldDropdown([['same as rule', 'RULE']].concat(TIMEFRAME_OPTIONS)), 'TIMEFRAME');
+    this.setOutput(true, 'Boolean');
+    this.setColour('#d97706');
+    this.setTooltip('Checks a completed candle (1 = the last closed bar). Engulfing: the body fully covers the previous candle\'s body in the opposite colour. Doji: body at most 10% of the range. Hammer / shooting star: a wick at least 60% of the range on one side, at most 15% on the other. Inside / outside bar: range inside / outside the previous bar\'s range.');
+  }
+};
+
+Blockly.Blocks['not_block'] = {
+  init: function () {
+    this.appendValueInput('INNER').setCheck('Boolean').appendField('NOT');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour('#b45309');
+    this.setTooltip('Reverses a condition: true when the plugged-in condition is false.');
+  }
+};
+
 /* ============================================================
    1b. VALUE CATEGORY SYSTEM (semantic unit compatibility)
    ============================================================
@@ -1100,8 +1495,33 @@ const VALUE_CATEGORY = {
   indicator_macd: 'Macd',
   volume_block: 'Volume',
   math_number: 'Number',
+  // Wave 1. Unbounded or differently-scaled oscillators each get their own
+  // category: "CCI > RSI" or "Williams %R > Stochastic" compile fine but
+  // compare numbers on different scales, which is never what a trader means.
+  indicator_sar: 'Price',
+  indicator_envelopes: 'Price',
+  indicator_ichimoku: 'Price',
+  indicator_alligator: 'Price',
+  price_extreme_block: 'Price',
+  indicator_mfi: 'Oscillator',
+  indicator_stddev: 'Volatility',
+  indicator_cci: 'Cci',
+  indicator_wpr: 'WilliamsR',
+  indicator_momentum: 'Momentum',
+  indicator_demarker: 'DeMarker',
+  indicator_power: 'ElderPower',
+  indicator_awesome: 'Awesome',
+  indicator_adx: 'Adx',
+  spread_block: 'Spread',
+  pips_block: 'Number',
 };
-const ALL_CATEGORIES = ['Price', 'Oscillator', 'Volatility', 'Macd', 'Volume', 'Number'];
+const ALL_CATEGORIES = [
+  'Price', 'Oscillator', 'Volatility', 'Macd', 'Volume', 'Number',
+  'Cci', 'WilliamsR', 'Momentum', 'DeMarker', 'ElderPower', 'Awesome', 'Adx', 'Spread',
+];
+// Blocks whose value is simply the plugged-in value, read at another bar /
+// timeframe or without its sign - they take on whatever category it has.
+const PASSTHROUGH_BLOCKS = ['bars_ago_block', 'on_timeframe_block', 'math_abs_block'];
 // Base check for sockets that accept *any* value regardless of category
 // (Stop Loss / Take Profit, and the two Multiply inputs) - 'Indicator' is
 // what Risk Value (and an unresolved Multiply) carries, since those can't
@@ -1114,6 +1534,14 @@ const CATEGORY_LABEL = {
   Macd: 'a MACD value',
   Volume: 'a volume value',
   Number: 'a number',
+  Cci: 'a CCI value',
+  WilliamsR: 'a Williams %R value (-100 to 0)',
+  Momentum: 'a Momentum value (around 100)',
+  DeMarker: 'a DeMarker value (0 to 1)',
+  ElderPower: 'a Bulls/Bears Power value',
+  Awesome: 'an Awesome/Accelerator Oscillator value',
+  Adx: 'an ADX / DI value',
+  Spread: 'a spread (pips) value',
 };
 
 // Resolves the category of whatever is plugged into a value slot:
@@ -1127,6 +1555,33 @@ const CATEGORY_LABEL = {
 function resolveCategory(block) {
   if (!block) return null;
   if (VALUE_CATEGORY[block.type]) return VALUE_CATEGORY[block.type];
+  if (PASSTHROUGH_BLOCKS.includes(block.type)) {
+    const inner = resolveCategory(block.getInputTargetBlock('VALUE'));
+    return inner === null ? 'Pending' : inner;
+  }
+  if (block.type === 'math_arith_block') {
+    const a = resolveCategory(block.getInputTargetBlock('A'));
+    const b = resolveCategory(block.getInputTargetBlock('B'));
+    const op = block.getFieldValue('OP');
+    if (a === 'Conflict' || b === 'Conflict') return 'Conflict';
+    if (a === 'Unknown' || b === 'Unknown') return 'Unknown';
+    if (!a || !b || a === 'Pending' || b === 'Pending') {
+      // One side still empty: the result takes the filled side's unit,
+      // unless that can't be known yet (a plain number, or a division).
+      const known = (a && a !== 'Pending') ? a : ((b && b !== 'Pending') ? b : null);
+      if (!known || known === 'Number' || op === '/') return 'Pending';
+      return known;
+    }
+    if (!categoriesCompatible(a, b)) return 'Conflict';
+    if (op === '/') {
+      if (b === 'Number') return a;          // ATR / 2 is still a volatility
+      if (a === b) return 'Number';          // ATR / ATR is a plain ratio
+      return 'Unknown';                      // 1 / price has no trading unit
+    }
+    if (a === 'Number') return b;
+    if (b === 'Number') return a;
+    return a;
+  }
   if (block.type === 'math_multiply_block') {
     const a = resolveCategory(block.getInputTargetBlock('A'));
     const b = resolveCategory(block.getInputTargetBlock('B'));
@@ -1144,6 +1599,7 @@ function resolveCategory(block) {
 function categoriesCompatible(a, b) {
   if (a === 'Conflict' || b === 'Conflict') return false;
   if (a === null || b === null) return true; // an empty slot is never itself a violation
+  if (a === 'Pending' || b === 'Pending') return true; // still being built
   if (a === 'Unknown' || b === 'Unknown') return true; // can't prove it's wrong - allow
   if (a === 'Number' || b === 'Number') return true;
   return a === b;
@@ -1156,6 +1612,15 @@ function categoryAllowedInCondition(cat) {
   return cat !== null && cat !== 'Unknown' && cat !== 'Conflict';
 }
 
+// Output check for a block whose category is only known at runtime
+// (Multiply, math, modifiers) - what a Comparison / SL-TP slot sees.
+function outputCheckForCategory(cat) {
+  if (cat === 'Pending') return ANY_VALUE_CHECK.slice();
+  if (cat === 'Unknown' || cat === 'Conflict') return ['Indicator'];
+  if (cat === 'Number') return ['Indicator', 'Number'];
+  return ['Indicator', cat];
+}
+
 function categoryLabel(cat) {
   return CATEGORY_LABEL[cat] || 'this value';
 }
@@ -1165,7 +1630,7 @@ Blockly.Blocks['comparison_block'] = {
     this.appendValueInput('LEFT').setCheck(ALL_CATEGORIES);
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown([
-        ['>', '>'], ['<', '<'], ['=', '=='],
+        ['>', '>'], ['<', '<'], ['\u2265', '>='], ['\u2264', '<='], ['=', '=='],
       ]), 'OP');
     this.appendValueInput('RIGHT').setCheck(ALL_CATEGORIES);
     this.setInputsInline(true);
@@ -2111,7 +2576,8 @@ function disconnectAndWarn(parentBlock, inputName, childBlock, message) {
 function updateSiblingCheck(parentBlock, siblingInputName, ownCategory) {
   const siblingInput = parentBlock.getInput(siblingInputName);
   if (!siblingInput || !siblingInput.connection) return;
-  const permissive = !ownCategory || ownCategory === 'Number' || ownCategory === 'Unknown' || ownCategory === 'Conflict';
+  const permissive = !ownCategory || ownCategory === 'Number' || ownCategory === 'Unknown' ||
+    ownCategory === 'Conflict' || ownCategory === 'Pending';
   siblingInput.connection.setCheck(permissive ? ALL_CATEGORIES.slice() : [ownCategory, 'Number']);
 }
 
@@ -2167,13 +2633,72 @@ function enforceMultiplyBlock(block) {
 
   // Propagate the resolved category upward so a Comparison (or another
   // Multiply) plugged into this block's output sees the right constraint.
-  const resolved = resolveCategory(block);
-  const outCheck = (resolved === 'Unknown' || resolved === 'Conflict')
-    ? ['Indicator']
-    : resolved === 'Number'
-      ? ['Indicator', 'Number']
-      : ['Indicator', resolved];
-  if (block.outputConnection) block.outputConnection.setCheck(outCheck);
+  if (block.outputConnection) block.outputConnection.setCheck(outputCheckForCategory(resolveCategory(block)));
+}
+
+// Between: all three values must share a unit (or be plain numbers).
+function enforceBetweenBlock(block) {
+  const names = ['VALUE', 'LOW', 'HIGH'];
+  let anchorCat = null;
+  names.forEach((name) => {
+    const child = block.getInputTargetBlock(name);
+    if (!child) return;
+    const cat = resolveCategory(child);
+    if (!categoryAllowedInCondition(cat)) {
+      disconnectAndWarn(block, name, child,
+        'That block can\'t be used inside a Condition - it\'s meant for Stop Loss / Take Profit instead. Disconnected it.');
+      return;
+    }
+    if (anchorCat && !categoriesCompatible(anchorCat, cat)) {
+      disconnectAndWarn(block, name, child,
+        `Can't check ${categoryLabel(cat)} against ${categoryLabel(anchorCat)} - different units. Disconnected it.`);
+      return;
+    }
+    if (cat !== 'Number' && cat !== 'Pending') anchorCat = cat;
+  });
+  names.forEach((name) => {
+    const input = block.getInput(name);
+    const permissive = !anchorCat;
+    if (input && input.connection) input.connection.setCheck(permissive ? ALL_CATEGORIES.slice() : [anchorCat, 'Number']);
+  });
+}
+
+// Rising / falling: any single measurable value.
+function enforceTrendBlock(block) {
+  const child = block.getInputTargetBlock('VALUE');
+  if (child && !categoryAllowedInCondition(resolveCategory(child))) {
+    disconnectAndWarn(block, 'VALUE', child,
+      'That block can\'t be used inside a Condition - it\'s meant for Stop Loss / Take Profit instead. Disconnected it.');
+  }
+}
+
+// Modifiers (bars ago / on timeframe) and Absolute Value take on the
+// category of what's plugged into them.
+function enforcePassthroughBlock(block) {
+  if (block.outputConnection) block.outputConnection.setCheck(outputCheckForCategory(resolveCategory(block)));
+}
+
+// Math (+ - x /): same pairwise rule as Multiply, result category from
+// resolveCategory's per-operator logic.
+function enforceArithBlock(block) {
+  let aBlock = block.getInputTargetBlock('A');
+  let bBlock = block.getInputTargetBlock('B');
+  const aCat = resolveCategory(aBlock);
+  let bCat = resolveCategory(bBlock);
+  if (aBlock && bBlock && !categoriesCompatible(aCat, bCat)) {
+    disconnectAndWarn(block, 'B', bBlock,
+      `Can't combine ${categoryLabel(aCat)} with ${categoryLabel(bCat)} - different units. Disconnected the second block.`);
+    bBlock = null; bCat = null;
+  }
+  const siblingCheckFor = (cat) => {
+    const permissive = !cat || cat === 'Number' || cat === 'Unknown' || cat === 'Conflict' || cat === 'Pending';
+    return permissive ? ANY_VALUE_CHECK.slice() : [cat, 'Number', 'Indicator'];
+  };
+  const aInput = block.getInput('A');
+  const bInput = block.getInput('B');
+  if (bInput && bInput.connection) bInput.connection.setCheck(siblingCheckFor(aCat));
+  if (aInput && aInput.connection) aInput.connection.setCheck(siblingCheckFor(bCat));
+  if (block.outputConnection) block.outputConnection.setCheck(outputCheckForCategory(resolveCategory(block)));
 }
 
 let categoryRuleGuard = false;
@@ -2181,8 +2706,17 @@ function refreshValueCategoryRules() {
   if (categoryRuleGuard) return;
   categoryRuleGuard = true;
   try {
-    workspace.getBlocksByType('math_multiply_block', false).forEach(enforceMultiplyBlock);
+    // Value-producing blocks first (twice, so a category settles through
+    // nested modifiers / math), then every block that consumes them.
+    for (let pass = 0; pass < 2; pass++) {
+      workspace.getBlocksByType('math_multiply_block', false).forEach(enforceMultiplyBlock);
+      workspace.getBlocksByType('math_arith_block', false).forEach(enforceArithBlock);
+      PASSTHROUGH_BLOCKS.forEach((type) => workspace.getBlocksByType(type, false).forEach(enforcePassthroughBlock));
+    }
     workspace.getBlocksByType('comparison_block', false).forEach(enforceComparisonBlock);
+    workspace.getBlocksByType('cross_block', false).forEach(enforceComparisonBlock);
+    workspace.getBlocksByType('between_block', false).forEach(enforceBetweenBlock);
+    workspace.getBlocksByType('trend_block', false).forEach(enforceTrendBlock);
   } finally {
     categoryRuleGuard = false;
   }
@@ -2191,7 +2725,10 @@ function refreshValueCategoryRules() {
 workspace.addChangeListener((event) => {
   if (event.type === Blockly.Events.BLOCK_MOVE ||
       event.type === Blockly.Events.BLOCK_CREATE ||
-      event.type === Blockly.Events.BLOCK_DELETE) {
+      event.type === Blockly.Events.BLOCK_DELETE ||
+      // The math operator decides the result's unit (ATR / ATR is a plain
+      // ratio, ATR x 2 is still a volatility), so a field change matters too.
+      (event.type === Blockly.Events.BLOCK_CHANGE && event.name === 'OP')) {
     refreshValueCategoryRules();
   }
 });
@@ -2233,29 +2770,119 @@ function operandFromBlock(block) {
         kind: 'MA',
         period: Number(block.getFieldValue('PERIOD')),
         ma_type: block.getFieldValue('TYPE'),
+        applied_price: block.getFieldValue('PRICE'),
       };
     case 'indicator_rsi':
       return {
         kind: 'RSI',
         period: Number(block.getFieldValue('PERIOD')),
+        applied_price: block.getFieldValue('PRICE'),
       };
     case 'indicator_atr':
       return {
         kind: 'ATR',
         period: Number(block.getFieldValue('PERIOD')),
       };
-    case 'indicator_macd':
+    case 'indicator_macd': {
+      const fast = Number(block.getFieldValue('FAST'));
+      const slow = Number(block.getFieldValue('SLOW'));
+      if (fast >= slow) {
+        throw new WorkspaceValidationError('A MACD block has its Fast period set to ' + fast + ' and Slow to ' + slow + '. The fast period must be smaller than the slow one.');
+      }
       return {
         kind: 'MACD',
         line: block.getFieldValue('OUTPUT'),
+        macd_fast: fast,
+        macd_slow: slow,
+        macd_signal: Number(block.getFieldValue('SIGNAL')),
       };
+    }
     case 'indicator_bands':
       return {
         kind: 'BANDS',
         band: block.getFieldValue('BAND'),
         period: Number(block.getFieldValue('PERIOD')),
         deviation: Number(block.getFieldValue('DEVIATION')),
+        applied_price: block.getFieldValue('PRICE'),
       };
+    case 'indicator_cci':
+      return { kind: 'CCI', period: Number(block.getFieldValue('PERIOD')), applied_price: block.getFieldValue('PRICE') };
+    case 'indicator_wpr':
+      return { kind: 'WPR', period: Number(block.getFieldValue('PERIOD')) };
+    case 'indicator_momentum':
+      return { kind: 'MOMENTUM', period: Number(block.getFieldValue('PERIOD')), applied_price: block.getFieldValue('PRICE') };
+    case 'indicator_stddev':
+      return { kind: 'STDDEV', period: Number(block.getFieldValue('PERIOD')), applied_price: block.getFieldValue('PRICE') };
+    case 'indicator_mfi':
+      return { kind: 'MFI', period: Number(block.getFieldValue('PERIOD')) };
+    case 'indicator_demarker':
+      return { kind: 'DEMARKER', period: Number(block.getFieldValue('PERIOD')) };
+    case 'indicator_power':
+      return { kind: block.getFieldValue('POWER'), period: Number(block.getFieldValue('PERIOD')) };
+    case 'indicator_awesome':
+      return { kind: block.getFieldValue('OSC') };
+    case 'indicator_adx':
+      return { kind: 'ADX', line: block.getFieldValue('LINE'), period: Number(block.getFieldValue('PERIOD')) };
+    case 'indicator_sar': {
+      const step = Number(block.getFieldValue('STEP'));
+      const max = Number(block.getFieldValue('MAX'));
+      if (step > max) {
+        throw new WorkspaceValidationError('A Parabolic SAR block has Step (' + step + ') above Max (' + max + '). Step must not be larger than Max.');
+      }
+      return { kind: 'SAR', sar_step: step, sar_max: max };
+    }
+    case 'indicator_envelopes':
+      return {
+        kind: 'ENVELOPES',
+        band: block.getFieldValue('BAND'),
+        period: Number(block.getFieldValue('PERIOD')),
+        deviation: Number(block.getFieldValue('DEVIATION')),
+        ma_type: block.getFieldValue('TYPE'),
+        applied_price: block.getFieldValue('PRICE'),
+      };
+    case 'indicator_ichimoku':
+      return {
+        kind: 'ICHIMOKU',
+        line: block.getFieldValue('LINE'),
+        tenkan: Number(block.getFieldValue('TENKAN')),
+        kijun: Number(block.getFieldValue('KIJUN')),
+        senkou_b: Number(block.getFieldValue('SENKOU_B')),
+      };
+    case 'indicator_alligator':
+      return { kind: 'ALLIGATOR', line: block.getFieldValue('LINE') };
+    case 'price_extreme_block':
+      return { kind: block.getFieldValue('EXTREME'), period: Number(block.getFieldValue('PERIOD')) };
+    case 'spread_block':
+      return { kind: 'SPREAD' };
+    case 'pips_block':
+      return { kind: 'PIPS', value: Number(block.getFieldValue('VALUE')) };
+    case 'bars_ago_block': {
+      const inner = operandFromBlock(block.getInputTargetBlock('VALUE'));
+      // Shifts add up ("1 bar ago" of "2 bars ago" = 3 bars ago); the
+      // backend pushes a shift on math blocks down into every value inside.
+      inner.shift = (inner.shift || 0) + Number(block.getFieldValue('BARS'));
+      return inner;
+    }
+    case 'on_timeframe_block': {
+      const inner = operandFromBlock(block.getInputTargetBlock('VALUE'));
+      // The innermost timeframe wins, so only fill it in if nothing inside
+      // already chose one.
+      if (!inner.timeframe) inner.timeframe = block.getFieldValue('TIMEFRAME');
+      return inner;
+    }
+    case 'math_arith_block': {
+      const aBlock = block.getInputTargetBlock('A');
+      const bBlock = block.getInputTargetBlock('B');
+      if (!aBlock || !bBlock) {
+        throw new WorkspaceValidationError('A math block is missing one of its two inputs.');
+      }
+      if (resolveCategory(block) === 'Conflict') {
+        throw new WorkspaceValidationError('A math block combines incompatible value types (e.g. a price with a volume). Fix it before exporting.');
+      }
+      return { kind: 'ARITH', op: block.getFieldValue('OP'), left: operandFromBlock(aBlock), right: operandFromBlock(bBlock) };
+    }
+    case 'math_abs_block':
+      return { kind: 'ABS', left: operandFromBlock(block.getInputTargetBlock('VALUE')) };
     case 'indicator_stoch':
       return {
         kind: 'STOCH',
@@ -2327,6 +2954,64 @@ function conditionFromBlock(block) {
       right: operandFromBlock(rightBlock),
     };
   }
+  if (block.type === 'cross_block') {
+    const leftBlock = block.getInputTargetBlock('LEFT');
+    const rightBlock = block.getInputTargetBlock('RIGHT');
+    const leftCat = resolveCategory(leftBlock);
+    const rightCat = resolveCategory(rightBlock);
+    if (!categoryAllowedInCondition(leftCat) || !categoryAllowedInCondition(rightCat) || !categoriesCompatible(leftCat, rightCat)) {
+      throw new WorkspaceValidationError('A "crosses" block mixes incompatible value types (e.g. a price against a volume). Fix it before exporting.');
+    }
+    return {
+      type: 'cross',
+      left: operandFromBlock(leftBlock),
+      direction: block.getFieldValue('DIRECTION'),
+      right: operandFromBlock(rightBlock),
+      closed_bar: block.getFieldValue('WHEN') === 'CLOSED',
+    };
+  }
+  if (block.type === 'between_block') {
+    const blocks = ['VALUE', 'LOW', 'HIGH'].map((n) => block.getInputTargetBlock(n));
+    const cats = blocks.map(resolveCategory);
+    const ok = cats.every(categoryAllowedInCondition) &&
+      categoriesCompatible(cats[0], cats[1]) && categoriesCompatible(cats[0], cats[2]) && categoriesCompatible(cats[1], cats[2]);
+    if (!ok) {
+      throw new WorkspaceValidationError('A "between" block mixes incompatible value types. All three values must be the same kind (or plain numbers).');
+    }
+    return {
+      type: 'between',
+      value: operandFromBlock(blocks[0]),
+      low: operandFromBlock(blocks[1]),
+      high: operandFromBlock(blocks[2]),
+    };
+  }
+  if (block.type === 'trend_block') {
+    const valueBlock = block.getInputTargetBlock('VALUE');
+    if (valueBlock && !categoryAllowedInCondition(resolveCategory(valueBlock))) {
+      throw new WorkspaceValidationError('A "rising / falling" block holds a value that can\'t be used in a Condition.');
+    }
+    return {
+      type: 'trend',
+      value: operandFromBlock(valueBlock),
+      direction: block.getFieldValue('DIRECTION'),
+      bars: Number(block.getFieldValue('BARS')),
+      closed_bar: block.getFieldValue('WHEN') === 'CLOSED',
+    };
+  }
+  if (block.type === 'pattern_block') {
+    const tf = block.getFieldValue('TIMEFRAME');
+    return {
+      type: 'pattern',
+      pattern: block.getFieldValue('PATTERN'),
+      shift: Number(block.getFieldValue('SHIFT')),
+      timeframe: tf === 'RULE' ? null : tf,
+    };
+  }
+  if (block.type === 'not_block') {
+    const inner = block.getInputTargetBlock('INNER');
+    if (!inner) throw new WorkspaceValidationError('A NOT block is empty. Plug a condition into it.');
+    return { type: 'not', inner: conditionFromBlock(inner) };
+  }
   if (block.type === 'logical_operator') {
     const aBlock = block.getInputTargetBlock('A');
     const bBlock = block.getInputTargetBlock('B');
@@ -2340,7 +3025,7 @@ function conditionFromBlock(block) {
       right: conditionFromBlock(bBlock),
     };
   }
-  throw new WorkspaceValidationError(`The Condition slot must contain a comparison or Logical Operator block (found "${block.type}").`);
+  throw new WorkspaceValidationError(`The Condition slot must contain a condition block - a comparison, crosses, between, rising/falling, candle pattern, NOT or Logical Operator (found "${block.type}").`);
 }
 
 // Builds one rule's wire payload from a single "IF (Strategy Rule)" block.
