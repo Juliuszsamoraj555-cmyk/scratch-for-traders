@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Curve Fitting: How to Spot an Overfit Strategy - AlgoPuzzle</title>
+<meta name="description" content="A perfect backtest is often a warning sign. What curve fitting is, why testing more variants makes it worse, and how to check a strategy on unseen data." />
+<link rel="canonical" href="https://algopuzzle.com/blog/what-is-curve-fitting-overfitting.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="What Is Curve Fitting? How to Spot an Overfit Trading Strategy" />
+<meta property="og:description" content="Test 20 strategies with no edge and there's a 64% chance at least one looks great by pure luck. How curve fitting happens, and how to catch it before it costs money." />
+<meta property="og:url" content="https://algopuzzle.com/blog/what-is-curve-fitting-overfitting.html" />
+<meta property="og:image" content="https://algopuzzle.com/assets/og-image.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "What Is Curve Fitting? How to Spot an Overfit Trading Strategy",
+  "description": "A perfect backtest is often a warning sign. What curve fitting is, why testing more variants makes it worse, and how to check a strategy on unseen data.",
+  "author": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
+  "datePublished": "2026-09-30",
+  "dateModified": "2026-09-30",
+  "image": "https://algopuzzle.com/assets/og-image.png",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/what-is-curve-fitting-overfitting.html" }
+}
+</script>
+<!-- Mirrors the "Common questions" section below - keep the two in sync
+     when editing either one. Same pattern as index.html's own FAQPage
+     block. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is curve fitting in trading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Curve fitting (also called overfitting or over-optimization) is tuning a strategy's rules and parameters until they match the random noise of one particular stretch of historical data, instead of a pattern that repeats. The backtest looks excellent, but the strategy has memorized the past rather than learned something that carries into new data." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I know if my trading strategy is overfit?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Test it on data it has never seen. Keep the most recent part of your history aside, build and tune the strategy only on the older part, then run it once on the held-out part without changing anything. A strategy whose results collapse on the unseen period, or that only works with one exact parameter value while its neighbors lose, is very likely overfit." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does testing many strategy variations cause overfitting?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Because every extra variant is another chance for luck to look like skill. If a test has a 5% chance of making a strategy with no real edge look good, testing 20 such variants gives about a 64% chance that at least one of them looks good by pure chance - and that lucky one is exactly the variant you would pick." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is optimizing strategy parameters always bad?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Comparing a small number of sensible parameter values is normal. The problem is optimizing many parameters over one data set until the result is as good as it can get, then trusting that result. Prefer parameters where nearby values also work, keep the number of rules small, and always confirm the final version on data that played no part in choosing it." }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://algopuzzle.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://algopuzzle.com/blog/" },
+    { "@type": "ListItem", "position": 3, "name": "What Is Curve Fitting? How to Spot an Overfit Trading Strategy", "item": "https://algopuzzle.com/blog/what-is-curve-fitting-overfitting.html" }
+  ]
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+<link rel="stylesheet" href="../assets/vendor/tailwind/tailwind-compiled.css" />
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  article p, article ul, article ol { max-width: 68ch; }
+  article ol { list-style: decimal; padding-left: 1.5rem; }
+  article ol li + li { margin-top: 0.5rem; }
+  article table { border-collapse: collapse; width: 100%; max-width: 68ch; }
+  article th, article td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #374151; vertical-align: top; }
+  article th { background: #111827; }
+  /* Tables scroll inside their own box on narrow screens instead of
+     pushing the whole page wider than the viewport. */
+  .table-wrap { overflow-x: auto; max-width: 100%; }
+</style>
+<script src="../assets/analytics.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="../index.html" class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(1,1) scale(0.175)">
+            <path d="M10,0 L70,0 A10,10 0 0,1 80,10 L80,26 A14,14 0 0,1 80,54 L80,70 A10,10 0 0,1 70,80 L54,80 A14,14 0 0,1 26,80 L10,80 A10,10 0 0,1 0,70 L0,10 A10,10 0 0,1 10,0 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M90,0 L150,0 A10,10 0 0,1 160,10 L160,70 A10,10 0 0,1 150,80 L134,80 A14,14 0 0,1 106,80 L90,80 A10,10 0 0,1 80,70 L80,54 A14,14 0 0,0 80,26 L80,10 A10,10 0 0,1 90,0 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M10,80 L26,80 A14,14 0 0,0 54,80 L70,80 A10,10 0 0,1 80,90 L80,106 A14,14 0 0,1 80,134 L80,150 A10,10 0 0,1 70,160 L10,160 A10,10 0 0,1 0,150 L0,90 A10,10 0 0,1 10,80 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+            <path d="M90,80 L106,80 A14,14 0 0,0 134,80 L150,80 A10,10 0 0,1 160,90 L160,150 A10,10 0 0,1 150,160 L90,160 A10,10 0 0,1 80,150 L80,134 A14,14 0 0,0 80,106 L80,90 A10,10 0 0,1 90,80 Z" fill="#f9fafb" stroke="#059669" stroke-width="3"/>
+            <path d="M92,64 L104,50 L98,58 L116,38 L108,46 L140,12 L128,16 M140,12 L140,24" stroke="#f9fafb" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="122" x2="20" y2="152" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="16" y="128" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="34" y1="104" x2="34" y2="138" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="30" y="110" width="8" height="22" fill="#f9fafb"/>
+            <line x1="48" y1="114" x2="48" y2="144" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="44" y="120" width="8" height="18" fill="none" stroke="#f9fafb" stroke-width="1.5"/>
+            <line x1="62" y1="92" x2="62" y2="130" stroke="#f9fafb" stroke-width="1.5"/>
+            <rect x="58" y="98" width="8" height="26" fill="#f9fafb"/>
+          </g>
+        </svg>
+        <span class="font-semibold text-gray-100 tracking-tight">Algo<span class="text-emerald-400">Puzzle</span></span>
+      </a>
+      <a href="../index_1.html"
+        class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-md shadow transition">
+        Open the Builder
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-16">
+    <a href="../index.html#blog" class="text-sm text-emerald-400 hover:text-emerald-300 transition">&larr; Back to all articles</a>
+
+    <p class="mt-6 text-xs font-medium text-emerald-400 uppercase tracking-wide">Strategies</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-gray-50">What Is Curve Fitting? How to Spot an Overfit Trading Strategy</h1>
+
+    <article class="mt-8 space-y-5 text-gray-300 leading-relaxed">
+      <p>Curve fitting - also called overfitting or over-optimization - is tuning a trading strategy's rules and parameters until they match the random noise in one particular stretch of price history, instead of a pattern that actually repeats. The result is a backtest that looks excellent and a strategy that falls apart on new data, because it memorized the past rather than learned anything about the market. It usually happens gradually: add a filter that removes a few losing trades, nudge the RSI level from 30 to 28 because 28 tested better, exclude Fridays because Fridays were bad that year. Each change improves the backtest and each one is a small bet that a coincidence will repeat. The practical defense is simple to state: judge a strategy only on data that played no part in building it. If you tune on one period and test once, untouched, on another, an overfit strategy gives itself away - its results on the unseen period drop sharply, while a strategy with a real edge holds up roughly as well as it did before.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Why a perfect backtest is a warning sign</h2>
+      <p>A backtest with almost no losing streaks and a straight-line equity curve is more often a sign of overfitting than of a great strategy. Real markets are noisy, and a strategy with a genuine but modest edge still produces uneven results and real drawdowns. When every bump has been smoothed away, the usual explanation is that the rules were bent around those specific bumps - which is exactly the part of the history that won't repeat.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Testing more variants makes luck look like skill</h2>
+      <p>Every extra variant you test is another chance for a strategy with no edge to look good by pure chance. Suppose a single test has a 5% chance of making a no-edge strategy look convincing. The chance that at least one of several such variants looks convincing grows fast:</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Variants tested</th><th>Chance at least one looks good by luck</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>5%</td></tr>
+          <tr><td>5</td><td>23%</td></tr>
+          <tr><td>10</td><td>40%</td></tr>
+          <tr><td>20</td><td>64%</td></tr>
+          <tr><td>50</td><td>92%</td></tr>
+          <tr><td>100</td><td>99%</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>(Calculated as 1 &minus; 0.95<sup>n</sup>, assuming independent tests.) Nobody picks the average variant out of 50 - they pick the best one, which is precisely the one most likely to be a lucky fit. This is why an optimizer sweeping thousands of parameter combinations will always find something that looks impressive, edge or no edge.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Signs of an overfit strategy</h2>
+      <p>Overfit strategies tend to share a handful of recognizable traits, and most of them can be checked without any special software.</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Likely overfit</th><th>More likely robust</th></tr></thead>
+        <tbody>
+          <tr><td>Works only at one exact parameter value (RSI 28 wins, 27 and 29 lose)</td><td>Neighboring values also work, a little better or worse</td></tr>
+          <tr><td>Many rules and filters, each added to remove specific losing trades</td><td>A few rules with a reason that makes sense on its own</td></tr>
+          <tr><td>Very few trades behind the result</td><td>Enough trades that a handful of outliers can't carry it</td></tr>
+          <tr><td>Results collapse on a period it wasn't tuned on</td><td>Results on unseen data are somewhat worse, not a different story</td></tr>
+          <tr><td>Profit comes mostly from one or two huge trades</td><td>Profit spread across many ordinary trades</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">How to test a strategy on data it hasn't seen</h2>
+      <p>The most reliable check against curve fitting is an out-of-sample test: build on one period, then judge on a later period the strategy never saw.</p>
+      <ol>
+        <li><strong class="text-gray-100">Split your history before you start.</strong> Set the most recent part aside - for example the last quarter of the data - and don't look at it.</li>
+        <li><strong class="text-gray-100">Build and tune only on the older part.</strong> This is the in-sample period. Compare a few sensible settings, not hundreds.</li>
+        <li><strong class="text-gray-100">Freeze the rules.</strong> Decide on the final version before running the held-out period.</li>
+        <li><strong class="text-gray-100">Run it once on the held-out part.</strong> This is the out-of-sample result - the closest thing a backtest offers to a preview of live trading.</li>
+        <li><strong class="text-gray-100">Don't go back and re-tune.</strong> Adjusting the rules after seeing the out-of-sample result turns it into in-sample data, and the test stops meaning anything.</li>
+      </ol>
+      <p>Repeating this across several consecutive windows (walk-forward testing) gives an even stronger read. After that, a spell on a demo account adds the things no backtest models perfectly - see <a href="backtesting-vs-demo-trading.html" class="text-emerald-400 hover:text-emerald-300 underline">backtesting vs. demo trading</a> for what each one does and doesn't tell you.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Simple rules overfit less</h2>
+      <p>The fewer rules and parameters a strategy has, the fewer ways it has to bend itself around noise. A trend filter, one entry condition, a stop loss and a take profit leave little room to memorize history; ten stacked filters leave a lot. Judge a candidate on its <a href="trade-expectancy-explained.html" class="text-emerald-400 hover:text-emerald-300 underline">expectancy</a> and drawdown on unseen data rather than on its best in-sample number.</p>
+      <p>AlgoPuzzle is a no-code strategy builder: you assemble the rules from blocks and export a MetaTrader 5, MetaTrader 4 or cTrader file, then backtest it in the platform's own Strategy Tester. Because changing a parameter is a single edit and re-export, it's easy to check whether a strategy survives nearby values and a held-out period before trusting it.</p>
+
+      <h2 class="text-xl font-semibold text-gray-100 pt-2">Common questions</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-100">What is curve fitting in trading?</p>
+          <p class="mt-1">Curve fitting (also called overfitting or over-optimization) is tuning a strategy's rules and parameters until they match the random noise of one particular stretch of historical data, instead of a pattern that repeats. The backtest looks excellent, but the strategy has memorized the past rather than learned something that carries into new data.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">How do I know if my trading strategy is overfit?</p>
+          <p class="mt-1">Test it on data it has never seen. Keep the most recent part of your history aside, build and tune the strategy only on the older part, then run it once on the held-out part without changing anything. A strategy whose results collapse on the unseen period, or that only works with one exact parameter value while its neighbors lose, is very likely overfit.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Why does testing many strategy variations cause overfitting?</p>
+          <p class="mt-1">Because every extra variant is another chance for luck to look like skill. If a test has a 5% chance of making a strategy with no real edge look good, testing 20 such variants gives about a 64% chance that at least one of them looks good by pure chance - and that lucky one is exactly the variant you would pick.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-100">Is optimizing strategy parameters always bad?</p>
+          <p class="mt-1">No. Comparing a small number of sensible parameter values is normal. The problem is optimizing many parameters over one data set until the result is as good as it can get, then trusting that result. Prefer parameters where nearby values also work, keep the number of rules small, and always confirm the final version on data that played no part in choosing it.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="mt-12 border-t border-gray-800 pt-8">
+      <a href="../index_1.html"
+        class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition">
+        Build a simple strategy and test it properly
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-base text-gray-500">
+      <span>&copy; <span id="year"></span> AlgoPuzzle</span>
+      <span>Built for traders, by traders.</span>
+      <div class="flex items-center gap-6">
+        <a href="https://x.com/AlgoPuzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on X">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#f9fafb"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/algopuzzle/" target="_blank" rel="noopener" aria-label="AlgoPuzzle on Instagram">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="igGradFooter" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#feda75"/>
+                <stop offset="0.3" stop-color="#fa7e1e"/>
+                <stop offset="0.6" stop-color="#d62976"/>
+                <stop offset="1" stop-color="#4f5bd5"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4.2" stroke="url(#igGradFooter)" stroke-width="1.8"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="url(#igGradFooter)"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@Algo-Puzzle" target="_blank" rel="noopener" aria-label="AlgoPuzzle on YouTube">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.391.524A2.994 2.994 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a2.994 2.994 0 0 0 2.107 2.117c1.886.524 9.391.524 9.391.524s7.505 0 9.391-.524a2.994 2.994 0 0 0 2.107-2.117C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+        </a>
+        <a href="mailto:support@algopuzzle.com" class="hover:text-emerald-300 transition">support@algopuzzle.com</a>
+      </div>
+    </div>
+  </footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
