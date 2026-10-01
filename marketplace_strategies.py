@@ -65,6 +65,12 @@ MARKETPLACE_STRATEGY_TIERS: dict[str, str] = {
     "usdcad-ma20-trend-m30": "standard",
     "nzdusd-bollinger-fade-m5": "standard",
     "xauusd-ma20-short-m5": "standard",
+    "usdcad-prevclose-momentum-m15": "free",
+    "usdcad-macross-2050-m15": "featured",
+    "usdchf-bollinger-fade-m15": "standard",
+    "usdjpy-ema50-short-h1": "standard",
+    "usdjpy-ma100-short-m5": "standard",
+    "eurusd-ma20-short-m15": "standard",
 }
 
 
@@ -79,9 +85,15 @@ MARKETPLACE_STRATEGY_TIERS: dict[str, str] = {
 # `archived: true` in assets/marketplace-data.js in sync.
 ARCHIVED_STRATEGY_IDS: frozenset[str] = frozenset({
     "audusd-prevclose-m15",
+    "gbpusd-prevclose-fade-h1",
+    "nzdusd-bollinger-fade-m5",
+    "usdcad-ema50-trend-m15",
+    "usdcad-ma20-trend-m30",
     "usdcad-macross-m15",
     "usdcad-prevclose-m15",
+    "usdjpy-macd-momentum-h1",
     "usdjpy-prevclose-m15",
+    "xauusd-ma20-short-m5",
     "xauusd-ma20-trend-m5",
     "xauusd-prevclose-m5",
 })
@@ -402,6 +414,283 @@ MARKETPLACE_STRATEGY_CONFIGS: dict = {
             {
                 "asset": "XAUUSD",
                 "timeframe": "PERIOD_M5",
+                "condition": {
+                    "type": "comparison",
+                    "left": {
+                        "kind": "CANDLE",
+                        "candle_type": "CURRENT"
+                    },
+                    "operator": "<",
+                    "right": {
+                        "kind": "MA",
+                        "period": 20,
+                        "ma_type": "MODE_SMA"
+                    }
+                },
+                "actions": [
+                    {
+                        "direction": "SELL",
+                        "lot": 0.1,
+                        "sl": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 1.5
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        },
+                        "tp": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 3.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        }
+                    }
+                ],
+                "max_positions": 1
+            }
+        ]
+    },
+    "usdcad-prevclose-momentum-m15": {
+        "rules": [
+            {
+                "asset": "USDCAD",
+                "timeframe": "PERIOD_M15",
+                "condition": {
+                    "type": "comparison",
+                    "left": {
+                        "kind": "CANDLE",
+                        "candle_type": "CURRENT"
+                    },
+                    "operator": ">",
+                    "right": {
+                        "kind": "CANDLE",
+                        "candle_type": "PREV_CLOSE"
+                    }
+                },
+                "actions": [
+                    {
+                        "direction": "BUY",
+                        "lot": 0.1,
+                        "sl": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 2.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        },
+                        "tp": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 2.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        }
+                    }
+                ],
+                "max_positions": 1
+            }
+        ]
+    },
+    "usdcad-macross-2050-m15": {
+        "rules": [
+            {
+                "asset": "USDCAD",
+                "timeframe": "PERIOD_M15",
+                "condition": {
+                    "type": "comparison",
+                    "left": {
+                        "kind": "MA",
+                        "period": 20,
+                        "ma_type": "MODE_EMA"
+                    },
+                    "operator": ">",
+                    "right": {
+                        "kind": "MA",
+                        "period": 50,
+                        "ma_type": "MODE_EMA"
+                    }
+                },
+                "actions": [
+                    {
+                        "direction": "BUY",
+                        "lot": 0.1,
+                        "sl": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 2.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        },
+                        "tp": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 2.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        }
+                    }
+                ],
+                "max_positions": 1
+            }
+        ]
+    },
+    "usdchf-bollinger-fade-m15": {
+        "rules": [
+            {
+                "asset": "USDCHF",
+                "timeframe": "PERIOD_M15",
+                "condition": {
+                    "type": "comparison",
+                    "left": {
+                        "kind": "CANDLE",
+                        "candle_type": "CURRENT"
+                    },
+                    "operator": "<",
+                    "right": {
+                        "kind": "BANDS",
+                        "period": 20,
+                        "deviation": 2.0,
+                        "band": "LOWER"
+                    }
+                },
+                "actions": [
+                    {
+                        "direction": "BUY",
+                        "lot": 0.1,
+                        "sl": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 2.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        },
+                        "tp": {
+                            "kind": "MULTIPLY",
+                            "left": {
+                                "kind": "NUMBER",
+                                "value": 2.0
+                            },
+                            "right": {
+                                "kind": "ATR",
+                                "period": 14
+                            }
+                        }
+                    }
+                ],
+                "max_positions": 1
+            }
+        ]
+    },
+    "usdjpy-ema50-short-h1": {
+        "rules": [
+            {
+                "asset": "USDJPY",
+                "timeframe": "PERIOD_H1",
+                "condition": {
+                    "type": "comparison",
+                    "left": {
+                        "kind": "CANDLE",
+                        "candle_type": "CURRENT"
+                    },
+                    "operator": "<",
+                    "right": {
+                        "kind": "MA",
+                        "period": 50,
+                        "ma_type": "MODE_EMA"
+                    }
+                },
+                "actions": [
+                    {
+                        "direction": "SELL",
+                        "lot": 0.1,
+                        "sl": {
+                            "kind": "RISK_VALUE",
+                            "value": 15,
+                            "unit": "PIPS"
+                        },
+                        "tp": {
+                            "kind": "RISK_VALUE",
+                            "value": 45,
+                            "unit": "PIPS"
+                        }
+                    }
+                ],
+                "max_positions": 1
+            }
+        ]
+    },
+    "usdjpy-ma100-short-m5": {
+        "rules": [
+            {
+                "asset": "USDJPY",
+                "timeframe": "PERIOD_M5",
+                "condition": {
+                    "type": "comparison",
+                    "left": {
+                        "kind": "CANDLE",
+                        "candle_type": "CURRENT"
+                    },
+                    "operator": "<",
+                    "right": {
+                        "kind": "MA",
+                        "period": 100,
+                        "ma_type": "MODE_SMA"
+                    }
+                },
+                "actions": [
+                    {
+                        "direction": "SELL",
+                        "lot": 0.1,
+                        "sl": {
+                            "kind": "RISK_VALUE",
+                            "value": 20,
+                            "unit": "PIPS"
+                        },
+                        "tp": {
+                            "kind": "RISK_VALUE",
+                            "value": 20,
+                            "unit": "PIPS"
+                        }
+                    }
+                ],
+                "max_positions": 1
+            }
+        ]
+    },
+    "eurusd-ma20-short-m15": {
+        "rules": [
+            {
+                "asset": "EURUSD",
+                "timeframe": "PERIOD_M15",
                 "condition": {
                     "type": "comparison",
                     "left": {

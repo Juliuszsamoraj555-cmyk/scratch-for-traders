@@ -16,7 +16,7 @@
     <!-- Rotating weekly content, real Stripe checkout - noindex removed
          2026-09-01, see the page's own header comment. -->
     <loc>https://algopuzzle.com/strategy-of-the-week.html</loc>
-    <lastmod>2026-09-01</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -100,7 +100,7 @@
   </url>
   <url>
     <loc>https://algopuzzle.com/blog/free-backtested-trading-strategies.html</loc>
-    <lastmod>2026-09-01</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
