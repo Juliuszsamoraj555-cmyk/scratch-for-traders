@@ -23,7 +23,7 @@
   "author": { "@type": "Organization", "name": "AlgoPuzzle" },
   "publisher": { "@type": "Organization", "name": "AlgoPuzzle" },
   "datePublished": "2026-09-27",
-  "dateModified": "2026-09-27",
+  "dateModified": "2026-10-01",
   "image": "https://algopuzzle.com/assets/og-image.png",
   "mainEntityOfPage": { "@type": "WebPage", "@id": "https://algopuzzle.com/blog/trade-expectancy-explained.html" }
 }
@@ -49,7 +49,7 @@
     {
       "@type": "Question",
       "name": "Can a high win rate strategy still lose money?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. A strategy that wins 70% of the time but risks 2R to make 0.5R has an expectancy of -0.15R per trade - it loses money on average despite winning most of the time, because each loss costs four times what each win pays." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. A strategy that wins 70% of the time but makes only 0.25R on each win while losing 1R on each loss has an expectancy of -0.125R per trade (0.7 x 0.25 - 0.3 x 1) - it loses money on average despite winning most of the time, because each loss costs four times what each win pays." }
     },
     {
       "@type": "Question",
@@ -140,7 +140,7 @@
           <tr><td>60%</td><td>1 : 1</td><td>+0.20R</td></tr>
           <tr><td>50%</td><td>1 : 1</td><td>0.00R</td></tr>
           <tr><td>50%</td><td>2 : 1</td><td>+0.50R</td></tr>
-          <tr><td>70%</td><td>0.5 : 1</td><td>&minus;0.15R</td></tr>
+          <tr><td>70%</td><td>0.25 : 1</td><td>&minus;0.125R</td></tr>
         </tbody>
       </table>
       </div>
@@ -167,7 +167,7 @@
         </div>
         <div>
           <p class="font-semibold text-gray-100">Can a high win rate strategy still lose money?</p>
-          <p class="mt-1">Yes. A strategy that wins 70% of the time but risks 2R to make 0.5R has an expectancy of -0.15R per trade - it loses money on average despite winning most of the time, because each loss costs four times what each win pays.</p>
+          <p class="mt-1">Yes. A strategy that wins 70% of the time but makes only 0.25R on each win while losing 1R on each loss has an expectancy of -0.125R per trade (0.7 x 0.25 - 0.3 x 1) - it loses money on average despite winning most of the time, because each loss costs four times what each win pays.</p>
         </div>
         <div>
           <p class="font-semibold text-gray-100">Is a positive expectancy strategy guaranteed to be profitable?</p>
