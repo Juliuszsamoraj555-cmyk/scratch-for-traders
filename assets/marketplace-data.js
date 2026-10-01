@@ -72,6 +72,7 @@ const MARKETPLACE_STRATEGIES = [
   },
   {
     id: "usdchf-bollinger-fade-m15",
+    archived: true,
     tier: "paid",
     style: "Mean reversion",
     timeframe: "M15",

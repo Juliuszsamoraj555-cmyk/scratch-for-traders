@@ -84,6 +84,10 @@ MARKETPLACE_STRATEGY_TIERS: dict[str, str] = {
 # directly). Add an id here when it leaves the lineup; keep the matching
 # `archived: true` in assets/marketplace-data.js in sync.
 ARCHIVED_STRATEGY_IDS: frozenset[str] = frozenset({
+    # 2026-10-01: pulled the same day - the exported EA lost money in the real
+    # MT5 Strategy Tester (Sep 2026, real ticks: 40 trades, PF 0.95), unlike the
+    # lab numbers shown (lab evaluates at bar close, the EA at the next bar open).
+    "usdchf-bollinger-fade-m15",
     "audusd-prevclose-m15",
     "gbpusd-prevclose-fade-h1",
     "nzdusd-bollinger-fade-m5",

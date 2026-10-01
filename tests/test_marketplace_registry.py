@@ -95,7 +95,9 @@ def test_active_lineup_is_one_free_one_featured_and_the_rest_standard():
     active = [e for e in ENTRIES if not e["archived"]]
     assert sum(e["tier"] == "free" for e in active) == 1
     assert sum(e["featured"] for e in active) == 1
-    assert len(active) == 6
+    # 6 after a rotation; 5 is allowed when a strategy is pulled mid-week
+    # (2026-10-01: usdchf-bollinger-fade-m15 failed the real MT5 Strategy Tester).
+    assert len(active) in (5, 6)
 
 
 def test_archived_strategies_cannot_be_bought_but_stay_downloadable():
